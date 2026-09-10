@@ -1,1 +1,2 @@
 [2026-09-10 11:20:15 +0530] feat(scrapers): configure headless resilient HTTP client with exponential backoff for NEPSE floorsheet API
+[2026-09-10 16:45:00 +0530] chore(schema): standardize canonical parquet schema for raw tick-level order book captures
