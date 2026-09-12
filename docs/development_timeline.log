@@ -2,3 +2,4 @@
 [2026-09-10 16:45:00 +0530] chore(schema): standardize canonical parquet schema for raw tick-level order book captures
 [2026-09-11 10:30:10 +0530] feat(ingestion): implement rate-limited scraping workers for historical 2014-2020 trade tapes
 [2026-09-11 15:15:20 +0530] test(ingestion): verify SHA-256 payload checksum validation on scraped daily payloads
+[2026-09-12 12:00:30 +0530] feat(lakehouse): initialize DuckDB analytical catalog structure and partition tables
