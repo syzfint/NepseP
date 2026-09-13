@@ -5,3 +5,4 @@
 [2026-09-12 12:00:30 +0530] feat(lakehouse): initialize DuckDB analytical catalog structure and partition tables
 [2026-09-12 17:40:00 +0530] perf(io): benchmark read_parquet vs native arrow stream ingestion for high-frequency ticks
 [2026-09-13 11:10:00 +0530] feat(scrubbing): draft heuristic anti-wash trade detection logic for self-crossing orders
+[2026-09-13 15:25:40 +0530] docs(methodology): document broker license range allocation #1-59 for traditional broker cohort
