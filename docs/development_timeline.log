@@ -10,3 +10,4 @@
 [2026-09-14 16:30:15 +0530] test(bars): validate High >= Low and Open/Close boundary invariants on 500k historical daily bars
 [2026-09-15 11:50:00 +0530] feat(corporate): build NFRS financial disclosures crawler and PDF parser for quarterly statements
 [2026-09-15 17:10:30 +0530] feat(audit): implement point-in-time publication timestamp alignment preventing disclosure look-ahead bias
+[2026-09-16 10:15:45 +0530] feat(sovereign): prototype Nepal Rastra Bank (NRB) treasury bill yield curve extractor
