@@ -12,3 +12,4 @@
 [2026-09-15 17:10:30 +0530] feat(audit): implement point-in-time publication timestamp alignment preventing disclosure look-ahead bias
 [2026-09-16 10:15:45 +0530] feat(sovereign): prototype Nepal Rastra Bank (NRB) treasury bill yield curve extractor
 [2026-09-16 14:40:00 +0530] test(sovereign): verify 91-day and 364-day weighted average discount rate parsing
+[2026-09-17 12:05:10 +0530] feat(promoter): design lock-in expiration date calendar matrix across commercial bank offerings
