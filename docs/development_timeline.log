@@ -13,3 +13,4 @@
 [2026-09-16 10:15:45 +0530] feat(sovereign): prototype Nepal Rastra Bank (NRB) treasury bill yield curve extractor
 [2026-09-16 14:40:00 +0530] test(sovereign): verify 91-day and 364-day weighted average discount rate parsing
 [2026-09-17 12:05:10 +0530] feat(promoter): design lock-in expiration date calendar matrix across commercial bank offerings
+[2026-09-17 16:50:20 +0530] chore(metadata): map SEBON promoter holding regulatory guidelines (minimum 3-year lock-in)
