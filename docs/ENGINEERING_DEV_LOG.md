@@ -13,3 +13,6 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 - Authored `01_merge_floorsheet_csvs.py` to aggregate raw broker trade records.
 - Established schema mapping for legacy transaction numbers, stock symbols, and broker IDs.
 
+- Authored `02_stream_merge_floorsheet_csvs.py` using chunked streaming reads to prevent out-of-memory errors.
+- Prepared groundwork for Hive-partitioned tick data lakehouse.
+
