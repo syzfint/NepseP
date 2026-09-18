@@ -9,3 +9,7 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 - Configured `.gitignore` rules for market data caches, DuckDB files, and Parquet outputs.
 - Designed directory structure for raw ingestion, processed data, and feature store.
 
+## 2026-09-18: Raw Floorsheet Ingestion Pipeline
+- Authored `01_merge_floorsheet_csvs.py` to aggregate raw broker trade records.
+- Established schema mapping for legacy transaction numbers, stock symbols, and broker IDs.
+
