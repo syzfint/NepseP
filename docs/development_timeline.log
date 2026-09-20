@@ -16,3 +16,4 @@
 [2026-09-17 16:50:20 +0530] chore(metadata): map SEBON promoter holding regulatory guidelines (minimum 3-year lock-in)
 [2026-09-19 11:30:00 +0530] feat(features): implement fractionally differentiated features (FFD) using Marcos Lopez de Prado method
 [2026-09-19 16:15:35 +0530] perf(features): optimize FFD memory-preserving window weights with binomial series cutoff 1e-4
+[2026-09-20 10:40:20 +0530] feat(ofi): develop Cont-Stoikov multi-level Order Flow Imbalance (OFI) metric from broker tape
