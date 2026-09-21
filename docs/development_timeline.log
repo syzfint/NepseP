@@ -18,3 +18,4 @@
 [2026-09-19 16:15:35 +0530] perf(features): optimize FFD memory-preserving window weights with binomial series cutoff 1e-4
 [2026-09-20 10:40:20 +0530] feat(ofi): develop Cont-Stoikov multi-level Order Flow Imbalance (OFI) metric from broker tape
 [2026-09-20 15:20:00 +0530] test(ofi): verify OFI cross-sectional correlation with next-day price momentum across top 20 tickers
+[2026-09-21 11:15:00 +0530] feat(hawkes): design multivariate Hawkes process model tracking broker syndicate clustering
