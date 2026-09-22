@@ -20,3 +20,4 @@
 [2026-09-20 15:20:00 +0530] test(ofi): verify OFI cross-sectional correlation with next-day price momentum across top 20 tickers
 [2026-09-21 11:15:00 +0530] feat(hawkes): design multivariate Hawkes process model tracking broker syndicate clustering
 [2026-09-21 17:05:40 +0530] perf(hawkes): implement branch-and-bound mutual excitation matrix estimation in C++/Cython
+[2026-09-22 10:20:10 +0530] feat(labels): implement Gate G4 Triple-Barrier labeling with dynamic ATR horizontal barriers
