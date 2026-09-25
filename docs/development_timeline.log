@@ -27,3 +27,4 @@
 [2026-09-24 10:35:00 +0530] feat(models): train LightGBM quantile regression models for asymmetric downside value-at-risk (VaR)
 [2026-09-24 15:30:45 +0530] perf(models): calibrate hyperparameter tuning with Optuna using continuous ranked probability score
 [2026-09-25 11:45:20 +0530] feat(risk): implement Schur-RA-HRP (Hierarchical Risk Parity with Conditional Schur Complements)
+[2026-09-25 17:15:00 +0530] test(risk): verify quasi-diagonalization and tree clustering on NEPSE illiquid correlation matrices
