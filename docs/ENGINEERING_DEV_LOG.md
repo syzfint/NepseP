@@ -16,3 +16,7 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 - Authored `02_stream_merge_floorsheet_csvs.py` using chunked streaming reads to prevent out-of-memory errors.
 - Prepared groundwork for Hive-partitioned tick data lakehouse.
 
+## 2026-09-27: News Harness & Trading Calendar
+- Authored `02_nepal_stock_exchange_trading_calendar.py` modeling Bikram Sambat (BS) holidays and NPT trading hours (11:00-15:00).
+- Implemented session offset calculator and T+0 trading day resolution.
+
