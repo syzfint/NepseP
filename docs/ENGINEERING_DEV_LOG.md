@@ -20,3 +20,6 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 - Authored `02_nepal_stock_exchange_trading_calendar.py` modeling Bikram Sambat (BS) holidays and NPT trading hours (11:00-15:00).
 - Implemented session offset calculator and T+0 trading day resolution.
 
+- Authored `03_duckdb_news_database_connector.py` for structured persistence in `news_and_events.duckdb`.
+- Integrated SHA-256 deduplication and verification states for NRB, SEBON, and NEPSE notices.
+
