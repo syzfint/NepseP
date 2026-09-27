@@ -29,3 +29,5 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 - Authored `01_calculate_event_study_abnormal_returns.py` to compute post-announcement abnormal returns.
 - Modeled estimation windows [-90, -1] and event windows [0, +5] to track market reaction.
 
+- Authored `04_run_end_to_end_ml_pipeline.py` uniting disclosures, prices, and event study outcomes.
+
