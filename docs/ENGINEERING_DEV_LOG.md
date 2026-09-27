@@ -23,3 +23,6 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 - Authored `03_duckdb_news_database_connector.py` for structured persistence in `news_and_events.duckdb`.
 - Integrated SHA-256 deduplication and verification states for NRB, SEBON, and NEPSE notices.
 
+- Authored `03_classify_news_sentiment_and_topics.py` to extract polarity and subjectivity from announcements.
+- Mapped event types into 5 canonical categories (Dividends, Rights, Mergers, Earnings, AGM).
+
