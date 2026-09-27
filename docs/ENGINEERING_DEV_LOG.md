@@ -26,3 +26,6 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 - Authored `03_classify_news_sentiment_and_topics.py` to extract polarity and subjectivity from announcements.
 - Mapped event types into 5 canonical categories (Dividends, Rights, Mergers, Earnings, AGM).
 
+- Authored `01_calculate_event_study_abnormal_returns.py` to compute post-announcement abnormal returns.
+- Modeled estimation windows [-90, -1] and event windows [0, +5] to track market reaction.
+
