@@ -37,3 +37,5 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 
 - Authored `03_scrape_global_macro_news.py` tracking crude oil, gold, remittance, and interest rate macro signals.
 
+- Authored `05_demo_feature_extraction_examples.py` demonstrating rolling momentum, RSI, and VWAP features.
+
