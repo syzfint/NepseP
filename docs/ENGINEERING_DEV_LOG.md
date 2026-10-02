@@ -35,3 +35,5 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 - Authored `02_scrape_nepali_financial_news.py` targeting ShareSansar, Merolagani, and Bizpati feeds.
 - Added content hashing and duplicate elimination.
 
+- Authored `03_scrape_global_macro_news.py` tracking crude oil, gold, remittance, and interest rate macro signals.
+
