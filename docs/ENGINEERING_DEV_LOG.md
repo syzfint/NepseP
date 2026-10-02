@@ -39,3 +39,5 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 
 - Authored `05_demo_feature_extraction_examples.py` demonstrating rolling momentum, RSI, and VWAP features.
 
+- Authored `05_load_partitioned_market_data.py` loading multi-year daily CSVs into DuckDB.
+
