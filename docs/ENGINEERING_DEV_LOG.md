@@ -31,3 +31,7 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 
 - Authored `04_run_end_to_end_ml_pipeline.py` uniting disclosures, prices, and event study outcomes.
 
+## 2026-10-02: Live Scrapers & Market Ingestion
+- Authored `02_scrape_nepali_financial_news.py` targeting ShareSansar, Merolagani, and Bizpati feeds.
+- Added content hashing and duplicate elimination.
+
