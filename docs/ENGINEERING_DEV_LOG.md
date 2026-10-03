@@ -44,3 +44,6 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 ## 2026-10-03: Master Orchestration & Stress Testing
 - Developed `run_all_pipelines.py` orchestrating raw ingestion, feature creation, and backtesting.
 
+- Authored `08_extreme_bottleneck_stress_test.py` subjecting database to 40+ concurrent workers.
+- Exposed concurrency bottlenecks and connection exhaustion patterns.
+
