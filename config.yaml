@@ -1,0 +1,20 @@
+system:
+  starting_capital: 10000000.0  # NPR 10 Million
+  annual_trading_days: 240
+  adv_cap_pct: 0.05             # 5% raw daily volume limit
+
+triple_barrier:
+  profit_target_sigma: 2.0      # Upper barrier: P_t * (1 + 2.0 * sigma)
+  stop_loss_sigma: 1.5          # Lower barrier: P_t * (1 - 1.5 * sigma)
+  vertical_horizon_days: 10     # Max holding horizon (H)
+
+friction:
+  sebon_fee_pct: 0.00015        # 0.015% SEBON fee
+  dp_charge_npr: 25.0           # NPR 25 per trade
+  cgt_short_term_pct: 0.075     # 7.5% CGT on gains (no loss offset)
+  slippage_pct: 0.0020          # 0.20% effective spread slippage
+
+cross_validation:
+  n_splits: 5
+  purging_days: 10
+  embargo_days: 10
