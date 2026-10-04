@@ -57,3 +57,5 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 - Authored `33_clef_inference_bridge.py` combining candlestick vision tokens with textual disclosures.
 - Implemented Colab T4 LoRA fine-tuning scripts in `notebooks/35_colab_train_clef_lora.py`.
 
+- Authored `34_build_clef_training_dataset.py` preparing paired chart-image and disclosure training tensors.
+
