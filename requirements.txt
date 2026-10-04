@@ -1,6 +1,6 @@
 advanced-research==0.2.2
 aiohappyeyeballs==2.6.2
-aiohttp==3.14.0
+aiohttp==3.14.3
 aiosignal==1.4.0
 aistudio-sdk==0.3.8
 alembic==1.20.0
@@ -8,7 +8,7 @@ altair==6.3.0
 annotated-doc==0.0.4
 annotated-types==0.7.0
 anthropic==1.8.0
-anyio==4.12.1
+anyio==4.14.2
 asyncio==4.0.0
 attrs==26.1.0
 babel==2.18.0
@@ -26,7 +26,7 @@ colorlog==6.10.1
 contourpy==1.3.3
 courlan==1.4.0
 crc32c==2.8
-cryptography==46.0.7
+cryptography==50.0.0
 curl_cffi==0.16.3
 cycler==0.12.1
 datasets==5.0.1
@@ -80,7 +80,7 @@ jusText==3.0.2
 kiwisolver==1.5.0
 lazy-loader==0.5
 lightgbm==4.7.0
-litellm==1.76.1
+litellm==1.93.2
 loguru==0.7.3
 lxml==6.1.3
 lxml_html_clean==0.4.5
@@ -116,7 +116,7 @@ paddlex==3.6.1
 pandas==3.0.1
 patsy==1.0.3
 pdfminer.six==20260107
-pillow==12.1.1
+pillow==12.3.0
 plotly==7.1.0
 pluggy==1.6.0
 polars==1.44.2
@@ -138,10 +138,10 @@ pydantic-settings==2.14.2
 pydantic_core==2.41.5
 pydeck==0.9.3
 Pygments==2.20.0
-PyJWT==2.13.0
+PyJWT==2.15.0
 PyMuPDF==1.27.2.2
 pyparsing==3.3.2
-pypdf==6.12.2
+pypdf==6.19.0
 pypdfium2==5.9.0
 pytest==9.1.1
 python-bidi==0.6.10
@@ -164,12 +164,12 @@ schedule==1.2.2
 scikit-image==0.26.0
 scikit-learn==1.9.1
 scipy==1.17.1
-setuptools==81.0.0
+setuptools==84.0.0
 shapely==2.1.2
 shellingham==1.5.4
 six==1.17.0
 sniffio==1.3.1
-soupsieve==2.8.3
+soupsieve==2.9
 speedtest-cli==2.1.3
 SQLAlchemy==2.1.1
 sse-starlette==3.4.5
@@ -188,7 +188,7 @@ tiktoken==0.13.0
 tld==0.13.2
 tokenizers==0.23.1
 toml==0.10.2
-torch==2.12.0
+torch==2.14.1
 torchvision==0.27.0
 tqdm==4.67.1
 trafilatura==2.2.0
@@ -198,9 +198,9 @@ typing-inspection==0.4.2
 typing_extensions==4.15.0
 tzdata==2025.3
 tzlocal==5.4.4
-ujson==5.12.1
-urllib3==2.6.3
-uv==0.10.12
+ujson==6.0.0
+urllib3==2.8.0
+uv==0.12.23
 uvicorn==0.49.0
 watchdog==6.0.0
 wcwidth==0.7.0
