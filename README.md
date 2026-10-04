@@ -23,6 +23,7 @@
 [![Pydantic v2](https://img.shields.io/badge/Pydantic-v2_Enforced-E92063?style=for-the-badge&logo=pydantic&logoColor=white)](scripts/03_data_access_and_storage/04_data_schemas_and_pydantic_entities.py)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.142-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.64-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io)
+[![CI Workflow](https://img.shields.io/github/actions/workflow/status/syzfint/NepseP/ci.yml?branch=master&style=for-the-badge&logo=githubactions&logoColor=white&label=CI)](https://github.com/syzfint/NepseP/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
 
 <br/>
