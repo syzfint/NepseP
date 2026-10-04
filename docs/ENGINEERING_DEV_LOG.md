@@ -16,3 +16,7 @@ Chronological engineering activity ledger across active development sprints.
 - Configured Hive partitioning format `nepse_lakehouse/year=*/month=*/day=*`.
 - Added tick buffer queue with batch flush to disk.
 
+### 2026-10-04 (Session 2)
+- Replaced legacy row-wise parsers with vectorized Polars and DuckDB expressions.
+- Built streaming order book parser to handle fragmented NEPSE payloads.
+
