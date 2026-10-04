@@ -16,6 +16,7 @@ def main():
     print("STARTING FULL ANTIGRAVITY PIPELINE EXECUTION")
     print("=" * 70)
     
+    run_step("scripts/init_duckdb.py")
     run_step("scripts/01_build_master_union.py")
     run_step("scripts/02_feature_engineering.py")
     run_step("scripts/03_train_and_backtest.py")
