@@ -2,44 +2,51 @@
 
 ## 1. System Overview & Ingestion Flow
 
-```
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                        APEXMARKETENGINE DISTRIBUTED PIPELINE                           │
-├────────────────────────────────────────────────────────────────────────────────────────┤
-│ [ Local Workstation Data Lakehouse ]                                                   │
-│ 01_raw / nepse_data_all CSVs                                                           │
-│      │                                                                                 │
-│      ▼                                                                                 │
-│ [scripts/01_build_master_union.py] (DuckDB Zero-Loss Deduplication)                    │
-│      │                                                                                 │
-│      ▼                                                                                 │
-│ 02_processed_parquet/market_master_union.parquet                                       │
-│      │ (644,188 rows, 415 tickers, 2003-06-06 to 2026-10-02)                           │
-│      ▼                                                                                 │
-│ [scripts/02_feature_engineering.py] (FracDiff d=0.35, Lagged Technicals, News Sent)   │
-│      │                                                                                 │
-│      ▼                                                                                 │
-│ 03_feature_store/technical_indicators.parquet                                          │
-│      │                                                                                 │
-│      ▼                                                                                 │
-│ [scripts/03_train_and_backtest.py] (LightGBM Ranker + Random Forest Meta-Labeler)       │
-│      │                                                                                 │
-│      ▼                                                                                 │
-│ Top-10 Forecasts + Headless 2.0σ Corridor PNG + Historical Disclosures (Cutoff <= t)   │
-│      │                                                                                 │
-│      ▼ Composite SHA-256 Provenance Seal: H_master = SHA256(Ctx:Fcst:Disc:Vis)        │
-│ [scripts/33_clef_inference_bridge.py]                                                  │
-│      │                                                                                 │
-│      ▼ (POST /synthesize via Cloudflare HTTPS Tunnel - 8.42s RTT)                      │
-│ ┌────────────────────────────────────────────────────────────────────────────┐         │
-│ │ Remote GPU Worker: Google Colab / GCP (NVIDIA Tesla T4 - 16 GB VRAM)       │         │
-│ │ Backbone: Qwen/Qwen2.5-VL-3B-Instruct (Vision-Language Transformer)        │         │
-│ │ Fine-Tuned Adapter: PEFT/LoRA (r=16, α=32, 65 MB Weights Attached)         │         │
-│ └─────────────────────────────────────┬──────────────────────────────────────┘         │
-│                                       │                                                │
-│                                       ▼ Pydantic v2 Validation & Circuit Breaker       │
-│ [scripts/04_streamlit_terminal_ui.py] (Port 8501 Dashboard) ──► NEPSE TMS Orders       │
-└────────────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph Lakehouse["Local Workstation Lakehouse"]
+        direction TB
+        Raw["01_raw & nepse_data_all CSVs"]
+        Union["scripts/01_build_master_union.py (DuckDB Zero-Loss Deduplication)"]
+        Parquet["02_processed_parquet/market_master_union.parquet (644,188 rows)"]
+        Features["scripts/02_feature_engineering.py (FracDiff d=0.35 & Sentiment)"]
+        Store["03_feature_store/technical_indicators.parquet"]
+        Model["scripts/03_train_and_backtest.py (LightGBM Ranker & Meta-Labeler)"]
+        Raw --> Union --> Parquet --> Features --> Store --> Model
+    end
+
+    subgraph Provenance["Cryptographic Payload Assembly"]
+        direction TB
+        Payload["Top-10 Forecasts + Headless 2.0σ Chart PNG + News Cutoff"]
+        Seal["Composite Provenance Seal: H_master = SHA256(Ctx:Fcst:Disc:Vis)"]
+        Bridge["scripts/33_clef_inference_bridge.py"]
+        Payload --> Seal --> Bridge
+    end
+
+    subgraph RemoteServer["Remote GPU Worker (Google Colab / GCP)"]
+        direction TB
+        GPU["NVIDIA Tesla T4 GPU (16 GB GDDR6 VRAM, 320 Tensor Cores)"]
+        FastAPI["FP16 Async FastAPI Runtime (/synthesize)"]
+        ModelLLM["Qwen/Qwen2.5-VL-3B-Instruct Multimodal Transformer"]
+        Adapter["Domain LoRA Adapter (r=16, α=32, 65 MB Weights)"]
+        GPU --> FastAPI
+        Adapter -.->|"Mounted"| ModelLLM
+        ModelLLM --> FastAPI
+    end
+
+    subgraph Dispatch["Verification & Execution"]
+        direction TB
+        Circuit{"Pydantic v2 & Hash Verified?"}
+        UI["scripts/04_streamlit_terminal_ui.py (Port 8501 Dashboard)"]
+        TMS["NEPSE Trade Management System (TMS) Orders"]
+        Circuit -->|"PASS"| UI --> TMS
+        Circuit -->|"FAIL-CLOSED"| LocalOnly["Deterministic Numerical-Only Fallback"]
+        LocalOnly --> UI
+    end
+
+    Model --> Payload
+    Bridge -->|"Cloudflare HTTPS Tunnel (8.42s RTT)"| FastAPI
+    FastAPI -->|"Pydantic v2 Structured Response"| Circuit
 ```
 
 ---
@@ -164,24 +171,25 @@ Both input and output schemas enforce Pydantic v2 `extra='forbid'`, rejecting un
 
 ### 4. Fail-Closed Circuit Breaker State Transition
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                     CIRCUIT BREAKER EXECUTION MATRIX                        │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ 1. Check Network Connectivity & CLEF_BASE_URL                               │
-│    └─► UNCONFIGURED / ERROR ──► FAIL-CLOSED (Write Failure Report & Abort)  │
-│                                                                             │
-│ 2. Dispatch HTTPS POST (Timeout = 45.0s)                                    │
-│    └─► TIMEOUT / HTTP != 200 ──► FAIL-CLOSED (Emit Warning & Revert Local)  │
-│                                                                             │
-│ 3. Pydantic v2 Schema Validation                                            │
-│    └─► VALIDATION ERROR ───────► FAIL-CLOSED (Reject Remote Artifact)       │
-│                                                                             │
-│ 4. Request ID Echo & Master Provenance Hash Audit                           │
-│    └─► HASH MISMATCH ──────────► FAIL-CLOSED (Tampering Guard Tripped)      │
-│                                                                             │
-│ 5. Verified Success: Persist static_data/clef_analyst_report.json (PASS)    │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    Step1["Step 1: Check Network Connectivity & CLEF_BASE_URL"] --> NetCheck{"URL Configured?"}
+    NetCheck -->|"No"| Fail1["FAIL-CLOSED: Local Numerical Fallback"]
+    NetCheck -->|"Yes"| Step2["Step 2: Dispatch HTTPS POST via Cloudflare Tunnel (Timeout = 45s)"]
+    Step2 --> RespCheck{"HTTP 200 within 45s?"}
+    RespCheck -->|"No / Timeout"| Fail2["FAIL-CLOSED: Persist clef_failure_report.json"]
+    RespCheck -->|"Yes"| Step3["Step 3: Canonical Pydantic v2 Schema Validation (extra='forbid')"]
+    Step3 --> SchemaCheck{"Valid Schema?"}
+    SchemaCheck -->|"No"| Fail3["FAIL-CLOSED: Reject Malformed Structure"]
+    SchemaCheck -->|"Yes"| Step4["Step 4: Request ID Echo & Master SHA-256 Provenance Audit"]
+    Step4 --> HashCheck{"Hash & ID Match?"}
+    HashCheck -->|"Mismatch"| Fail4["FAIL-CLOSED: Tampering Guard Tripped"]
+    HashCheck -->|"Match"| Step5["Step 5: Verified Success: Persist clef_analyst_report.json"]
+    Step5 --> LiveMount["Mount to Streamlit UI & Dispatch Orders"]
+    Fail1 --> LocalMount["Mount Local Numerical-Only Forecasts to UI"]
+    Fail2 --> LocalMount
+    Fail3 --> LocalMount
+    Fail4 --> LocalMount
 ```
 
 When a failure is tripped, the engine persists `static_data/clef_failure_report.json` with detailed diagnostics and gracefully degrades to **deterministic numerical-only execution**, guaranteeing zero unverified trading actions.
