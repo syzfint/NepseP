@@ -144,24 +144,73 @@ apex-market-engine/
 ### ⚡ Quickstart Guide
 
 #### 1. Installation
-Clone the repository and install requirements:
+Clone the repository and install the locked dependencies:
 ```bash
-git clone https://github.com/your-username/apex-market-engine.git
-cd apex-market-engine
-pip install pandas numpy duckdb pyarrow lightgbm scikit-learn statsmodels textblob streamlit plotly
+git clone https://github.com/syzfint/NepseP.git
+cd NepseP
+pip install -r requirements.txt
 ```
 
-#### 2. Execute Full Data & Backtest Pipeline
+#### 2. Initialize DuckDB Database Schemas
+Rebuild local DuckDB schemas and zero-copy views over Parquet and CSV files:
+```bash
+python scripts/init_duckdb.py
+```
+
+#### 3. Execute Full Data & Backtest Pipeline
 Run the master orchestrator to execute out-of-core ingestion, feature engineering, and friction backtesting:
 ```bash
 python scripts/run_all_pipelines.py
 ```
 
-#### 3. Launch Interactive Terminal UI
+#### 4. Launch Interactive Terminal UI
 Launch the 3-Tier Progressive Disclosure Web Terminal UI locally:
 ```bash
 streamlit run scripts/04_streamlit_terminal_ui.py
 ```
+
+---
+
+### 💧 Data Hydration & Cold-Start Reproduction Guide
+
+To keep the GitHub repository lightweight (< 1 MB), heavy multi-gigabyte datasets (`01_raw/`, `02_processed_parquet/`, `03_feature_store/`, `nepse_lakehouse/`, and `nepse_data_all/`) are untracked and retained solely on your local hard drive. 
+
+To hydrate or refresh the datasets from a fresh clone:
+
+1. **Rebuild Database Schemas & Zero-Copy Views:**
+   ```bash
+   python scripts/init_duckdb.py
+   ```
+   * Automatically initializes `02_processed_parquet/news_and_events.duckdb` with the 5 required news harness relational tables.
+   * Creates `02_processed_parquet/market_analytics.duckdb` and attaches zero-copy analytical views (`market_master_union`, `technical_indicators`, `sentiment_scores`, `lakehouse_ticks`).
+
+2. **Ingest / Scrape Financial News & Disclosures:**
+   ```bash
+   # Scrape latest Nepali financial news feed (Hugging Face / RSS)
+   python scripts/04_scrapers_and_harness/02_scrape_nepali_financial_news.py
+
+   # Scrape global macroeconomic announcements
+   python scripts/04_scrapers_and_harness/03_scrape_global_macro_news.py
+   ```
+
+3. **Stream Real-Time Market Ticks into Lakehouse:**
+   ```bash
+   # Async WebSocket streamer buffer into Hive-partitioned Snappy Parquet
+   python scripts/01_etl_and_ingestion/06_live_websocket_lakehouse_streamer.py
+   ```
+
+4. **Reconstruct Master Parquet Union & Feature Store:**
+   ```bash
+   # Step 1: DuckDB deduplication & zero-data-loss audit
+   python scripts/01_build_master_union.py
+
+   # Step 2: Fractional differentiation (d=0.35) & technical indicator store
+   python scripts/02_feature_engineering.py
+   ```
+   Or execute all pipelines sequentially with:
+   ```bash
+   python scripts/run_all_pipelines.py
+   ```
 
 ---
 
