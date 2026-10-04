@@ -54,3 +54,6 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 - Authored `06_live_websocket_lakehouse_streamer.py` with auto-reconnecting socket daemon.
 - Implemented Hive-partitioned storage: `nepse_lakehouse/year=*/month=*/day=*/*.parquet`.
 
+- Authored `33_clef_inference_bridge.py` combining candlestick vision tokens with textual disclosures.
+- Implemented Colab T4 LoRA fine-tuning scripts in `notebooks/35_colab_train_clef_lora.py`.
+
