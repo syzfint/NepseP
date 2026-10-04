@@ -16,6 +16,7 @@
 
 [![Python 3.13](https://img.shields.io/badge/Python-3.13-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![DuckDB](https://img.shields.io/badge/DuckDB-1.5.5-FFF000?style=for-the-badge&logo=duckdb&logoColor=black)](https://duckdb.org)
+[![Pandas](https://img.shields.io/badge/Pandas-3.0.1-150458?style=for-the-badge&logo=pandas&logoColor=white)](https://pandas.pydata.org)
 [![Qwen2.5-VL LoRA](https://img.shields.io/badge/Qwen2.5--VL-3B_LoRA-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black)](scripts/35_train_clef_lora_t4.py)
 [![Google Colab T4](https://img.shields.io/badge/Colab-Tesla_T4_GPU-F9AB00?style=for-the-badge&logo=googlecolab&logoColor=white)](notebooks/35_colab_train_clef_lora.py)
 [![Cloudflare Tunnel](https://img.shields.io/badge/Tunnel-Cloudflare_HTTPS-F38020?style=for-the-badge&logo=cloudflare&logoColor=white)](scripts/33_clef_inference_bridge.py)
@@ -26,7 +27,7 @@
 
 <br/>
 
-[![Tech Stack](https://skillicons.dev/icons?i=python,duckdb,fastapi,pytorch,pandas,scikitlearn,git,docker,linux,powershell)](https://skillicons.dev)
+[![Tech Stack](https://skillicons.dev/icons?i=python,fastapi,pytorch,sklearn,cloudflare,docker,linux,git,powershell,vscode)](https://skillicons.dev)
 
 </div>
 
