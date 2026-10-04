@@ -89,28 +89,30 @@ ApexMarketEngine visualizes predictive regimes and multimodal analyst consensus 
 
 The terminal bridges complex quantitative backend models with an intuitive, 100% layman-friendly interface across **3 progressive layers**:
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│ LAYER 1: EXECUTIVE PANEL (Layman / High-Conviction Summary)             │
-│ • TOP PICK: NABIL (Rank #1) | SIGNAL: HOLD (Fee Guard Active - 11.9%)   │
-│ • 7-15 Day Horizon | Dynamic Stop-Loss: Rs. 540                        │
-└────────────────────────────────────┬────────────────────────────────────┘
-                                     │
-                                     ▼ (Multi-Modal Context)
-┌─────────────────────────────────────────────────────────────────────────┐
-│ LAYER 2: EVIDENCE MATRIX                                                │
-│ • Price & Volume Action (NEPSE Trend Chart)                             │
-│ • TextBlob News Sentiment Gauge (+0.72 Positive)                        │
-│ • Broker Floor Sheet Order Flow Imbalance (OFI) Bar Chart               │
-└────────────────────────────────────┬────────────────────────────────────┘
-                                     │
-                                     ▼ (Deep Quant Verification)
-┌─────────────────────────────────────────────────────────────────────────┐
-│ LAYER 3: ANALYTICAL QUANT ROW                                           │
-│ • FracDiff Memory Series (d = 0.35, ADF p = 0.0121 < 0.05)              │
-│ • SHAP Value Feature Importance & Partial Dependence Hierarchy          │
-│ • Friction-Adjusted Strategy Performance (+3,438.94% Net Return)        │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph T1["Tier 1: Executive Panel (Layman & High-Conviction Summary)"]
+        direction TB
+        A["Top Candidate: NABIL (Rank #1) • Signal: HOLD (Fee Guard Active - 11.9%)"]
+        B["Horizon: 7–15 Days • Dynamic Stop-Loss: Rs. 540 • Trailing Target: Rs. 612"]
+    end
+
+    subgraph T2["Tier 2: Evidence Matrix (Multimodal Market Context)"]
+        direction TB
+        C["Price & Volume Action (NEPSE Trend Chart & 2.0σ Dynamic Corridor)"]
+        D["TextBlob News & Regulatory Sentiment Gauge (+0.72 Positive)"]
+        E["Broker Floor Sheet Order Flow Imbalance (OFI) Bar Chart"]
+    end
+
+    subgraph T3["Tier 3: Analytical Quant Row (Forensic Statistical Audit)"]
+        direction TB
+        F["FracDiff Memory Series (d = 0.35, ADF p = 0.0121 < 0.05)"]
+        G["SHAP Value Feature Importance & Partial Dependence Hierarchy"]
+        H["Friction-Adjusted Strategy Performance (+3,438.94% Net Return)"]
+    end
+
+    T1 -->|"Multimodal Contextual Drill-Down"| T2
+    T2 -->|"Deep Statistical Verification"| T3
 ```
 
 ---
@@ -119,41 +121,62 @@ The terminal bridges complex quantitative backend models with an intuitive, 100%
 
 ApexMarketEngine integrates **CLEF** (Contextual Layman Evaluation Framework), a domain-specialized vision-language intelligence model connected across an encrypted **Cloudflare Tunnel** to a dedicated **Google Colab Tesla T4 GPU** inference worker.
 
-```
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                   APEXMARKETENGINE ↔ CLEF DISTRIBUTED INFERENCE BRIDGE                  │
-├────────────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                        │
-│   [ Local Workstation Desk ]                                                           │
-│   • DuckDB Ingestion & FFD (d=0.35) Features                                           │
-│   • Top-10 Quant Forecasts & Triple-Barrier Corridors                                  │
-│   • Base64 Inline Chart Rendering (Zero Local Path Leakage)                            │
-│   • Strict Cutoff News Disclosures (<= as_of_market_close)                             │
-│   • Master Composite Provenance Hash: H_master = SHA256(H_ctx:H_fcst:H_disc:H_vis)    │
-│                                  │                                                     │
-│                                  ▼ POST /synthesize (Encrypted HTTPS)                  │
-│                     ┌─────────────────────────┐                                        │
-│                     │ Cloudflare HTTPS Tunnel │  (trycloudflare.com)                   │
-│                     │ End-to-End Encrypted    │  Round-Trip Latency: 8.42s             │
-│                     └────────────┬────────────┘                                        │
-│                                  ▼                                                     │
-│   [ Google Colab / Remote GPU Worker ]                                                 │
-│   • Accelerator: NVIDIA Tesla T4 GPU (16 GB GDDR6 VRAM, 320 Tensor Cores)              │
-│   • Model: Qwen/Qwen2.5-VL-3B-Instruct (3B-7B Vision-Language Transformer)             │
-│   • Adapter: Domain-Trained LoRA (r=16, α=32, 65 MB Weights Mounted)                   │
-│   • Execution: FP16 Mixed-Precision Async FastAPI Runtime                              │
-│   • Cross-Attention: Direct pixel candle reading + tabular alignment (Zero OCR)        │
-│                                  │                                                     │
-│                                  ▼ Response Validation & Audit                         │
-│   [ Fail-Closed Circuit Breaker ]                                                      │
-│   • Pydantic v2 Canonical Validation (extra='forbid')                                  │
-│   • Request ID Echo Verification (REQ-20261004134918-3238e7e6)                         │
-│   • Composite Provenance Hash Matching: PASS                                           │
-│   • Fallback: Zero-hallucination local numerical-only mode on failure                  │
-│                                  │                                                     │
-│                                  ▼ Streamlit Terminal UI & Order Dispatch              │
-│   [ Executive Terminal UI (scripts/04_streamlit_terminal_ui.py) & NEPSE TMS ]          │
-└────────────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph LocalDesk["Local Workstation Desk (ApexMarketEngine)"]
+        direction TB
+        L1["DuckDB Parquet Store (644k+ Ticks & Daily Bars)"]
+        L2["Feature Store: FFD (d=0.35) & Technical Indicators"]
+        L3["Forecasting: LightGBM Ranker & Triple-Barrier Meta-Labeler"]
+        L4["In-Memory Base64 Chart PNG (Zero Local Path Leakage)"]
+        L5["Verified News Disclosures (Strict Cutoff: t <= as_of_market_close)"]
+        L6["Master SHA-256 Provenance Seal: H_master"]
+        L1 --> L2 --> L3 --> L4 --> L5 --> L6
+    end
+
+    subgraph Tunnel["Cloudflare Encrypted Tunnel (trycloudflare.com)"]
+        direction TB
+        T1["End-to-End Encrypted HTTPS POST /synthesize"]
+        T2["Live Measured Round-Trip Latency: 8.42s"]
+        T3["Canonical Payload Weight: 130,002 bytes"]
+        T1 --- T2 --- T3
+    end
+
+    subgraph RemoteGPU["Remote GPU Compute (Google Colab / GCP)"]
+        direction TB
+        G1["NVIDIA Tesla T4 GPU (16 GB GDDR6 VRAM, 320 Tensor Cores)"]
+        G2["FastAPI FP16 Mixed-Precision Async Server"]
+        G3["Qwen2.5-VL-3B Multimodal Vision-Language Transformer"]
+        G4["Hot-Mounted PEFT/LoRA Adapter (r=16, α=32, 65 MB)"]
+        G5["Cross-Attention: Direct Pixel Reading + Tabular Features"]
+        G1 --> G2
+        G4 -.-> G3
+        G3 --> G2
+        G2 --> G5
+    end
+
+    subgraph CircuitBreaker["Cryptographic Fail-Closed Circuit Breaker"]
+        direction TB
+        CB1{"Pydantic v2 Valid & Hash Match?"}
+        CB_Pass["PASS: Persist static_data/clef_analyst_report.json"]
+        CB_Fail["FAIL-CLOSED: Revert to Deterministic Numerical-Only Mode"]
+        CB1 -->|"Yes"| CB_Pass
+        CB1 -->|"No / Timeout >45s"| CB_Fail
+    end
+
+    subgraph Interface["Interface & Execution"]
+        direction TB
+        UI["Streamlit Terminal UI (scripts/04_streamlit_terminal_ui.py)"]
+        TMS["NEPSE Trade Management System (TMS) Execution"]
+        UI --> TMS
+    end
+
+    L6 -->|"POST Payload"| T1
+    T3 --> G2
+    G5 -->|"Structured Response + Echo REQ-ID"| T1
+    T1 --> CB1
+    CB_Pass --> UI
+    CB_Fail --> UI
 ```
 
 ### 1. Model Architecture & Anti-Permabull Synthesis
@@ -205,26 +228,44 @@ Financial automation requires provable zero-hallucination guarantees. If the rem
 
 ApexMarketEngine follows a modular 10-phase production lifecycle spanning lakehouse ingestion to multi-modal execution:
 
+```mermaid
+flowchart LR
+    subgraph S1["Phases 1–2"]
+        direction TB
+        P1["Raw Lakehouse Ingestion & DuckDB FFD d=0.35"]
+    end
+    subgraph S2["Phases 3–4"]
+        direction TB
+        P2["CPCV LightGBM Ranker & Triple-Barrier Meta-Labeler"]
+    end
+    subgraph S3["Phases 5–6"]
+        direction TB
+        P3["Headless 2.0σ Corridor PNG & Master SHA-256 Seal"]
+    end
+    subgraph S4["Phase 7"]
+        direction TB
+        P4["Cloudflare Tunnel & Colab T4 Inference (8.42s RTT)"]
+    end
+    subgraph S5["Phases 8–9"]
+        direction TB
+        P5["130-Pair Stratified Dataset & PEFT/LoRA Fine-Tuning"]
+    end
+    subgraph S6["Phase 10"]
+        direction TB
+        P6["Streamlit Terminal UI (:8501) & NEPSE TMS Dispatch"]
+    end
+
+    S1 --> S2 --> S3 --> S4 --> S5 --> S6
 ```
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                        10-PHASE SOVEREIGN QUANT PIPELINE LIFECYCLE                     │
-├────────────┬───────────────────────────────────────┬───────────────────────────────────┤
-│ Phase      │ Name                                  │ Core Operations & Artifacts       │
-├────────────┼───────────────────────────────────────┼───────────────────────────────────┤
-│ Phase 1-2  │ Lakehouse Ingestion & Feature Mesh    │ DuckDB zero-loss floorsheet CSV   │
-│            │                                       │ union, Hive partitioning, FFD d=0.35│
-│ Phase 3-4  │ Forensic Modeling & Forecasting       │ LightGBM ranker, meta-labeling    │
-│            │                                       │ gate, 2.0σ Triple-Barrier corridor│
-│ Phase 5-6  │ Visual Artifacts & Provenance Sealing │ Headless Matplotlib Agg charts,   │
-│            │                                       │ composite SHA-256 master hash     │
-│ Phase 7    │ Live Cloudflare Tunnel & GPU Inference│ 8.42s HTTPS tunnel dispatch to    │
-│            │                                       │ FastAPI Qwen2.5-VL-3B endpoint    │
-│ Phase 8-9  │ Stratified Dataset & PEFT/LoRA Tuning │ 130-pair 3-regime dataset tuning  │
-│            │                                       │ on NVIDIA Tesla T4 GPU (Colab)    │
-│ Phase 10   │ Streamlit UI Terminal & TMS Execution │ Isolated quantitative table, CLEF │
-│            │                                       │ stance, audit badge, TMS orders   │
-└────────────┴───────────────────────────────────────┴───────────────────────────────────┘
-```
+
+| Phase | Phase Name | Computational Operations & Core Outputs |
+| :---: | :--- | :--- |
+| **01–02** | **Lakehouse Ingestion & Feature Mesh** | DuckDB zero-loss floorsheet CSV union, Hive partitioning, FFD ($d=0.35$) |
+| **03–04** | **Forensic Modeling & Forecasting** | LightGBM ranker, meta-labeling gate, $2.0\sigma$ Triple-Barrier corridor |
+| **05–06** | **Visual Artifacts & Provenance Sealing** | Headless Matplotlib Agg charts, composite SHA-256 master provenance hash |
+| **07** | **Live Cloudflare Tunnel & GPU Inference** | 8.42s HTTPS tunnel dispatch to FastAPI Qwen2.5-VL-3B endpoint |
+| **08–09** | **Stratified Dataset & PEFT/LoRA Tuning** | 130-pair 3-regime dataset tuning on NVIDIA Tesla T4 GPU (Colab) |
+| **10** | **Streamlit UI Terminal & TMS Execution** | Isolated quantitative table, CLEF qualitative stance, audit badge, TMS orders |
 
 ---
 
