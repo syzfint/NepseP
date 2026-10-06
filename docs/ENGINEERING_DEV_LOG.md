@@ -20,3 +20,8 @@ Chronological engineering activity ledger across active development sprints.
 - Replaced legacy row-wise parsers with vectorized Polars and DuckDB expressions.
 - Built streaming order book parser to handle fragmented NEPSE payloads.
 
+### 2026-10-06 (Session 1)
+- Built `08_compute_floorsheet_broker_features.py` computing broker HHI and dispersion.
+- Integrated Hawkes process intensity kernels to model self-exciting order flow clusters.
+- Implemented top-3 smart money buyer/seller concentration ratios.
+
