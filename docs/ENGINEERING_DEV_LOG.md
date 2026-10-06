@@ -65,3 +65,5 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 
 - Implemented Hawkes process kernels tracking endogenous trade clustering and retail panic absorption.
 
+- Materialized `03_feature_store/technical_indicators.parquet` with momentum, volatility, and volume indicators.
+
