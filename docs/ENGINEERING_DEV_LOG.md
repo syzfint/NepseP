@@ -67,3 +67,5 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 
 - Materialized `03_feature_store/technical_indicators.parquet` with momentum, volatility, and volume indicators.
 
+- Generated `NEPSE_INSTITUTIONAL_BACKTEST_REPORT.json` certifying strategy baseline.
+
