@@ -63,3 +63,5 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 - Authored `08_compute_floorsheet_broker_features.py` computing Buyer/Seller Herfindahl-Hirschman Index (HHI).
 - Built top-3 smart money buyer/seller concentration ratios.
 
+- Implemented Hawkes process kernels tracking endogenous trade clustering and retail panic absorption.
+
