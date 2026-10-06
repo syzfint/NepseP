@@ -25,3 +25,7 @@ Chronological engineering activity ledger across active development sprints.
 - Integrated Hawkes process intensity kernels to model self-exciting order flow clusters.
 - Implemented top-3 smart money buyer/seller concentration ratios.
 
+### 2026-10-06 (Session 2)
+- Implemented 34 vectorized technical indicators across 720k+ daily bars in `market_master_union.parquet`.
+- Computed rolling order flow imbalance (OFI) and volume-weighted average price (VWAP) bounds.
+
