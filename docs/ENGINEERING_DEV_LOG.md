@@ -59,3 +59,7 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 
 - Authored `34_build_clef_training_dataset.py` preparing paired chart-image and disclosure training tensors.
 
+## 2026-10-06: Microstructure & Broker Signals
+- Authored `08_compute_floorsheet_broker_features.py` computing Buyer/Seller Herfindahl-Hirschman Index (HHI).
+- Built top-3 smart money buyer/seller concentration ratios.
+
