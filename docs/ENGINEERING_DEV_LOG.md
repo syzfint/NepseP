@@ -77,3 +77,5 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 
 - Formulated Combinatorial Purged Cross-Validation (CPCV) with 5-day embargo splits.
 
+- Compiled `02_processed_parquet/market_master_union.parquet` uniting all historical daily bars.
+
