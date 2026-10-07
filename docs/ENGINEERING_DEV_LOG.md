@@ -75,3 +75,5 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 
 - Trained asymmetric quantile regressors penalizing downside tail drawdowns.
 
+- Formulated Combinatorial Purged Cross-Validation (CPCV) with 5-day embargo splits.
+
