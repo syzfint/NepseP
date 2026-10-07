@@ -73,3 +73,5 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 - Authored `34_full_market_chronos_engine.py` predicting 5-day distributions (p10, p50, p90).
 - Stored probabilistic output in `02_processed_parquet/market_analytics.duckdb`.
 
+- Trained asymmetric quantile regressors penalizing downside tail drawdowns.
+
