@@ -34,3 +34,8 @@ Chronological engineering activity ledger across active development sprints.
 - Generated 5-day quantile predictions (p10, p50, p90) stored in `chronos_quantiles_5d`.
 - Integrated asymmetric pinball loss functions for downside volatility penalization.
 
+### 2026-10-07 (Session 2)
+- Configured Combinatorial Purged Cross-Validation (CPCV) preventing information leakage.
+- Enforced realistic 0.65% institutional round-trip transaction fee drag model.
+- Verified equity curve metrics and Deflated Sharpe Ratio (DSR).
+
