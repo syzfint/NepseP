@@ -79,3 +79,6 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 
 - Compiled `02_processed_parquet/market_master_union.parquet` uniting all historical daily bars.
 
+## 2026-10-08: Pulse Terminal Station & Specification
+- Authored `pulse_terminal/` full dashboard with live LTP tickers, order book depth, and broker metrics.
+
