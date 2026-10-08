@@ -44,3 +44,7 @@ Chronological engineering activity ledger across active development sprints.
 - Added sub-second telemetry websockets streaming live LTP, volume, and broker signals.
 - Built ANSI color tearsheets and strategy matrix visualizers.
 
+### 2026-10-08 (Session 2)
+- Documented end-to-end architecture diagrams in GitHub-native Mermaid syntax.
+- Formalized event study lifecycle: raw disclosures -> verified events -> price impact outcomes.
+
