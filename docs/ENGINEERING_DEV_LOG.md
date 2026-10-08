@@ -39,3 +39,8 @@ Chronological engineering activity ledger across active development sprints.
 - Enforced realistic 0.65% institutional round-trip transaction fee drag model.
 - Verified equity curve metrics and Deflated Sharpe Ratio (DSR).
 
+### 2026-10-08 (Session 1)
+- Developed `pulse_terminal_server.py` and rich terminal UI with live tick ingestion.
+- Added sub-second telemetry websockets streaming live LTP, volume, and broker signals.
+- Built ANSI color tearsheets and strategy matrix visualizers.
+
