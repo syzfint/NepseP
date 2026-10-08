@@ -85,3 +85,5 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 - Compiled `APEXMARKETENGINE_QUANTITATIVE_MASTER_SPECIFICATION.md`.
 - Built `hedge_terminal.py` and `launch_prism_station.py`.
 
+- Authored `ARCHITECTURE_FULL_SYSTEM.md` and `INSTITUTIONAL_REPOSITORY_AUDIT.md`.
+
