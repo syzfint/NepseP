@@ -91,3 +91,5 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 - Authored `scripts/03_data_access_and_storage/duckdb_connection_manager.py` implementing thread-safe pool.
 - Eliminated `database is locked` conflicts across concurrent ETL and backtest jobs.
 
+- Authored `scripts/03_data_access_and_storage/atomic_file_operations.py` providing atomic writes via `.tmp`.
+
