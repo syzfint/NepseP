@@ -87,3 +87,7 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 
 - Authored `ARCHITECTURE_FULL_SYSTEM.md` and `INSTITUTIONAL_REPOSITORY_AUDIT.md`.
 
+## 2026-10-09: Connection Pooling & Storage Safety
+- Authored `scripts/03_data_access_and_storage/duckdb_connection_manager.py` implementing thread-safe pool.
+- Eliminated `database is locked` conflicts across concurrent ETL and backtest jobs.
+
