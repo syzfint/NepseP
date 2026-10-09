@@ -48,3 +48,8 @@ Chronological engineering activity ledger across active development sprints.
 - Documented end-to-end architecture diagrams in GitHub-native Mermaid syntax.
 - Formalized event study lifecycle: raw disclosures -> verified events -> price impact outcomes.
 
+### 2026-10-09 (Session 2)
+- Implemented `DuckDBConnectionManager` singleton with bounded connection pool (max 10).
+- Eliminated concurrent `database is locked` conflicts across ETL daemons and backtesting scripts.
+- Added `AtomicParquetWriter` with retry-backed replace loop for Windows NTFS safety.
+
