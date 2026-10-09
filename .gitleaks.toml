@@ -1,0 +1,19 @@
+# Gitleaks Configuration for ApexMarketEngine
+title = "ApexMarketEngine Gitleaks Config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Global allowlist for testing and non-secret tokens"
+paths = [
+    '''scratch/.*''',
+    '''\.agents/skills/.*''',
+    '''BENCHMARK_RECONCILIATION\.json''',
+    '''tests/.*'''
+]
+regexes = [
+    '''YOUR_API_KEY_HERE''',
+    '''example''',
+    '''dummy'''
+]

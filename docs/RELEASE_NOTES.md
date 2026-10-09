@@ -60,13 +60,13 @@ cd NepseP
 pip install -r requirements.txt
 
 # 3. Initialize DuckDB Database Schemas
-python scripts/init_duckdb.py
+python scripts/01_etl_and_ingestion/init_duckdb.py
 
 # 4. Verify 11-Step Integration Test Suite
 pytest tests/test_clef_integration.py -v
 
 # 5. Launch Interactive Terminal UI
-streamlit run scripts/04_streamlit_terminal_ui.py
+streamlit run scripts/08_dashboard_ui/04_streamlit_terminal_ui.py
 ```
 
 ---

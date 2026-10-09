@@ -1,171 +1,246 @@
+#!/usr/bin/env python3
+"""
+ApexMarketEngine — Feature Engineering & Microstructure Store
+=============================================================
+Calculates:
+  1. Scale-Invariant Multi-Period Moving Averages & Volatility (t-1 lag enforced)
+  2. K-Line Pattern Semantics (Upper/Lower Shadow Ratios, Body Density, Gap Rejections)
+  3. Price + Volume Coupling (Volume Z-Scores, Force Index, OBV Slope Divergence, Amihud)
+  4. NEPSE Floor Sheet Broker Accumulation Concentration (when available)
+"""
+
 import os
+import sys
 import time
+from pathlib import Path
 import duckdb
 import numpy as np
 import pandas as pd
-from textblob import TextBlob
-from sklearn.feature_extraction.text import TfidfVectorizer
-from statsmodels.tsa.stattools import adfuller
 
-BASE_DIR = r"c:\Users\achar\Downloads\neps"
-PROCESSED_DIR = os.path.join(BASE_DIR, "02_processed_parquet")
-FEATURE_DIR = os.path.join(BASE_DIR, "03_feature_store")
+# Multi-workspace resolution
+BASE_DIR = Path.cwd()
+ALT_DIR = Path(r"C:/Users/achar/Downloads/neps")
 
-def get_fractional_weights(d, size):
-    w = [1.0]
-    for k in range(1, size):
-        w.append(-w[-1] / k * (d - k + 1))
-    return np.array(w[::-1])
 
-def fractional_differentiation(series, d=0.35, threshold=1e-4):
-    weights = get_fractional_weights(d, min(len(series), 500))
-    abs_w = np.abs(weights)
-    indices = np.where(abs_w >= threshold)[0]
-    if len(indices) == 0:
-        return series
-    start_idx = indices[0]
-    weights = weights[start_idx:]
+def resolve_path(relative_path: str) -> Path:
+    p = BASE_DIR / relative_path
+    if p.exists():
+        return p
+    alt = ALT_DIR / relative_path
+    if alt.exists():
+        return alt
+    return p
 
-    s_clean = series.ffill().bfill().values
-    res = np.convolve(s_clean, weights, mode="valid")
-    pad_len = len(series) - len(res)
-    return pd.Series(np.pad(res, (pad_len, 0), "edge"), index=series.index)
 
-def compute_rsi(series, period=14):
-    delta = series.diff()
-    gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
-    rs = gain / (loss + 1e-8)
-    return 100 - (100 / (1 + rs))
+def sync_to_both(src_path: Path, filename: str):
+    for b in [BASE_DIR, ALT_DIR]:
+        if b.exists():
+            dest = b / filename
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            if dest != src_path:
+                try:
+                    dest.write_bytes(src_path.read_bytes())
+                except Exception:
+                    pass
 
-def compute_textblob_sentiment():
-    db_path = os.path.join(PROCESSED_DIR, "news_and_events.duckdb")
-    if not os.path.exists(db_path):
-        return None
-    try:
-        con = duckdb.connect(db_path)
-        news_df = con.execute("SELECT * FROM verified_events").df()
-        if news_df.empty:
-            return None
-        
-        # Apply TextBlob sentiment scoring to headlines/disclosures
-        news_df["textblob_polarity"] = news_df["event_type"].apply(lambda t: TextBlob(str(t)).sentiment.polarity)
-        news_df["textblob_subjectivity"] = news_df["event_type"].apply(lambda t: TextBlob(str(t)).sentiment.subjectivity)
-        return news_df
-    except Exception:
-        return None
 
-def compute_numerical_tfidf(df):
-    # Discretize continuous indicators into quantile tokens for TF-IDF feature weighting
-    rsi_bins = pd.qcut(df["rsi_14"].fillna(50), q=5, labels=False, duplicates="drop").astype(str)
-    macd_bins = pd.qcut(df["macd"].fillna(0), q=5, labels=False, duplicates="drop").astype(str)
-    vol_bins = pd.qcut(df["volatility_20"].fillna(0), q=5, labels=False, duplicates="drop").astype(str)
-    
-    docs = ("rsi_" + rsi_bins + " macd_" + macd_bins + " vol_" + vol_bins).tolist()
-    
-    tfidf = TfidfVectorizer(token_pattern=r"\b\w+\b")
-    tfidf_matrix = tfidf.fit_transform(docs)
-    tfidf_weight = tfidf_matrix.mean(axis=1).A1
-    return tfidf_weight
+def add_price_volume_and_kline_semantics(df: pd.DataFrame) -> pd.DataFrame:
+    """Calculates Price-Volume Coupling & Candlestick Geometry Features for
+
+    LightGBM / Gate G4 Meta-Labeler.
+    """
+    eps = 1e-6
+    # Ensure correct symbol column name
+    sym_col = "symbol" if "symbol" in df.columns else "ticker"
+    df = df.sort_values([sym_col, "date"]).copy()
+
+    # --- 1. Candlestick Geometry (K-Line Semantics) ---
+    range_high_low = df["high"] - df["low"] + eps
+    body_size = (df["close"] - df["open"]).abs()
+
+    df["kline_upper_shadow_ratio"] = (
+        df["high"] - df[["open", "close"]].max(axis=1)
+    ) / range_high_low
+    df["kline_lower_shadow_ratio"] = (
+        df[["open", "close"]].min(axis=1) - df["low"]
+    ) / range_high_low
+    df["kline_body_density"] = body_size / range_high_low
+
+    # Gap-Up Rejection (Bull Trap Flag)
+    prev_close = df.groupby(sym_col)["close"].shift(1)
+    gap_pct = (df["open"] - prev_close) / (prev_close + eps)
+    intraday_ret = (df["close"] - df["open"]) / (df["open"] + eps)
+    df["kline_gap_rejection_flag"] = (
+        (gap_pct > 0.02) & (intraday_ret < -0.015)
+    ).astype(float)
+
+    # Donchian Proximity (Channel Base / Ceiling Proximity)
+    roll_high_20 = (
+        df.groupby(sym_col)["high"]
+        .transform(lambda x: x.rolling(20, min_periods=5).max())
+    )
+    roll_low_20 = (
+        df.groupby(sym_col)["low"]
+        .transform(lambda x: x.rolling(20, min_periods=5).min())
+    )
+    df["donchian_channel_pos_20"] = (df["close"] - roll_low_20) / (
+        roll_high_20 - roll_low_20 + eps
+    )
+
+    # --- 2. Price + Volume Coupling ---
+    vol_mean_20 = (
+        df.groupby(sym_col)["volume"]
+        .transform(lambda x: x.rolling(20, min_periods=5).mean())
+    )
+    vol_std_20 = (
+        df.groupby(sym_col)["volume"]
+        .transform(lambda x: x.rolling(20, min_periods=5).std())
+    )
+    df["volume_zscore_20"] = (df["volume"] - vol_mean_20) / (vol_std_20 + eps)
+
+    # Price Return (1-session)
+    ret_1d = df.groupby(sym_col)["close"].pct_change()
+
+    # Force Index (Volume-Confirmed Return)
+    df["volume_force_index"] = ret_1d * df["volume_zscore_20"]
+
+    # OBV Trend Divergence (5-session slope)
+    df["_obv_step"] = np.sign(ret_1d).fillna(0) * df["volume"]
+    df["obv"] = df.groupby(sym_col)["_obv_step"].cumsum()
+
+    obv_shift_5 = df.groupby(sym_col)["obv"].shift(5)
+    obv_slope_5 = (df["obv"] - obv_shift_5) / (obv_shift_5.abs() + eps)
+
+    price_shift_5 = df.groupby(sym_col)["close"].shift(5)
+    price_slope_5 = (df["close"] - price_shift_5) / (price_shift_5 + eps)
+
+    # Negative value = Bearish Volume Divergence
+    df["price_volume_divergence_5d"] = obv_slope_5 - price_slope_5
+
+    # Amihud Illiquidity Ratio
+    turnover = df["close"] * df["volume"]
+    df["amihud_illiquidity"] = ret_1d.abs() / (turnover + eps)
+
+    # Cleanup temporary columns
+    df.drop(columns=["_obv_step"], inplace=True)
+
+    return df
+
 
 def run_feature_engineering():
-    print("=" * 70)
-    print("STEP 2: ULTIMATE HYBRID MESH FEATURE ENGINEERING (d = 0.35 + TEXTBLOB + TF-IDF)")
-    print("=" * 70)
+    print("=" * 80)
+    print("STEP 2: SCALE-INVARIANT FEATURE STORE & K-LINE / PRICE-VOLUME SEMANTICS")
+    print("=" * 80)
 
-    start_time = time.time()
-    parquet_path = os.path.join(PROCESSED_DIR, "market_master_union.parquet")
-    
-    if not os.path.exists(parquet_path):
-        print(f"Error: {parquet_path} not found. Run Step 1 first!")
+    t0 = time.time()
+    target_parquet = resolve_path("02_processed_parquet/market_master_union.parquet")
+    tech_out = BASE_DIR / "03_feature_store" / "technical_indicators.parquet"
+    floorsheet_path = resolve_path("03_feature_store/floorsheet_broker_signals.parquet")
+
+    if not target_parquet.exists():
+        print(f"Error: {target_parquet} not found. Run Step 1 first!")
         return
 
-    print("Loading master union parquet into pandas...")
-    df = pd.read_parquet(parquet_path)
-    
-    # Filter for Ordinary Equities & Microfinance (Rule A)
-    equity_df = df[df["security_type"].isin(["ORDINARY_EQUITY", "MICROFINANCE"])].copy()
-    print(f"Filtered for Ordinary Equities & Microfinance: {len(equity_df):,} records for {equity_df['ticker'].nunique()} tickers.")
+    print(f"Reading from Lakehouse: {target_parquet}")
+    con = duckdb.connect(database=":memory:")
 
-    processed_tickers = []
-    top_tickers = equity_df.groupby("ticker")["date"].count().sort_values(ascending=False).index.tolist()
+    sql = f"""
+    WITH base AS (
+        SELECT 
+            ticker,
+            CAST(date AS DATE) as date,
+            open, high, low, close, volume,
+            security_type,
+            close * volume AS turnover,
+            LAG(close, 1) OVER w AS prev_close,
+            LAG(volume, 1) OVER w AS prev_vol,
+            AVG(volume) OVER (PARTITION BY ticker ORDER BY date ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING) AS adv_20d,
+            AVG(close * volume) OVER (PARTITION BY ticker ORDER BY date ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING) AS turnover_20d,
+            SUM(CASE WHEN volume > 0 THEN 1 ELSE 0 END) OVER (PARTITION BY ticker ORDER BY date ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING) AS active_days_20d,
+            AVG(close) OVER (PARTITION BY ticker ORDER BY date ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING) AS sma_20,
+            AVG(close) OVER (PARTITION BY ticker ORDER BY date ROWS BETWEEN 50 PRECEDING AND 1 PRECEDING) AS sma_50,
+            STDDEV(close) OVER (PARTITION BY ticker ORDER BY date ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING) AS std_20,
+            LAG(close, 5) OVER w AS close_lag5,
+            LAG(close, 10) OVER w AS close_lag10,
+            LAG(close, 20) OVER w AS close_lag20
+        FROM read_parquet('{str(target_parquet).replace('\\', '/')}')
+        WHERE security_type IN ('ORDINARY_EQUITY', 'MICROFINANCE')
+        WINDOW w AS (PARTITION BY ticker ORDER BY date)
+    )
+    SELECT 
+        ticker, date, open, high, low, close, volume, security_type,
+        adv_20d, turnover_20d, active_days_20d,
+        sma_20, sma_50,
+        ((prev_close / (sma_20 + 1e-6)) - 1.0) AS dist_sma20,
+        ((prev_close / (sma_50 + 1e-6)) - 1.0) AS dist_sma50,
+        (((prev_close - (sma_20 - 2.0 * std_20)) / (4.0 * std_20 + 1e-6))) AS bb_pct_b,
+        ((prev_close / (close_lag5 + 1e-6)) - 1.0) AS ret_1w,
+        ((prev_close / (close_lag10 + 1e-6)) - 1.0) AS ret_2w,
+        ((prev_close / (close_lag20 + 1e-6)) - 1.0) AS ret_1m,
+        (std_20 / (sma_20 + 1e-6)) AS volatility_20,
+        ((prev_vol / (adv_20d + 1e-4)) - 1.0) AS vol_surge
+    FROM base
+    ORDER BY ticker ASC, date ASC
+    """
 
-    for ticker in top_tickers:
-        sub = equity_df[equity_df["ticker"] == ticker].sort_values("date").copy()
-        if len(sub) < 30:
-            continue
+    print("Computing DuckDB base window aggregations...")
+    df_base = con.execute(sql).df()
+    con.close()
 
-        close = sub["close"]
-        
-        # 1. Fractional Differentiation (d = 0.35)
-        sub["frac_diff_close"] = fractional_differentiation(close, d=0.35)
+    print(f"Base rows: {len(df_base):,}. Appending K-line & Price-Volume Semantics...")
+    df_enriched = add_price_volume_and_kline_semantics(df_base)
 
-        # 2. Technical Indicators
-        sub["log_return"] = np.log(close / close.shift(1)).fillna(0)
-        sub["sma_20"] = close.rolling(20).mean().ffill().bfill()
-        sub["sma_50"] = close.rolling(50).mean().ffill().bfill()
-        sub["ema_12"] = close.ewm(span=12, adjust=False).mean()
-        sub["ema_26"] = close.ewm(span=26, adjust=False).mean()
-        sub["macd"] = sub["ema_12"] - sub["ema_26"]
-        sub["macd_signal"] = sub["macd"].ewm(span=9, adjust=False).mean()
-        sub["rsi_14"] = compute_rsi(close, 14).fillna(50)
-        
-        # Bollinger Bands & Volatility
-        std_20 = close.rolling(20).std().fillna(0)
-        sub["bb_upper"] = sub["sma_20"] + (std_20 * 2)
-        sub["bb_lower"] = sub["sma_20"] - (std_20 * 2)
-        sub["volatility_20"] = std_20
+    # Optional Floorsheet Broker Concentration Join
+    if floorsheet_path.exists():
+        print("Enriching with NEPSE Floor Sheet Top-Buyer Concentration signals...")
+        con_fs = duckdb.connect(database=":memory:")
+        con_fs.register("enriched", df_enriched)
+        join_sql = f"""
+            SELECT 
+                e.*,
+                COALESCE(f.top3_buyer_share, 0.0) AS top_buyer_concentration,
+                COALESCE(f.buyer_hhi, 0.0) AS buyer_hhi,
+                COALESCE(f.net_hhi_imbalance, 0.0) AS broker_net_imbalance
+            FROM enriched e
+            LEFT JOIN read_parquet('{str(floorsheet_path).replace('\\', '/')}') f
+              ON e.ticker = f.ticker AND e.date = CAST(f.date AS DATE)
+            ORDER BY e.ticker ASC, e.date ASC
+        """
+        df_final = con_fs.execute(join_sql).df()
+        con_fs.close()
+    else:
+        df_final = df_enriched
+        df_final["top_buyer_concentration"] = 0.0
+        df_final["buyer_hhi"] = 0.0
+        df_final["broker_net_imbalance"] = 0.0
 
-        # 3. Numerical TF-IDF Weight Feature
-        sub["tfidf_weight"] = compute_numerical_tfidf(sub)
+    # Save to Parquet
+    tech_out.parent.mkdir(parents=True, exist_ok=True)
+    df_final.to_parquet(tech_out, index=False)
+    sync_to_both(tech_out, "03_feature_store/technical_indicators.parquet")
 
-        processed_tickers.append(sub)
+    # Register view in market_analytics.duckdb
+    for b in [BASE_DIR, ALT_DIR]:
+        duckdb_file = b / "02_processed_parquet" / "market_analytics.duckdb"
+        if duckdb_file.exists():
+            con_db = duckdb.connect(str(duckdb_file))
+            con_db.execute(f"""
+                CREATE OR REPLACE VIEW technical_indicators AS 
+                SELECT * FROM read_parquet('{str(tech_out).replace('\\', '/')}')
+            """)
+            con_db.close()
 
-    feature_df = pd.concat(processed_tickers, ignore_index=True)
+    elapsed = time.time() - t0
+    print(f"\nFeature Store updated successfully in {elapsed:.2f}s!")
+    print(f"Output File : {tech_out}")
+    print(f"Feature Rows: {len(df_final):,} | Total Columns: {len(df_final.columns)}")
+    print("New Microstructure Features Appended:")
+    print("  - kline_upper_shadow_ratio, kline_lower_shadow_ratio, kline_body_density")
+    print("  - kline_gap_rejection_flag, donchian_channel_pos_20")
+    print("  - volume_zscore_20, volume_force_index, price_volume_divergence_5d, amihud_illiquidity")
+    print("  - top_buyer_concentration, buyer_hhi, broker_net_imbalance")
+    print("=" * 80)
 
-    # 4. TextBlob Sentiment Feature Generation
-    print("Computing TextBlob news sentiment vectors...")
-    np.random.seed(42)
-    feature_df["textblob_polarity"] = np.random.normal(0.08, 0.22, len(feature_df)).clip(-1, 1)
-    feature_df["textblob_subjectivity"] = np.random.uniform(0.1, 0.8, len(feature_df))
-    
-    # Forward & backward fill to align dates seamlessly
-    feature_df["textblob_polarity"] = feature_df.groupby("ticker")["textblob_polarity"].transform(lambda x: x.ffill().bfill())
-    feature_df["textblob_subjectivity"] = feature_df.groupby("ticker")["textblob_subjectivity"].transform(lambda x: x.ffill().bfill())
-
-    os.makedirs(FEATURE_DIR, exist_ok=True)
-    tech_path = os.path.join(FEATURE_DIR, "technical_indicators.parquet")
-    feature_df.to_parquet(tech_path, compression="zstd")
-
-    sent_path = os.path.join(FEATURE_DIR, "sentiment_scores.parquet")
-    feature_df[["ticker", "date", "textblob_polarity", "textblob_subjectivity"]].to_parquet(sent_path, compression="zstd")
-
-    # Audit & Statistical Verification: ADF Test & Pearson Correlation
-    sample_close = feature_df["close"].dropna()
-    sample_frac = feature_df["frac_diff_close"].dropna()
-
-    adf_raw = adfuller(sample_close.iloc[:2000])[1] if len(sample_close) > 2000 else 0.5
-    adf_frac = adfuller(sample_frac.iloc[:2000])[1] if len(sample_frac) > 2000 else 0.01
-    pearson_r = np.corrcoef(sample_close.iloc[:2000], sample_frac.iloc[:2000])[0, 1]
-
-    elapsed = time.time() - start_time
-
-    print("\n" + "=" * 70)
-    print("HYBRID MESH FEATURE HEALTH & STATIONARITY OUTPUTS:")
-    print("=" * 70)
-    print(f"Raw Close Price ADF p-value:          {adf_raw:.4f} (Non-stationary)")
-    print(f"FracDiff (d=0.35) ADF p-value:        {adf_frac:.4e} (STATIONARY p < 0.05 PASS)")
-    print(f"Memory Retention Pearson Correlation:  r = {pearson_r:.4f} (r > 0.90 PASS)")
-    print(f"TextBlob Sentiment Polarity Vectors:  ALIGNED (Mean: {feature_df['textblob_polarity'].mean():.4f})")
-    print(f"Numerical TF-IDF Weights Generated:   ALIGNED (Mean: {feature_df['tfidf_weight'].mean():.4f})")
-    print("\n" + "=" * 70)
-    print("FEATURE STORE METRICS LOG:")
-    print("=" * 70)
-    print(f"Technical Indicators File: {tech_path}")
-    print(f"Sentiment Scores File:     {sent_path}")
-    print(f"Feature Matrix Size:       {feature_df.shape[0]:,} rows x {feature_df.shape[1]} columns")
-    print(f"Elapsed Execution Time:    {elapsed:.2f} seconds")
-    print("=" * 70 + "\n")
 
 if __name__ == "__main__":
     run_feature_engineering()

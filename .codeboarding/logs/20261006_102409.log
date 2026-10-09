@@ -1,0 +1,78 @@
+2026-10-06 10:24:10 INFO     [tool_registry.manifest:320] has_required_tools: csharp missing or stale at C:\Users\achar\.codeboarding\servers\bin\win\pm-tools\csharp-ls\csharp-ls.exe
+2026-10-06 10:24:12 INFO     [tool_registry.installers:451] Installing Node.js packages: ['pyright@1.1.400', 'typescript-language-server@4.3.4', 'typescript@5.7', 'intelephense@1.16.5']
+2026-10-06 10:24:31 INFO     [tool_registry.installers:465] Node.js packages installed successfully
+2026-10-06 10:24:31 INFO     [tool_registry.installers:225]   tokei: already installed, skipping
+2026-10-06 10:24:31 INFO     [tool_registry.installers:225]   gopls: already installed, skipping
+2026-10-06 10:24:31 INFO     [tool_registry.installers:225]   rust-analyzer: already installed, skipping
+2026-10-06 10:24:33 INFO     [tool_registry.installers:489] java already installed
+2026-10-06 10:24:33 WARNING  [tool_registry.installers:397]   csharp-ls: dotnet install failed (exit 2147516571): The command could not be loaded, possibly because:
+  * You intended to execute a .NET application:
+      The application 'tool' does not exist or is not a managed .dll or .exe.
+  * You intended to execute a .NET SDK command:
+      No .NET SDKs were found.
+
+Download a .NET SDK:
+https://aka.ms/dotnet/download
+
+Learn about SDK resolution:
+https://aka.ms/dotnet/sdk-not-found
+
+2026-10-06 10:24:34 INFO     [static_analyzer.java_utils:125] Found Java 25 at C:\Program Files\Eclipse Adoptium\jdk-25.0.1.8-hotspot
+2026-10-06 10:24:34 INFO     [codeboarding_cli.commands.full_analysis:101] Starting CodeBoarding documentation generation...
+2026-10-06 10:24:34 INFO     [utils:77] Monitoring enabled: false
+2026-10-06 10:24:34 INFO     [codeboarding_workflows.analysis:68] Running FULL analysis workflow for repo 'neps'.
+2026-10-06 10:24:45 INFO     [static_analyzer.engine.language_adapter:283] Found 59 Python files in C:\Users\achar\Downloads\neps
+2026-10-06 10:24:45 INFO     [static_analyzer:450] Starting engine LSP client for Python at C:\Users\achar\Downloads\neps
+2026-10-06 10:24:46 INFO     [static_analyzer:472] Python LSP start: 1.3s
+2026-10-06 10:24:46 INFO     [static_analyzer:708] analyze() called with skip_cache=False, source_sha=<set>
+2026-10-06 10:24:46 INFO     [static_analyzer:727] static_analysis_cache: outcome=miss_absent
+2026-10-06 10:24:46 INFO     [static_analyzer:778] Starting engine analysis for Python in C:\Users\achar\Downloads\neps
+2026-10-06 10:24:46 INFO     [static_analyzer:1070] Analyzing 59 Python files
+2026-10-06 10:24:48 INFO     [static_analyzer.engine.progress:49] Phase 0 (open): 100% (59/59 files, 1.5s elapsed)
+2026-10-06 10:24:48 INFO     [static_analyzer.engine.call_graph_builder:239] did_open 59 files: 1.5s
+2026-10-06 10:24:48 INFO     [static_analyzer.engine.call_graph_builder:245] Waiting for LSP server didOpen drain (timeout=178s)...
+2026-10-06 10:24:48 INFO     [static_analyzer.engine.call_graph_builder:249] Sync probe: 0.0s (32 symbols)
+2026-10-06 10:24:51 INFO     [static_analyzer.engine.progress:49] Phase 1 (symbols): 100% (59/59 files, 2.7s elapsed | symbols=5346)
+2026-10-06 10:24:51 INFO     [static_analyzer.engine.call_graph_builder:221] Discovered 5346 symbols across 59 files
+2026-10-06 10:24:51 INFO     [static_analyzer.engine.call_graph_builder:69] Phase 1 total (discover symbols): 4.2s
+2026-10-06 10:24:51 INFO     [static_analyzer.engine.call_graph_builder:73] Build indices: 0.0s
+2026-10-06 10:25:21 INFO     [static_analyzer.engine.progress:49] Phase 2 (definitions): 47% (28/59 files, 30.0s elapsed | edges=70, resolved=721)
+2026-10-06 10:25:51 INFO     [static_analyzer.engine.progress:49] Phase 2 (definitions): 94% (56/59 files, 60.8s elapsed | edges=114, resolved=1582)
+2026-10-06 10:25:54 INFO     [static_analyzer.engine.progress:49] Phase 2 (definitions): 100% (59/59 files, 63.8s elapsed | edges=121, resolved=1658)
+2026-10-06 10:25:54 INFO     [static_analyzer.engine.edge_builder:422] Phase 2b (implementations): 52 unique targets from 89 pending queries
+2026-10-06 10:25:54 INFO     [static_analyzer.engine.progress:49] Phase 2b (impl): 100% (52/52 targets, 0.0s elapsed | edges=121, resolved=0)
+2026-10-06 10:25:54 INFO     [static_analyzer.engine.edge_builder:223] Phase 2 summary: 6331 call sites, 1658 def resolved, 0 impl resolved, 0 iterated, 121 raw edges
+2026-10-06 10:25:54 INFO     [static_analyzer.engine.call_graph_builder:79] Phase 2 total (build edges): 63.8s, 121 edges
+2026-10-06 10:25:54 INFO     [static_analyzer.engine.hierarchy_builder:57] Hierarchy: 46 class symbols to process
+2026-10-06 10:25:54 INFO     [static_analyzer.engine.hierarchy_builder:95] Type hierarchy not supported by server, skipping remaining classes
+2026-10-06 10:25:54 INFO     [static_analyzer.engine.hierarchy_builder:101] Type hierarchy not supported, inferring from source code
+2026-10-06 10:25:54 INFO     [static_analyzer.engine.hierarchy_builder:105] Hierarchy complete: 46 classes, 0 inheritance links in 0.0s
+2026-10-06 10:25:54 INFO     [static_analyzer.engine.call_graph_builder:88] Phase 3 (hierarchy): 0.0s
+2026-10-06 10:25:54 INFO     [static_analyzer.engine.call_graph_builder:93] Phase 4 (package deps): 0.0s
+2026-10-06 10:25:54 INFO     [static_analyzer.engine.call_graph_builder:116] Pipeline complete: 59 files, 5346 symbols, 121 edges, 46 hierarchy entries in 68.1s
+2026-10-06 10:25:54 INFO     [static_analyzer:1080] CallGraphBuilder.build() for Python: 68.1s
+2026-10-06 10:25:54 INFO     [static_analyzer.engine.result_converter:110] Converted 240 nodes, 121 edges (0 skipped) for Python
+2026-10-06 10:25:54 INFO     [static_analyzer.engine.result_converter:120] Reference edges for Python: 72 ({<EdgeKind.CONTAINS: 'contains'>: 72})
+2026-10-06 10:25:54 INFO     [static_analyzer:1090] convert_to_codeboarding_format for Python: 0.0s
+2026-10-06 10:25:54 INFO     [static_analyzer:781] Engine analysis for Python completed in 68.1s
+2026-10-06 10:25:54 INFO     [static_analyzer:1021] Diagnostics for Python: 59 files, 170 items (cache=0, live=59)
+2026-10-06 10:25:54 INFO     [static_analyzer.external_calls:92] External call sites: 5828 kept, 0 new edges, 5828 point outside this graph
+2026-10-06 10:25:54 INFO     [static_analyzer:856] Static analysis complete: python: 59 files, 522 references, 240 nodes, 121 edges
+2026-10-06 10:25:56 INFO     [health.checks.unused_code_diagnostics:178] Processed 170 diagnostics: 30 recognized as unused code issues, 140 skipped
+2026-10-06 10:25:56 INFO     [health.checks.unused_code_diagnostics:181] Issues by category: {'unused_import': 13, 'unused_variable': 17}
+2026-10-06 10:25:56 INFO     [diagram_analysis.diagram_generator:1146] Health report written to C:\Users\achar\Downloads\neps\.codeboarding\health\health_report.json (score: 0.785)
+2026-10-06 10:25:56 INFO     [diagram_analysis.diagram_generator:1399] Generating initial analysis
+2026-10-06 10:25:57 INFO     [diagram_analysis.scope_assembly:92] Component symbol coverage: 211/211 assigned
+2026-10-06 10:25:57 INFO     [diagram_analysis.scope_assembly:319] Merged relations: 0 total (0 static-backed, 0 semantic-only)
+2026-10-06 10:25:57 INFO     [agents.llm_config:366] Using Google LLM with model: gemini-3.8-flash
+2026-10-06 10:26:01 INFO     [httpx:1025] HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent "HTTP/1.1 503 Service Unavailable"
+2026-10-06 10:26:01 INFO     [google_genai._api_client:64] Retrying google.genai._api_client.BaseApiClient._request_once in 1.67 seconds as it raised ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}.
+2026-10-06 10:26:06 INFO     [httpx:1025] HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent "HTTP/1.1 503 Service Unavailable"
+2026-10-06 10:26:06 INFO     [google_genai._api_client:64] Retrying google.genai._api_client.BaseApiClient._request_once in 2.78 seconds as it raised ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}.
+2026-10-06 10:26:15 INFO     [httpx:1025] HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent "HTTP/1.1 503 Service Unavailable"
+2026-10-06 10:26:15 INFO     [google_genai._api_client:64] Retrying google.genai._api_client.BaseApiClient._request_once in 4.23 seconds as it raised ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}.
+2026-10-06 10:26:26 INFO     [httpx:1025] HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent "HTTP/1.1 503 Service Unavailable"
+2026-10-06 10:26:26 INFO     [google_genai._api_client:64] Retrying google.genai._api_client.BaseApiClient._request_once in 8.06 seconds as it raised ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}.
+2026-10-06 10:26:36 INFO     [httpx:1025] HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent "HTTP/1.1 503 Service Unavailable"
+2026-10-06 10:26:36 INFO     [google_genai._api_client:64] Retrying google.genai._api_client.BaseApiClient._request_once in 16.3 seconds as it raised ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}.
+2026-10-06 10:26:56 INFO     [httpx:1025] HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent "HTTP/1.1 503 Service Unavailable"

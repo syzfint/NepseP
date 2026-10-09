@@ -12,6 +12,7 @@ Executes and maintains:
 """
 
 import os
+from pathlib import Path
 import json
 import logging
 from datetime import datetime
@@ -49,12 +50,20 @@ class NewsHarnessPipeline:
         self.calendar = NepseTradingCalendar()
         
         # Load calendar & market data if available
+        base_dir = Path(__file__).resolve().parent.parent.parent
+        parquet_fallback = base_dir / "02_processed_parquet" / "market_master_union.parquet"
+
         if os.path.exists(self.market_csv_path):
             logger.info(f"Loading trading calendar from {self.market_csv_path}")
             self.calendar.load_from_csv(self.market_csv_path)
             self.market_df = pd.read_csv(self.market_csv_path)
+        elif parquet_fallback.exists():
+            logger.info(f"Loading market data from parquet fallback: {parquet_fallback}")
+            self.market_df = pd.read_parquet(parquet_fallback)
+            if 'date' in self.market_df.columns:
+                self.calendar.trading_days = sorted(pd.to_datetime(self.market_df['date']).dt.strftime('%Y-%m-%d').unique())
         else:
-            logger.warning(f"Market CSV {self.market_csv_path} not found. Running in calendar fallback mode.")
+            logger.warning(f"Market CSV {self.market_csv_path} and parquet fallback not found. Running in calendar fallback mode.")
             self.market_df = None
 
         self.ingestion = NewsIngestionService(self.db, self.calendar)

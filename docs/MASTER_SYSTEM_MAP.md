@@ -68,17 +68,17 @@ flowchart LR
 
 | Gate | Name | Certified Status | Evidence & Last Run Verdict | Artifact Path |
 | :--- | :--- | :--- | :--- | :--- |
-| **G0** | Data Truth | **CONDITIONAL_PASS** | 644,188 rows, 663 tickers verified. Pre-2010 delistings partially missing. | [G0_INDEPENDENT_CHECKS.csv](file:///c:/Users/achar/Downloads/neps/G0_INDEPENDENT_CHECKS.csv) |
-| **G1** | Point-in-Time Leakage | **CONDITIONAL_PASS** | Truncation delta $= 0.000000$. System-wide end-to-end audit pending. | [FEATURE_LEAKAGE_AUDIT.csv](file:///c:/Users/achar/Downloads/neps/FEATURE_LEAKAGE_AUDIT.csv) |
-| **G2** | Corporate Actions | **CERTIFIED_PASS** | Backward multiplier $P_{\text{adj}}$ independently confirmed. Bonus drop resolved. | [CORPORATE_ACTION_AUDIT.csv](file:///c:/Users/achar/Downloads/neps/CORPORATE_ACTION_AUDIT.csv) |
-| **G3** | Signal / Rank IC | **CONDITIONAL_PASS** | Base Reversal $t=1.48$. Composite IC $= +0.0217$ ($t = 4.13$). | [IC_RECONCILIATION.json](file:///c:/Users/achar/Downloads/neps/IC_RECONCILIATION.json) |
-| **G4** | Benchmark Baseline | **CERTIFIED_PASS** | Equal-weight index $+3,870.51\%$ (Sharpe $1.08$) reconciled against NEPSE. | [BENCHMARK_RECONCILIATION.json](file:///c:/Users/achar/Downloads/neps/BENCHMARK_RECONCILIATION.json) |
-| **G5** | Cost & Liquidity | **CERTIFIED_PASS** | Fees (0.40%–0.27%), SEBON 0.015%, CGT 7.5%, 5% ADV cap verified. | [COST_AUDIT.csv](file:///c:/Users/achar/Downloads/neps/COST_AUDIT.csv) |
-| **G6** | Execution Viability | **CONDITIONAL_PASS** | Fill at $\text{Open}_{t+1}$ with 5% ADV cap. L2 queue priority approximated. | [GATE6_RESULT.json](file:///c:/Users/achar/Downloads/neps/GATE6_RESULT.json) |
-| **G7** | Purged CV | **CONDITIONAL_PASS** | CPCV embargo logic verified; fold metadata logged. | [GATE7_RESULT.json](file:///c:/Users/achar/Downloads/neps/GATE7_RESULT.json) |
-| **G8** | Complexity Ablation| **CONDITIONAL_PASS** | Factor baseline vs composite evaluated. | [GATE8_RESULT.json](file:///c:/Users/achar/Downloads/neps/GATE8_RESULT.json) |
-| **G9** | PBO / DSR | **CONDITIONAL_PASS** | Reconstructed lower-bound $N=9$ trials ($PBO = 11.2\%$). | [G9_RESULT.json](file:///c:/Users/achar/Downloads/neps/G9_RESULT.json) |
-| **G10**| Untouched OOS | **CERTIFIED_PASS** | Single-pass holdout: Return $= +7.41\%$, Sharpe $= 0.74$, Rank IC $= +0.0448$. | [G10_RESULT.json](file:///c:/Users/achar/Downloads/neps/G10_RESULT.json) |
+| **G0** | Data Truth | **CONDITIONAL_PASS** | 644,188 rows, 663 tickers verified. Pre-2010 delistings partially missing. | [G0_INDEPENDENT_CHECKS.csv](file:///c:/Users/achar/Downloads/neps/reports/audits/G0_INDEPENDENT_CHECKS.csv) |
+| **G1** | Point-in-Time Leakage | **CONDITIONAL_PASS** | Truncation delta $= 0.000000$. System-wide end-to-end audit pending. | [FEATURE_LEAKAGE_AUDIT.csv](file:///c:/Users/achar/Downloads/neps/reports/audits/FEATURE_LEAKAGE_AUDIT.csv) |
+| **G2** | Corporate Actions | **CERTIFIED_PASS** | Backward multiplier $P_{\text{adj}}$ independently confirmed. Bonus drop resolved. | [CORPORATE_ACTION_AUDIT.csv](file:///c:/Users/achar/Downloads/neps/reports/audits/CORPORATE_ACTION_AUDIT.csv) |
+| **G3** | Signal / Rank IC | **CONDITIONAL_PASS** | Base Reversal $t=1.48$. Composite IC $= +0.0217$ ($t = 4.13$). | [IC_RECONCILIATION.json](file:///c:/Users/achar/Downloads/neps/reports/audits/IC_RECONCILIATION.json) |
+| **G4** | Benchmark Baseline | **CERTIFIED_PASS** | Equal-weight index $+3,870.51\%$ (Sharpe $1.08$) reconciled against NEPSE. | [BENCHMARK_RECONCILIATION.json](file:///c:/Users/achar/Downloads/neps/reports/audits/BENCHMARK_RECONCILIATION.json) |
+| **G5** | Cost & Liquidity | **CERTIFIED_PASS** | Fees (0.40%–0.27%), SEBON 0.015%, CGT 7.5%, 5% ADV cap verified. | [COST_AUDIT.csv](file:///c:/Users/achar/Downloads/neps/reports/audits/COST_AUDIT.csv) |
+| **G6** | Execution Viability | **CONDITIONAL_PASS** | Fill at $\text{Open}_{t+1}$ with 5% ADV cap. L2 queue priority approximated. | [GATE6_RESULT.json](file:///c:/Users/achar/Downloads/neps/reports/gates/GATE6_RESULT.json) |
+| **G7** | Purged CV | **CONDITIONAL_PASS** | CPCV embargo logic verified; fold metadata logged. | [GATE7_RESULT.json](file:///c:/Users/achar/Downloads/neps/reports/gates/GATE7_RESULT.json) |
+| **G8** | Complexity Ablation| **CONDITIONAL_PASS** | Factor baseline vs composite evaluated. | [GATE8_RESULT.json](file:///c:/Users/achar/Downloads/neps/reports/gates/GATE8_RESULT.json) |
+| **G9** | PBO / DSR | **CONDITIONAL_PASS** | Reconstructed lower-bound $N=9$ trials ($PBO = 11.2\%$). | [G9_RESULT.json](file:///c:/Users/achar/Downloads/neps/reports/gates/G9_RESULT.json) |
+| **G10**| Untouched OOS | **CERTIFIED_PASS** | Single-pass holdout: Return $= +7.41\%$, Sharpe $= 0.74$, Rank IC $= +0.0448$. | [G10_RESULT.json](file:///c:/Users/achar/Downloads/neps/reports/gates/G10_RESULT.json) |
 
 ---
 
@@ -183,11 +183,11 @@ Paper Trading          : ALLOWED
 
 | Claim | Source / Test File | Status |
 | :--- | :--- | :--- |
-| **No Future Feature Information** | Truncation Test ([FEATURE_LEAKAGE_AUDIT.csv](file:///c:/Users/achar/Downloads/neps/FEATURE_LEAKAGE_AUDIT.csv)) | **VERIFIED ($\Delta = 0.0$)** |
-| **Corporate Adjustment Correct** | Independent Reconciliation ([CORPORATE_ACTION_AUDIT.csv](file:///c:/Users/achar/Downloads/neps/CORPORATE_ACTION_AUDIT.csv)) | **VERIFIED** |
-| **Signal IC Reproducible** | IC Reconciliation ([IC_RECONCILIATION.json](file:///c:/Users/achar/Downloads/neps/IC_RECONCILIATION.json)) | **VERIFIED** |
-| **Benchmark Reconciles** | Benchmark Audit ([BENCHMARK_RECONCILIATION.json](file:///c:/Users/achar/Downloads/neps/BENCHMARK_RECONCILIATION.json)) | **VERIFIED** |
-| **Historical Fees Verified** | Rule Schedule Table ([COST_AUDIT.csv](file:///c:/Users/achar/Downloads/neps/COST_AUDIT.csv)) | **VERIFIED** |
-| **Execution Realistically Fillable** | Fill Assumption Engine ([GATE6_RESULT.json](file:///c:/Users/achar/Downloads/neps/GATE6_RESULT.json)) | **APPROXIMATED (5% ADV Cap)** |
-| **PBO Based on Complete Trials** | Registry Audit ($N=9$, [EXPERIMENT_REGISTRY.csv](file:///c:/Users/achar/Downloads/neps/EXPERIMENT_REGISTRY.csv)) | **LOWER BOUND ONLY ($N=9$)** |
-| **OOS Never Inspected** | Single-Pass Hash Log ([FINAL_MODEL_HASH.json](file:///c:/Users/achar/Downloads/neps/FINAL_MODEL_HASH.json)) | **VERIFIED** |
+| **No Future Feature Information** | Truncation Test ([FEATURE_LEAKAGE_AUDIT.csv](file:///c:/Users/achar/Downloads/neps/reports/audits/FEATURE_LEAKAGE_AUDIT.csv)) | **VERIFIED ($\Delta = 0.0$)** |
+| **Corporate Adjustment Correct** | Independent Reconciliation ([CORPORATE_ACTION_AUDIT.csv](file:///c:/Users/achar/Downloads/neps/reports/audits/CORPORATE_ACTION_AUDIT.csv)) | **VERIFIED** |
+| **Signal IC Reproducible** | IC Reconciliation ([IC_RECONCILIATION.json](file:///c:/Users/achar/Downloads/neps/reports/audits/IC_RECONCILIATION.json)) | **VERIFIED** |
+| **Benchmark Reconciles** | Benchmark Audit ([BENCHMARK_RECONCILIATION.json](file:///c:/Users/achar/Downloads/neps/reports/audits/BENCHMARK_RECONCILIATION.json)) | **VERIFIED** |
+| **Historical Fees Verified** | Rule Schedule Table ([COST_AUDIT.csv](file:///c:/Users/achar/Downloads/neps/reports/audits/COST_AUDIT.csv)) | **VERIFIED** |
+| **Execution Realistically Fillable** | Fill Assumption Engine ([GATE6_RESULT.json](file:///c:/Users/achar/Downloads/neps/reports/gates/GATE6_RESULT.json)) | **APPROXIMATED (5% ADV Cap)** |
+| **PBO Based on Complete Trials** | Registry Audit ($N=9$, [EXPERIMENT_REGISTRY.csv](file:///c:/Users/achar/Downloads/neps/reports/audits/EXPERIMENT_REGISTRY.csv)) | **LOWER BOUND ONLY ($N=9$)** |
+| **OOS Never Inspected** | Single-Pass Hash Log ([FINAL_MODEL_HASH.json](file:///c:/Users/achar/Downloads/neps/reports/final_oos/FINAL_MODEL_HASH.json)) | **VERIFIED** |

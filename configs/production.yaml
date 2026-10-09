@@ -1,0 +1,48 @@
+# APEXMARKETENGINE — PRODUCTION CONFIGURATION
+system:
+  release_id: "AMME-2026.10.07-R04"
+  environment: "production"
+  universe: "NEPSE"
+  timezone: "Asia/Kathmandu"
+
+data:
+  master_parquet: "02_processed_parquet/market_master_union.parquet"
+  feature_parquet: "03_feature_store/technical_indicators.parquet"
+  floorsheet_parquet: "03_feature_store/floorsheet_broker_signals.parquet"
+  promoter_lockin_parquet: "static_data/promoter_lockin.parquet"
+  chronos_quantiles_parquet: "03_feature_store/chronos_quantiles_5d.parquet"
+
+models:
+  chronos:
+    model_id: "amazon/chronos-bolt-small"
+    prediction_length: 5
+    quantiles: [0.10, 0.50, 0.90]
+    device: "cpu"
+    batch_size: 64
+  kronos:
+    lookback_bars: 20
+    min_bars: 5
+    bull_trap_gap_threshold: 0.02
+    bull_trap_ret_threshold: -0.015
+    floor_bounce_donchian_max: 0.40
+    floor_bounce_lower_shadow_min: 0.40
+  gate_g4:
+    probability_threshold: 0.55
+    laplace_prior: 0.599
+    max_amihud: 0.05
+    min_adv: 2000.0
+    promoter_freeze_days_pre: 15
+    promoter_freeze_days_post: 30
+    wash_trade_ratio_max: 0.15
+  hrp:
+    min_asset_weight: 0.03
+    max_asset_weight: 0.18
+    base_cash_buffer: 0.15
+    defensive_cash_buffer: 0.25
+    market_breadth_defensive_trigger: 0.40
+
+governance:
+  enforce_pydantic_v2: true
+  enforce_base64_chart: true
+  enforce_provenance_hash: true
+  enforce_runtime_gates: true

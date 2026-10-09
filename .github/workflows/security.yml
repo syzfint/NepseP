@@ -1,0 +1,103 @@
+name: ApexMarketEngine DevSecOps & Autonomous AI Pentest
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  schedule:
+    - cron: '0 4 * * 1'  # Weekly security audit on Mondays
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  sast-and-dependencies:
+    name: Static Analysis (Bandit) & Supply Chain Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+
+      - name: Install Dependencies & Security Scanners
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit[toml] pip-audit
+
+      - name: Run Bandit SAST Security Analysis
+        run: |
+          echo "Running Bandit Static Application Security Testing..."
+          bandit -r scripts/ -ll -v
+
+      - name: Run Supply Chain Dependency Vulnerability Audit
+        run: |
+          echo "Auditing requirements.txt dependencies for known CVEs..."
+          pip-audit -r requirements.txt || true
+
+  secret-detection:
+    name: Gitleaks Secret & Credential Leak Detection
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks Secret Scanner
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+  strix-autonomous-pentest:
+    name: Strix AI Penetration Testing & Dynamic Verification
+    runs-on: ubuntu-latest
+    # Only run if user has configured LLM credentials or explicitly triggered
+    if: "${{ secrets.STRIX_LLM != '' && secrets.LLM_API_KEY != '' }}"
+    steps:
+      - name: Checkout Code Blueprint
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Enables diff-scope for pull requests
+
+      - name: Install Strix CLI
+        run: |
+          echo "Installing Strix AI pentesting engine..."
+          curl -sSL https://strix.ai/install | bash
+          echo "$HOME/.strix/bin" >> $GITHUB_PATH
+
+      - name: Run Strix Headless Security Assessment
+        env:
+          STRIX_LLM: ${{ secrets.STRIX_LLM }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+        run: |
+          strix -n -t ./ --scan-mode quick --max-budget 10
+
+      - name: Verify Strix Run Completion
+        run: |
+          if [ -d "strix_runs" ]; then
+            run_json=$(ls -t strix_runs/*/run.json 2>/dev/null | head -1)
+            if [ -n "$run_json" ]; then
+              status=$(jq -r .status "$run_json")
+              echo "Strix assessment finished with status: $status"
+              if [ "$status" != "completed" ]; then
+                echo "Warning: Strix run ended with status '$status' (check budget limits)."
+              fi
+            fi
+          fi
+
+      - name: Archive Strix Pentest Findings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: strix-penetration-test-report
+          path: strix_runs/
+          if-no-files-found: ignore
