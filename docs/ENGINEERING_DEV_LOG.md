@@ -93,3 +93,5 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 
 - Authored `scripts/03_data_access_and_storage/atomic_file_operations.py` providing atomic writes via `.tmp`.
 
+- Authored `scripts/sweet_spot_engine.py` incorporating realistic NEPSE slippage and broker commission drag.
+
