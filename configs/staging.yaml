@@ -1,0 +1,37 @@
+# APEXMARKETENGINE — STAGING CONFIGURATION
+system:
+  release_id: "AMME-2026.10.07-STAGING"
+  environment: "staging"
+  universe: "NEPSE"
+  timezone: "Asia/Kathmandu"
+
+data:
+  master_parquet: "02_processed_parquet/market_master_union.parquet"
+  feature_parquet: "03_feature_store/technical_indicators.parquet"
+  floorsheet_parquet: "03_feature_store/floorsheet_broker_signals.parquet"
+  promoter_lockin_parquet: "static_data/promoter_lockin.parquet"
+  chronos_quantiles_parquet: "03_feature_store/chronos_quantiles_5d.parquet"
+
+models:
+  chronos:
+    model_id: "amazon/chronos-bolt-small"
+    prediction_length: 5
+    quantiles: [0.10, 0.50, 0.90]
+    device: "cpu"
+    batch_size: 64
+  kronos:
+    lookback_bars: 20
+    min_bars: 5
+  gate_g4:
+    probability_threshold: 0.55
+    laplace_prior: 0.599
+  hrp:
+    min_asset_weight: 0.03
+    max_asset_weight: 0.18
+    base_cash_buffer: 0.15
+
+governance:
+  enforce_pydantic_v2: true
+  enforce_base64_chart: true
+  enforce_provenance_hash: true
+  enforce_runtime_gates: true

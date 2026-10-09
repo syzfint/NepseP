@@ -5,8 +5,19 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 
-BASE_DIR = r"c:\Users\achar\Downloads\neps"
-FEATURE_DIR = os.path.join(BASE_DIR, "03_feature_store")
+from pathlib import Path
+
+BASE_DIR = Path.cwd()
+ALT_DIR = Path(r"C:/Users/achar/Downloads/neps")
+
+def resolve_path(relative_path: str) -> Path:
+    p = BASE_DIR / relative_path
+    if p.exists():
+        return p
+    alt = ALT_DIR / relative_path
+    if alt.exists():
+        return alt
+    return p
 
 def run_train_and_backtest():
     print("=" * 70)
@@ -14,9 +25,9 @@ def run_train_and_backtest():
     print("=" * 70)
 
     start_time = time.time()
-    tech_path = os.path.join(FEATURE_DIR, "technical_indicators.parquet")
+    tech_path = resolve_path("03_feature_store/technical_indicators.parquet")
     
-    if not os.path.exists(tech_path):
+    if not tech_path.exists():
         print(f"Error: {tech_path} not found. Run Step 2 first!")
         return
 
@@ -35,11 +46,17 @@ def run_train_and_backtest():
     df["stop_barrier"] = -df["volatility_20"] * 1.5
     df["meta_label"] = (df["target_10d_return"] > df["profit_barrier"]).astype(int)
 
-    feature_cols = [
-        "frac_diff_close", "log_return", "sma_20", "sma_50", 
-        "macd", "macd_signal", "rsi_14", "bb_upper", "bb_lower", "volatility_20",
-        "tfidf_weight", "textblob_polarity", "textblob_subjectivity"
+    candidate_features = [
+        "dist_sma20", "dist_sma50", "bb_pct_b", "ret_1w", "ret_2w", "ret_1m",
+        "volatility_20", "vol_surge",
+        # Candlestick Geometry (K-Line Semantics)
+        "kline_upper_shadow_ratio", "kline_lower_shadow_ratio", "kline_body_density",
+        "kline_gap_rejection_flag", "donchian_channel_pos_20",
+        # Price-Volume Coupling & Microstructure
+        "volume_zscore_20", "volume_force_index", "price_volume_divergence_5d",
+        "amihud_illiquidity", "top_buyer_concentration", "buyer_hhi", "broker_net_imbalance"
     ]
+    feature_cols = [c for c in candidate_features if c in df.columns]
 
     clean_df = df.dropna(subset=["target_10d_return", "cross_sectional_rank", "close", "future_10d_close"]).copy()
 

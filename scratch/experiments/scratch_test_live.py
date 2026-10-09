@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, ".")
 import importlib.util
 
-spec = importlib.util.spec_from_file_location("clef_bridge", "scripts/33_clef_inference_bridge.py")
+spec = importlib.util.spec_from_file_location("clef_bridge", "scripts/07_clef_multimodal/33_clef_inference_bridge.py")
 bridge_mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(bridge_mod)
 

@@ -1,8 +1,11 @@
 import os
 import glob
 
-base_dir = r"c:\Users\achar\Downloads\neps\archive (3)\NEPSE_data"
-output_file = r"c:\Users\achar\Downloads\neps\archive (3)\NEPSE_all_data.csv"
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+base_dir = str(BASE_DIR / "archive (3)" / "NEPSE_data")
+output_file = str(BASE_DIR / "archive (3)" / "NEPSE_all_data.csv")
 
 all_files = glob.glob(os.path.join(base_dir, "**", "*.csv"), recursive=True)
 

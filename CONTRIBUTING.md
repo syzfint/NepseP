@@ -8,7 +8,7 @@ Thank you for your interest in contributing to **ApexMarketEngine**! We welcome 
 
 ### 1. The Blueprint vs. State Paradigm
 * **The Remote Repository is a Code Blueprint (<1 MB):** Never commit raw tick datasets (`.parquet`, `.csv`), DuckDB files (`.duckdb`), virtual environments, or secrets (`.env`).
-* All pipelines must assume cold-start hydration via `python scripts/init_duckdb.py`.
+* All pipelines must assume cold-start hydration via `python scripts/01_etl_and_ingestion/init_duckdb.py`.
 
 ### 2. The 10-Gate Forensic Standard
 Every pull request introducing mathematical formulas or trading signals must pass the 10 validation gates:

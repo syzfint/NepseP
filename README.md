@@ -3,7 +3,7 @@
 # ⚡ ApexMarketEngine
 ### Institutional Quantitative Trading & Machine Learning Pipeline
 
-[![Typing SVG](https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=20&duration=3000&pause=1000&color=00E676&center=true&vCenter=true&width=800&lines=Low-Latency+Out-of-Core+DuckDB+Engine;Memory-Preserving+Fractional+Differentiation+(d%3D0.35);Friction-Adjusted+Hysteresis+Alpha+(%2B3%2C438.94%25+Net);Purged+%26+Embargoed+CPCV+Cross-Validation;3-Tier+Progressive+Disclosure+UX+Terminal)](https://git.io/typing-svg)
+[![Typing SVG](https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=20&duration=3000&pause=1000&color=00E676&center=true&vCenter=true&width=800&lines=Low-Latency+Out-of-Core+CHRONO-VAULT OLAP+Engine;Memory-Preserving+Fractional+Differentiation+(d%3D0.35);Friction-Adjusted+Hysteresis+Alpha+(%2B3%2C438.94%25+Net);Purged+%26+Embargoed+CPCV+Cross-Validation;3-Tier+Progressive+Disclosure+UX+Terminal)](https://git.io/typing-svg)
 
 <p align="center">
   <a href="#-quickstart-guide"><b>Quickstart</b></a> •
@@ -15,7 +15,7 @@
 </p>
 
 [![Python 3.13](https://img.shields.io/badge/Python-3.13-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
-[![DuckDB](https://img.shields.io/badge/DuckDB-1.5.5-FFF000?style=for-the-badge&logo=duckdb&logoColor=black)](https://duckdb.org)
+[![CHRONO-VAULT OLAP](https://img.shields.io/badge/CHRONO-VAULT OLAP-1.5.5-FFF000?style=for-the-badge&logo=duckdb&logoColor=black)](https://duckdb.org)
 [![Pandas](https://img.shields.io/badge/Pandas-3.0.1-150458?style=for-the-badge&logo=pandas&logoColor=white)](https://pandas.pydata.org)
 [![Qwen2.5-VL LoRA](https://img.shields.io/badge/Qwen2.5--VL-3B_LoRA-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black)](scripts/35_train_clef_lora_t4.py)
 [![Google Colab T4](https://img.shields.io/badge/Colab-Tesla_T4_GPU-F9AB00?style=for-the-badge&logo=googlecolab&logoColor=white)](notebooks/35_colab_train_clef_lora.py)
@@ -40,7 +40,7 @@
 
 It bridges out-of-core columnar processing with memory-preserving signal processing, feature leakage prevention, and multi-modal contextual forecasting:
 
-* 🦆 **DuckDB Out-of-Core Processing:** Sub-92ms query latencies over 644k+ historical records with zero data loss.
+* 🦆 **CHRONO-VAULT OLAP Out-of-Core Processing:** Sub-92ms query latencies over 644k+ historical records with zero data loss.
 * 📈 **Fractional Differentiation ($d = 0.35$):** Memory-preserving stationarity passing Augmented Dickey-Fuller tests ($p = 0.0121 < 0.05$) while preserving $>0.90$ price correlation.
 * 🛡️ **Hysteresis Retention Rebalancing:** Slashes friction turnover from $100\%$ down to $11.9\%$, transforming fee-wiped naive portfolios into **$+3,438.94\%$ friction-adjusted net returns**.
 * 🔍 **Triple-Barrier Meta-Labeling:** Combinatorial Purged & Embargoed Cross-Validation (CPCV) ensuring zero lookahead bias.
@@ -52,12 +52,12 @@ It bridges out-of-core columnar processing with memory-preserving signal process
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                      APEXMARKETENGINE FORENSIC AUDIT RECORD                 │
+│                      CHRONOSTRATA PRIME FORENSIC AUDIT RECORD                 │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │ • Net Cumulative Strategy Return (10y): +3,438.94% (Post 0.65% Fee Penalty) │
 │ • Net Win / Loss Rate:                  51.13%                              │
 │ • Portfolio Rebalance Turnover:         11.9% (Turnover Cut by 88.1%)       │
-│ • DuckDB Storage Read Latency:          < 92 ms (396,603 rows / 4.29 MB)    │
+│ • CHRONO-VAULT OLAP Storage Read Latency:          < 92 ms (396,603 rows / 4.29 MB)    │
 │ • FracDiff ADF Stationarity:            p = 0.0121 < 0.05 (r = 0.0912)      │
 │ • Zero-Data-Loss Audit Guard:           PASS (0 Lost Trading Days Preserved)│
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -127,7 +127,7 @@ ApexMarketEngine integrates **CLEF** (Contextual Layman Evaluation Framework), a
 flowchart TD
     subgraph LocalDesk["Local Workstation Desk (ApexMarketEngine)"]
         direction TB
-        L1["DuckDB Parquet Store (644k+ Ticks & Daily Bars)"]
+        L1["CHRONO-VAULT OLAP Parquet Store (644k+ Ticks & Daily Bars)"]
         L2["Feature Store: FFD (d=0.35) & Technical Indicators"]
         L3["Forecasting: LightGBM Ranker & Triple-Barrier Meta-Labeler"]
         L4["In-Memory Base64 Chart PNG (Zero Local Path Leakage)"]
@@ -234,7 +234,7 @@ ApexMarketEngine follows a modular 10-phase production lifecycle spanning lakeho
 flowchart LR
     subgraph S1["Phases 1–2"]
         direction TB
-        P1["Raw Lakehouse Ingestion & DuckDB FFD d=0.35"]
+        P1["Raw Lakehouse Ingestion & CHRONO-VAULT OLAP FFD d=0.35"]
     end
     subgraph S2["Phases 3–4"]
         direction TB
@@ -262,7 +262,7 @@ flowchart LR
 
 | Phase | Phase Name | Computational Operations & Core Outputs |
 | :---: | :--- | :--- |
-| **01–02** | **Lakehouse Ingestion & Feature Mesh** | DuckDB zero-loss floorsheet CSV union, Hive partitioning, FFD ($d=0.35$) |
+| **01–02** | **Lakehouse Ingestion & Feature Mesh** | CHRONO-VAULT OLAP zero-loss floorsheet CSV union, Hive partitioning, FFD ($d=0.35$) |
 | **03–04** | **Forensic Modeling & Forecasting** | LightGBM ranker, meta-labeling gate, $2.0\sigma$ Triple-Barrier corridor |
 | **05–06** | **Visual Artifacts & Provenance Sealing** | Headless Matplotlib Agg charts, composite SHA-256 master provenance hash |
 | **07** | **Live Cloudflare Tunnel & GPU Inference** | 8.42s HTTPS tunnel dispatch to FastAPI Qwen2.5-VL-3B endpoint |
@@ -335,7 +335,7 @@ $$S_t = 2 \cdot \Phi\left(\frac{P(y = 1 | X_t) - 0.5}{\sqrt{P(y = 1 | X_t)(1 - P
 apex-market-engine/
 ├── 📁 scripts/                                      # Streamlined End-to-End Pipeline
 │   ├── 📄 init_duckdb.py                            # Database bootstrap & zero-copy schema views
-│   ├── 📄 01_build_master_union.py                  # DuckDB deduplication & zero-data-loss audit
+│   ├── 📄 01_build_master_union.py                  # CHRONO-VAULT OLAP deduplication & zero-data-loss audit
 │   ├── 📄 02_feature_engineering.py                 # FracDiff (d=0.35) & technical indicator pipeline
 │   ├── 📄 03_train_and_backtest.py                  # Purged/Embargoed walk-forward ML & backtest
 │   ├── 📄 04_streamlit_terminal_ui.py               # 3-Tier Progressive Disclosure Web Terminal UI
@@ -368,8 +368,8 @@ cd NepseP
 pip install -r requirements.txt
 ```
 
-### 2. Initialize DuckDB Database Schemas
-Rebuild local DuckDB schemas and zero-copy views over Parquet and CSV files:
+### 2. Initialize CHRONO-VAULT OLAP Database Schemas
+Rebuild local CHRONO-VAULT OLAP schemas and zero-copy views over Parquet and CSV files:
 ```bash
 python scripts/init_duckdb.py
 ```
