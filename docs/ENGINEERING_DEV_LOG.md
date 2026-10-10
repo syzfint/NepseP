@@ -101,3 +101,5 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 
 - Published complete Model Governance Card with risk disclosures and bias prevention proofs.
 
+- Certified 264/264 test suite pass rate under `tests/regression_suite.py`.
+
