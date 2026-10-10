@@ -99,3 +99,5 @@ Full engineering activity chronology verified and maintained by SYZ-FINT.
 - Executed full 10-gate audit verifying symbol coverage (G0), survivor bias (G1), and IC decay (G7).
 - Confirmed Deflated Sharpe Ratio (DSR = 0.9998) on G9.
 
+- Published complete Model Governance Card with risk disclosures and bias prevention proofs.
+
