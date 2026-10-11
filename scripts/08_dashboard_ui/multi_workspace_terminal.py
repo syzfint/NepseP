@@ -429,8 +429,18 @@ async def websocket_endpoint(websocket: WebSocket):
         await websocket.send_json({"type": "FORECAST_DATA", "data": get_forecast_engine_data(active_symbol)})
 
         cycle = 0
+        last_full_pulse = time.time()
         while True:
             cycle += 1
+            now_t = time.time()
+
+            # Push periodic full data hydration every 1,000 ms across Screens 2, 3, 4
+            if now_t - last_full_pulse >= 1.0:
+                last_full_pulse = now_t
+                await websocket.send_json({"type": "ALPHA_DATA", "data": get_alpha_dashboard_data()})
+                await websocket.send_json({"type": "RISK_DATA", "data": get_risk_monitor_data(active_symbol)})
+                await websocket.send_json({"type": "FORECAST_DATA", "data": get_forecast_engine_data(active_symbol)})
+
             # Push high-frequency telemetry (< 50ms)
             await websocket.send_json({
                 "type": "TELEMETRY",
@@ -440,7 +450,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     "onnx_status": "READY (<600 us RTT)",
                     "active_workspace": active_workspace,
                     "active_symbol": active_symbol,
-                    "timestamp_ms": int(time.time() * 1000)
+                    "timestamp_ms": int(now_t * 1000)
                 }
             })
 

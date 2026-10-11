@@ -47,7 +47,13 @@ def test_global_terminal_state_manager_markup():
         assert "window.TERMINAL_STATE = {" in content
         assert "activeSymbol: 'NABIL'" in content
         assert "activeScreen: 'launcher'" in content
+        assert "marketUniverse:" in content
+        assert "signalsData:" in content
         assert "window.selectSymbol = function" in content
+        assert "renderTradingDesk" in content
+        assert "highlightAlphaRow" in content
+        assert "renderRiskMetrics" in content
+        assert "drawQuantileCorridorCanvas" in content
         assert "window.switchWorkspace = function" in content
 
         # 2. 16:9 Grid Layout Boundaries

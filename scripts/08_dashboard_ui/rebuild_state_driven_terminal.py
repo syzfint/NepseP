@@ -979,8 +979,8 @@ state_manager_js = """
   window.TERMINAL_STATE = {
     activeSymbol: 'NABIL',
     activeScreen: 'launcher',
-    marketData: {},
-    alphaData: [],
+    marketUniverse: {},
+    signalsData: {},
     riskData: {},
     forecastData: {}
   };
@@ -1005,37 +1005,8 @@ state_manager_js = """
   }
   requestAnimationFrame(runTerminalFpsLoop);
 
-  // Global Symbol Selection Dispatcher
-  window.selectSymbol = function(symbol) {
-    if (!symbol) return;
-    symbol = symbol.toUpperCase().trim();
-    window.TERMINAL_STATE.activeSymbol = symbol;
-
-    // 1. Update Navigation and Header Badges
-    const badge = document.getElementById('nav-active-symbol-badge');
-    if (badge) badge.textContent = symbol;
-
-    const lpSym = document.getElementById('lp-active-sym-1');
-    if (lpSym) lpSym.textContent = symbol;
-
-    const fcSym = document.getElementById('forecast-symbol-header');
-    if (fcSym) fcSym.textContent = symbol;
-
-    const fcChartSym = document.getElementById('forecast-chart-active-sym');
-    if (fcChartSym) fcChartSym.textContent = symbol;
-
-    const riskSym = document.getElementById('risk-active-symbol-header');
-    if (riskSym) riskSym.textContent = symbol;
-
-    // 2. Highlight selected row in Alpha table & Forecast sidebar
-    document.querySelectorAll('.quant-table tr.selected-row').forEach(r => r.classList.remove('selected-row'));
-    const alphaRow = document.getElementById('alpha-row-' + symbol);
-    if (alphaRow) alphaRow.classList.add('selected-row');
-
-    const fcRow = document.getElementById('fc-row-' + symbol);
-    if (fcRow) fcRow.classList.add('selected-row');
-
-    // 3. Screen 1 Re-render: update original activeSymbol if defined
+  // Modular View Re-render Routines
+  function renderTradingDesk(symbol) {
     if (typeof activeSymbol !== 'undefined') {
       activeSymbol = symbol;
     }
@@ -1043,15 +1014,62 @@ state_manager_js = """
     if (bookSym) bookSym.textContent = symbol;
     const chartMeta = document.getElementById('chart-active-meta');
     if (chartMeta) chartMeta.textContent = `${symbol} • LIVE DEPTH & CVD`;
+    if (typeof loadAndRenderSeries === 'function' && typeof activeChartMode !== 'undefined') {
+      loadAndRenderSeries(symbol, activeChartMode);
+    }
+  }
 
-    // 4. Send WebSocket notification if connected
+  function highlightAlphaRow(symbol) {
+    document.querySelectorAll('.quant-table tr.selected-row').forEach(r => r.classList.remove('selected-row'));
+    const alphaRow = document.getElementById('alpha-row-' + symbol);
+    if (alphaRow) alphaRow.classList.add('selected-row');
+    const fcRow = document.getElementById('fc-row-' + symbol);
+    if (fcRow) fcRow.classList.add('selected-row');
+  }
+
+  function renderRiskMetrics(symbol) {
+    const riskSym = document.getElementById('risk-active-symbol-header');
+    if (riskSym) riskSym.textContent = symbol;
+    fetchSymbolRisk(symbol);
+  }
+
+  function drawQuantileCorridorCanvas(symbol) {
+    const fcSym = document.getElementById('forecast-symbol-header');
+    if (fcSym) fcSym.textContent = symbol;
+    const fcChartSym = document.getElementById('forecast-chart-active-sym');
+    if (fcChartSym) fcChartSym.textContent = symbol;
+    fetchSymbolForecast(symbol);
+  }
+
+  // Global Symbol Selection Dispatcher
+  window.selectSymbol = function(symbol) {
+    if (!symbol) return;
+    symbol = symbol.toUpperCase().trim();
+    window.TERMINAL_STATE.activeSymbol = symbol;
+
+    // 1. Update Top Header Ticker Badges
+    document.querySelectorAll('.active-symbol-badge').forEach(el => el.innerText = symbol);
+    const badge = document.getElementById('nav-active-symbol-badge');
+    if (badge) badge.innerText = symbol;
+    const lpSym = document.getElementById('lp-active-sym-1');
+    if (lpSym) lpSym.innerText = symbol;
+
+    // 2. Re-render Screen 1 (Trading Desk Order Book & Chart Canvas)
+    renderTradingDesk(symbol);
+
+    // 3. Highlight Screen 2 Active Row
+    highlightAlphaRow(symbol);
+
+    // 4. Recalculate Screen 3 Stock Asset Risk Contribution & CDSC Shield
+    renderRiskMetrics(symbol);
+
+    // 5. Re-draw Screen 4 Chronos-Bolt P10/P50/P90 Quantile Forecast Canvas
+    drawQuantileCorridorCanvas(symbol);
+
+    // 6. Send WebSocket notification if connected
     if (globalWs && globalWs.readyState === WebSocket.OPEN) {
       globalWs.send(JSON.stringify({ command: 'SELECT_SYMBOL', symbol: symbol }));
     }
-
-    // 5. Fetch updated forecast and risk for new symbol
-    fetchSymbolForecast(symbol);
-    fetchSymbolRisk(symbol);
   };
 
   // Switch Workspace Screen (0=Launcher, 1=Trading Desk, 2=Alpha, 3=Risk, 4=Forecast)
