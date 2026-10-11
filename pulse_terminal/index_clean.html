@@ -2563,6 +2563,7 @@
             tvVolumeSeries.priceScale().applyOptions({
               scaleMargins: { top: 0.82, bottom: 0 },
             });
+            window.tvChart = tvChart;
             logEvent('ENGINE', 'TradingView Lightweight Charts 4.1.3 Initialized', 'info');
           } catch (e) {
             console.error('TV chart init error:', e);
@@ -2973,6 +2974,9 @@
         }
       };
       const selectSymbol = window.selectSymbol;
+      window.renderTradingDesk = window.selectSymbol;
+      window.loadAndRenderSeries = loadAndRenderSeries;
+      window.getActiveTradingDeskSymbol = () => activeSymbol;
 
 
       // -----------------------------------------------------------------------
@@ -3008,6 +3012,7 @@
         }
 
         ws.onopen = function () {
+          window.terminalSocket = ws;
           DOM.metricWsStatus.textContent = 'ESTABLISHED (TCP)';
           DOM.metricWsStatus.className = 'metric-value pos';
           logEvent('SOCKET', 'Low-Latency Zero-Copy Data Pipe Online', 'info');
@@ -3057,6 +3062,7 @@
               break;
             case 'TELEMETRY':
               DOM.metricSeqlockSeq.textContent = `#${payload.data.seqlock_seq}`;
+              if (window.handleWorkspaceMessage) window.handleWorkspaceMessage(payload);
               break;
             case 'SWEET_SPOT':
               dispatchSweetSpot(payload.data);
@@ -3075,6 +3081,7 @@
               logEvent(payload.data.tag, payload.data.message, payload.data.level);
               break;
             default:
+              if (window.handleWorkspaceMessage) window.handleWorkspaceMessage(payload);
               break;
           }
         };

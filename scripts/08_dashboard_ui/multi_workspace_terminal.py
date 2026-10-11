@@ -41,6 +41,7 @@ if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
 from scripts.db_connection import get_connection_manager
+import scripts.pulse_terminal_server as pts
 
 DB_PATH = BASE_DIR / "02_processed_parquet" / "market_analytics.duckdb"
 STATIC_DIR = BASE_DIR / "pulse_terminal" / "assets"
@@ -60,6 +61,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"]
 )
+
+
+@app.on_event("startup")
+async def startup_event():
+    loop = asyncio.get_event_loop()
+    loop.run_in_executor(None, pts.prewarm_universe_charts)
 
 
 # ==============================================================================
@@ -411,7 +418,46 @@ async def api_screen_forecast(symbol: str = Query("NABIL")):
 
 
 # ==============================================================================
-# WEBSOCKET STREAMING DISPATCHER
+# SCREEN [1] TRADING DESK & CENTAUR EXECUTION ENDPOINTS
+# ==============================================================================
+
+@app.get("/api/charts/series/{symbol}")
+async def api_chart_series(symbol: str):
+    return await pts.get_chart_series(symbol)
+
+
+@app.get("/api/centaur/top20")
+async def api_centaur_top20():
+    return await pts.get_centaur_top20()
+
+
+@app.post("/api/centaur/stage_order")
+async def api_centaur_stage_order(req: Dict[str, Any]):
+    return await pts.stage_centaur_order(req)
+
+
+@app.post("/api/centaur/confirm_order")
+async def api_centaur_confirm_order(req: Dict[str, Any]):
+    return await pts.confirm_centaur_order(req)
+
+
+@app.get("/api/centaur/audit_ledger")
+async def api_centaur_audit_ledger():
+    return await pts.get_centaur_audit_ledger()
+
+
+@app.get("/api/sweet_spot/{symbol}")
+async def api_sweet_spot(symbol: str):
+    return await pts.get_sweet_spot(symbol)
+
+
+@app.get("/api/symbol_brain/{symbol}")
+async def api_symbol_brain(symbol: str):
+    return await pts.get_symbol_brain_endpoint(symbol)
+
+
+# ==============================================================================
+# WEBSOCKET STREAMING DISPATCHER (UNIFIED HIGH-FREQUENCY & WORKSPACE ENGINE)
 # ==============================================================================
 
 @app.websocket("/ws")
@@ -420,11 +466,83 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     active_workspace = 0
     active_symbol = "NABIL"
+    active_mode = "CANDLE"
+    active_timeframe = "5D"
+    simulation_mode = False
+    frame_id = 1
+    seqlock_counter = 154000
 
     try:
-        # Initial Payload Burst across all channels
+        session_info = pts.check_nepse_market_session()
+
+        # 1. Macro Overview Ribbon
+        await websocket.send_json({"type": "MARKET_MACRO", "data": pts.get_market_macro()})
+
+        # 2. Kernel Log Handshake
+        await websocket.send_json({
+            "type": "LOG",
+            "data": {
+                "tag": "KERNEL",
+                "message": f"NEPSE Pulse Unified Engine Connected • {session_info['badge']} (N={len(pts.MARKET_UNIVERSE)} Securities)",
+                "level": "info"
+            }
+        })
+
+        # 3. Market Session Status
+        await websocket.send_json({
+            "type": "MARKET_STATUS",
+            "data": {
+                "is_live": session_info["is_live"],
+                "status": session_info["status"],
+                "badge": session_info["badge"],
+                "detail": session_info["detail"],
+                "npt_time": session_info["npt_time"],
+                "clock_str": session_info["clock_str"],
+                "simulation_mode": simulation_mode,
+                "universe_count": len(pts.MARKET_UNIVERSE)
+            }
+        })
+
+        # 4. Settled Watchlist with all Lakehouse Securities
+        await websocket.send_json({"type": "WATCHLIST", "data": pts.serialize_watchlist()})
+
+        # 5. Settled Ticker Tape (Top 40 Volume Leaders)
+        settled_tape = [
+            {"symbol": k, "ltp": v["ltp"], "chg": v["chg"], "vol": v["vol"], "is_settled": True}
+            for k, v in list(pts.MARKET_UNIVERSE.items())[:40]
+        ]
+        await websocket.send_json({"type": "SETTLED_TAPE", "data": settled_tape})
+
+        # 6. Initial Screen 1 Order Book
+        await websocket.send_json({
+            "type": "L2_DEPTH",
+            "data": pts.generate_l2_depth(active_symbol, is_active=session_info["is_live"] or simulation_mode)
+        })
+
+        # 7. Initial Sweet Spot Telemetry
+        try:
+            init_ss = pts.sse.compute_sweet_spot_trajectory(active_symbol, pts.get_symbol_ltp(active_symbol))
+            await websocket.send_json({"type": "SWEET_SPOT", "data": init_ss})
+        except Exception:
+            pass
+
+        # 8. Initial Headless Chart Frame
+        try:
+            initial_frame = pts.HeadlessChartRenderer.render_chart(
+                active_mode,
+                active_symbol,
+                pts.get_symbol_ltp(active_symbol),
+                active_timeframe
+            )
+            initial_frame["frame_id"] = frame_id
+            frame_id += 1
+            await websocket.send_json({"type": "CHART_FRAME", "data": initial_frame})
+        except Exception:
+            pass
+
+        # 9. Multi-Workspace Initial Payload Burst
         await websocket.send_json({"type": "WORKSPACE_INIT", "data": {"active_workspace": 0, "active_symbol": active_symbol}})
-        await websocket.send_json({"type": "ALPHA_DATA", "data": get_alpha_dashboard_data()[:100]})
+        await websocket.send_json({"type": "ALPHA_DATA", "data": get_alpha_dashboard_data()})
         await websocket.send_json({"type": "RISK_DATA", "data": get_risk_monitor_data(active_symbol)})
         await websocket.send_json({"type": "FORECAST_DATA", "data": get_forecast_engine_data(active_symbol)})
 
@@ -432,20 +550,67 @@ async def websocket_endpoint(websocket: WebSocket):
         last_full_pulse = time.time()
         while True:
             cycle += 1
+            seqlock_counter += 1
             now_t = time.time()
+            session_info = pts.check_nepse_market_session()
+            is_active = session_info["is_live"] or simulation_mode
 
-            # Push periodic full data hydration every 1,000 ms across Screens 2, 3, 4
+            # Push periodic full data hydration every 1,000 ms across Screens 2, 3, 4 + Session Clock
             if now_t - last_full_pulse >= 1.0:
                 last_full_pulse = now_t
                 await websocket.send_json({"type": "ALPHA_DATA", "data": get_alpha_dashboard_data()})
                 await websocket.send_json({"type": "RISK_DATA", "data": get_risk_monitor_data(active_symbol)})
                 await websocket.send_json({"type": "FORECAST_DATA", "data": get_forecast_engine_data(active_symbol)})
+                await websocket.send_json({
+                    "type": "MARKET_STATUS",
+                    "data": {
+                        "is_live": session_info["is_live"],
+                        "status": session_info["status"],
+                        "badge": session_info["badge"],
+                        "detail": session_info["detail"],
+                        "npt_time": session_info["npt_time"],
+                        "clock_str": session_info["clock_str"],
+                        "simulation_mode": simulation_mode
+                    }
+                })
+
+            if is_active:
+                # Continuous live simulation ticks
+                random_scrip = np.random.choice(list(pts.MARKET_UNIVERSE.keys()))
+                tick_delta = np.random.choice([-0.5, 0.0, 0.5])
+                pts.MARKET_UNIVERSE[random_scrip]["ltp"] = round(pts.MARKET_UNIVERSE[random_scrip]["ltp"] + tick_delta, 1)
+                tick_payload = {
+                    "symbol": random_scrip,
+                    "ltp": pts.MARKET_UNIVERSE[random_scrip]["ltp"],
+                    "chg": pts.MARKET_UNIVERSE[random_scrip]["chg"],
+                    "vol": pts.MARKET_UNIVERSE[random_scrip]["vol"],
+                    "ts": int(now_t * 1000)
+                }
+                await websocket.send_json({"type": "TICK", "data": tick_payload})
+
+                if cycle % 3 == 0:
+                    await websocket.send_json({"type": "WATCHLIST", "data": pts.serialize_watchlist()})
+                if cycle % 2 == 0:
+                    await websocket.send_json({"type": "L2_DEPTH", "data": pts.generate_l2_depth(active_symbol, is_active=True)})
+                if cycle % 10 == 0:
+                    try:
+                        frame_data = pts.HeadlessChartRenderer.render_chart(
+                            active_mode,
+                            active_symbol,
+                            pts.get_symbol_ltp(active_symbol),
+                            active_timeframe
+                        )
+                        frame_data["frame_id"] = frame_id
+                        frame_id += 1
+                        await websocket.send_json({"type": "CHART_FRAME", "data": frame_data})
+                    except Exception:
+                        pass
 
             # Push high-frequency telemetry (< 50ms)
             await websocket.send_json({
                 "type": "TELEMETRY",
                 "data": {
-                    "seqlock_seq": 150000 + cycle,
+                    "seqlock_seq": seqlock_counter,
                     "pipeline_latency_us": 142.5,
                     "onnx_status": "READY (<600 us RTT)",
                     "active_workspace": active_workspace,
@@ -456,7 +621,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
             # Check client commands
             try:
-                msg_txt = await asyncio.wait_for(websocket.receive_text(), timeout=0.20)
+                msg_txt = await asyncio.wait_for(websocket.receive_text(), timeout=0.15 if is_active else 0.25)
                 msg = json.loads(msg_txt)
                 cmd = msg.get("command") or msg.get("action")
 
@@ -469,8 +634,13 @@ async def websocket_endpoint(websocket: WebSocket):
                     })
 
                 elif cmd in ("SELECT_SYMBOL", "SUBSCRIBE"):
-                    sym = msg.get("symbol", "NABIL").upper()
+                    raw_sym = msg.get("symbol", "NABIL")
+                    sym = str(raw_sym).strip().upper()
                     active_symbol = sym
+                    if "mode" in msg:
+                        active_mode = msg.get("mode")
+
+                    # Dispatch symbol changed across both multi-workspace and screen 1
                     await websocket.send_json({
                         "type": "SYMBOL_CHANGED",
                         "data": {
@@ -478,6 +648,43 @@ async def websocket_endpoint(websocket: WebSocket):
                             "trading_desk": get_trading_desk_data(active_symbol),
                             "risk": get_risk_monitor_data(active_symbol),
                             "forecast": get_forecast_engine_data(active_symbol)
+                        }
+                    })
+                    # Also stream Screen 1 depth & frame for the new symbol
+                    await websocket.send_json({
+                        "type": "L2_DEPTH",
+                        "data": pts.generate_l2_depth(active_symbol, is_active=is_active)
+                    })
+                    try:
+                        frame_data = pts.HeadlessChartRenderer.render_chart(
+                            active_mode,
+                            active_symbol,
+                            pts.get_symbol_ltp(active_symbol),
+                            active_timeframe
+                        )
+                        frame_data["frame_id"] = frame_id
+                        frame_id += 1
+                        await websocket.send_json({"type": "CHART_FRAME", "data": frame_data})
+                    except Exception:
+                        pass
+                    try:
+                        ss_data = pts.sse.compute_sweet_spot_trajectory(active_symbol, pts.get_symbol_ltp(active_symbol))
+                        await websocket.send_json({"type": "SWEET_SPOT", "data": ss_data})
+                    except Exception:
+                        pass
+
+                elif cmd == "TOGGLE_SIMULATION":
+                    simulation_mode = not simulation_mode
+                    await websocket.send_json({
+                        "type": "MARKET_STATUS",
+                        "data": {
+                            "is_live": session_info["is_live"],
+                            "status": session_info["status"],
+                            "badge": session_info["badge"],
+                            "detail": session_info["detail"],
+                            "npt_time": session_info["npt_time"],
+                            "clock_str": session_info["clock_str"],
+                            "simulation_mode": simulation_mode
                         }
                     })
 

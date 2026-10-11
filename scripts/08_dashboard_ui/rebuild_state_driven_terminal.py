@@ -251,14 +251,30 @@ state_driven_css = """
 
   /* SCREEN [1]: TRADING DESK */
   #screen-tradingdesk {
+    display: none !important;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    overflow: hidden !important;
     flex-direction: column;
+  }
+  #screen-tradingdesk.active {
+    display: flex !important;
   }
   #screen-tradingdesk #terminal-root {
     width: 100% !important;
     height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
     display: grid !important;
     grid-template-rows: 28px 28px 1fr !important; /* Avoid double telemetry bar */
     border: none !important;
+    overflow: hidden !important;
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
   }
   #screen-tradingdesk #telemetry-dock {
     display: none !important; /* Replaced by global-terminal-footer */
@@ -1007,8 +1023,9 @@ state_manager_js = """
 
   // Modular View Re-render Routines
   function renderTradingDesk(symbol) {
-    if (typeof activeSymbol !== 'undefined') {
-      activeSymbol = symbol;
+    if (typeof window.renderTradingDesk === 'function' && window.renderTradingDesk !== renderTradingDesk) {
+      window.renderTradingDesk(symbol);
+      return;
     }
     const bookSym = document.getElementById('book-active-symbol');
     if (bookSym) bookSym.textContent = symbol;
@@ -1016,6 +1033,8 @@ state_manager_js = """
     if (chartMeta) chartMeta.textContent = `${symbol} • LIVE DEPTH & CVD`;
     if (typeof loadAndRenderSeries === 'function' && typeof activeChartMode !== 'undefined') {
       loadAndRenderSeries(symbol, activeChartMode);
+    } else if (typeof window.loadAndRenderSeries === 'function') {
+      window.loadAndRenderSeries(symbol, 'CANDLE');
     }
   }
 
@@ -1067,8 +1086,9 @@ state_manager_js = """
     drawQuantileCorridorCanvas(symbol);
 
     // 6. Send WebSocket notification if connected
-    if (globalWs && globalWs.readyState === WebSocket.OPEN) {
-      globalWs.send(JSON.stringify({ command: 'SELECT_SYMBOL', symbol: symbol }));
+    const activeSocket = window.terminalSocket || globalWs;
+    if (activeSocket && activeSocket.readyState === WebSocket.OPEN) {
+      activeSocket.send(JSON.stringify({ command: 'SELECT_SYMBOL', symbol: symbol, action: 'SUBSCRIBE' }));
     }
   };
 
@@ -1112,7 +1132,15 @@ state_manager_js = """
 
     // Trigger canvas & layout resizes
     if (id === 1) {
-      setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 60);
+      setTimeout(() => {
+        const tvContainer = document.getElementById('tv-chart-view');
+        if (window.tvChart && tvContainer && tvContainer.clientWidth > 0) {
+          window.tvChart.resize(tvContainer.clientWidth, tvContainer.clientHeight);
+          window.tvChart.timeScale().fitContent();
+        }
+        renderTradingDesk(window.TERMINAL_STATE.activeSymbol || 'NABIL');
+        window.dispatchEvent(new Event('resize'));
+      }, 60);
     } else if (id === 2) {
       refreshAlphaData();
     } else if (id === 3) {
@@ -1438,8 +1466,47 @@ state_manager_js = """
     }
   });
 
-  // Background WebSocket Connection Handler (< 50ms pulse)
+  // Background WebSocket Message Dispatcher
+  window.handleWorkspaceMessage = function(payload) {
+    if (!payload) return;
+    if (payload.type === 'TELEMETRY' && payload.data) {
+      const seqEl = document.getElementById('footer-seqlock-seq');
+      if (seqEl) seqEl.textContent = (payload.data.seqlock_seq || 0).toLocaleString();
+      const latEl = document.getElementById('footer-pipeline-latency');
+      if (latEl && payload.data.pipeline_latency_us) {
+        latEl.textContent = payload.data.pipeline_latency_us.toFixed(1) + ' µs';
+      }
+    } else if (payload.type === 'ALPHA_DATA' && payload.data) {
+      window.TERMINAL_STATE.alphaData = payload.data;
+      if (window.TERMINAL_STATE.activeScreen === 'alpha') {
+        renderAlphaGrid(payload.data);
+      }
+    } else if (payload.type === 'RISK_DATA' && payload.data) {
+      window.TERMINAL_STATE.riskData = payload.data;
+      if (window.TERMINAL_STATE.activeScreen === 'risk') {
+        fetchSymbolRisk(window.TERMINAL_STATE.activeSymbol);
+      }
+    } else if (payload.type === 'FORECAST_DATA' && payload.data) {
+      window.TERMINAL_STATE.forecastData = payload.data;
+      if (window.TERMINAL_STATE.activeScreen === 'forecast') {
+        renderForecastCanvas(payload.data);
+      }
+    } else if (payload.type === 'SYMBOL_CHANGED' && payload.data) {
+      if (payload.data.forecast) {
+        window.TERMINAL_STATE.forecastData = payload.data.forecast;
+        renderForecastCanvas(payload.data.forecast);
+      }
+      if (payload.data.risk) {
+        window.TERMINAL_STATE.riskData = payload.data.risk;
+      }
+    }
+  };
+
   function initGlobalTerminalSocket() {
+    if (window.terminalSocket && window.terminalSocket.readyState === WebSocket.OPEN) {
+      globalWs = window.terminalSocket;
+      return;
+    }
     const loc = window.location;
     const wsUrl = (loc.protocol === 'https:' ? 'wss://' : 'ws://') + loc.host + '/ws/pulse';
     try {
@@ -1447,17 +1514,7 @@ state_manager_js = """
       globalWs.onmessage = function(event) {
         try {
           const payload = JSON.parse(event.data);
-          if (payload.type === 'TELEMETRY' && payload.data) {
-            const seqEl = document.getElementById('footer-seqlock-seq');
-            if (seqEl) seqEl.textContent = payload.data.seqlock_seq.toLocaleString();
-            const latEl = document.getElementById('footer-pipeline-latency');
-            if (latEl) latEl.textContent = payload.data.pipeline_latency_us.toFixed(1) + ' µs';
-          } else if (payload.type === 'SYMBOL_CHANGED' && payload.data) {
-            if (payload.data.forecast) {
-              window.TERMINAL_STATE.forecastData = payload.data.forecast;
-              renderForecastCanvas(payload.data.forecast);
-            }
-          }
+          window.handleWorkspaceMessage(payload);
         } catch (err) {}
       };
       globalWs.onclose = function() {

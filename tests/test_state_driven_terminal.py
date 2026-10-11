@@ -149,3 +149,60 @@ def test_backward_compatible_workspace_routes(client):
     res_f = client.get("/api/workspaces/forecast")
     assert res_f.status_code == 200
     assert len(res_f.json()["data"]["p50_curve"]) == 20
+
+
+def test_screen1_unified_routes(client):
+    """Verify Screen 1 Chart series, Centaur blotter, Sweet Spot, and Brain endpoints."""
+    # 1. Chart series with OHLCV candles
+    res_chart = client.get("/api/charts/series/NABIL")
+    assert res_chart.status_code == 200
+    chart_data = res_chart.json()
+    assert chart_data["symbol"] == "NABIL"
+    assert "candles" in chart_data
+    assert len(chart_data["candles"]) > 100
+    assert "ema20" in chart_data
+    assert "ema50" in chart_data
+
+    # 2. Centaur Top-20
+    res_top20 = client.get("/api/centaur/top20")
+    assert res_top20.status_code == 200
+    assert res_top20.json()["status"] == "SUCCESS"
+    assert res_top20.json()["count"] == 20
+
+    # 3. Sweet Spot
+    res_ss = client.get("/api/sweet_spot/NABIL")
+    assert res_ss.status_code == 200
+    assert res_ss.json()["status"] == "SUCCESS"
+
+    # 4. Symbol Brain
+    res_brain = client.get("/api/symbol_brain/NABIL")
+    assert res_brain.status_code == 200
+    assert res_brain.json()["status"] == "SUCCESS"
+    assert "brain" in res_brain.json()
+
+    # 5. Centaur Audit Ledger
+    res_ledger = client.get("/api/centaur/audit_ledger")
+    assert res_ledger.status_code == 200
+    assert res_ledger.json()["status"] == "SUCCESS"
+
+
+def test_websocket_stream_payloads(client):
+    """Verify WebSocket /ws/pulse sends unified market and workspace packets."""
+    with client.websocket_connect("/ws/pulse") as ws:
+        # Check initial packet burst
+        packets = {}
+        for _ in range(13):
+            msg = ws.receive_json()
+            msg_type = msg.get("type")
+            packets[msg_type] = msg.get("data")
+
+        # Verify key packets were broadcast
+        assert "MARKET_MACRO" in packets
+        assert "MARKET_STATUS" in packets
+        assert "WATCHLIST" in packets
+        assert "L2_DEPTH" in packets
+        assert "WORKSPACE_INIT" in packets
+        assert "ALPHA_DATA" in packets
+        assert "RISK_DATA" in packets
+        assert "FORECAST_DATA" in packets
+        assert len(packets["WATCHLIST"]) >= 250
