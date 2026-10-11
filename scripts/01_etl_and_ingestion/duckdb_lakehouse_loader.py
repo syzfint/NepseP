@@ -20,6 +20,7 @@ from typing import Optional, List
 import duckdb
 import numpy as np
 import pandas as pd
+from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("duckdb_lakehouse")
@@ -45,7 +46,6 @@ class DuckDBLakehouseLoader:
                 self.parquet_path = local_p
 
         self.parquet_path.parent.mkdir(parents=True, exist_ok=True)
-        self.con = duckdb.connect(database=":memory:")
 
     def get_summary_stats(self) -> dict:
         """Returns row count, ticker count, and date ranges."""
@@ -53,14 +53,15 @@ class DuckDBLakehouseLoader:
             return {"exists": False, "rows": 0, "tickers": 0}
 
         p_str = str(self.parquet_path).replace("\\", "/")
-        res = self.con.execute(f"""
-            SELECT 
-                COUNT(*) as total_rows,
-                COUNT(DISTINCT ticker) as total_tickers,
-                MIN(date) as min_date,
-                MAX(date) as max_date
-            FROM read_parquet('{p_str}')
-        """).fetchone()
+        with connection_manager.acquire() as con:
+            res = con.execute(f"""
+                SELECT 
+                    COUNT(*) as total_rows,
+                    COUNT(DISTINCT ticker) as total_tickers,
+                    MIN(date) as min_date,
+                    MAX(date) as max_date
+                FROM read_parquet('{p_str}')
+            """).fetchone()
 
         return {
             "exists": True,

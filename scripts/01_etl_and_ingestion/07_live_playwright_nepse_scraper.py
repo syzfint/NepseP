@@ -107,16 +107,45 @@ class NepseLivePlaywrightWorker:
                                 amount = float(row.get("contractAmount", 0.0) or (rate * qty))
                                 trade_time_raw = row.get("tradeTime", "")
 
-                                # Extract HH:MM:SS
+                                # Extract HH:MM:SS from API timestamp.
+                                # FAIL-FAST: If tradeTime is absent, skip this tick —
+                                # do NOT substitute wallclock time, which would destroy
+                                # intraday ordering (Bug Condition 2.3).
                                 time_str = ""
-                                if "T" in trade_time_raw:
-                                    time_str = trade_time_raw.split("T")[1][:8]
+                                if "T" in str(trade_time_raw):
+                                    time_str = str(trade_time_raw).split("T")[1][:8]
+                                elif trade_time_raw and str(trade_time_raw).strip():
+                                    # Accept plain HH:MM:SS strings directly
+                                    time_str = str(trade_time_raw).strip()[:8]
                                 else:
-                                    now_npt = datetime.now(NPT_TIMEZONE)
-                                    time_str = now_npt.strftime("%H:%M:%S")
+                                    logger.warning(
+                                        "Skipping tick contract_id=%s for %s: "
+                                        "missing tradeTime. No wallclock substitution applied.",
+                                        contract_id,
+                                        symbol,
+                                    )
+                                    continue
 
-                                b_broker = str(row.get("buyerMemberId") or f"Broker {((contract_id or 1) % 50) + 1}")
-                                s_broker = str(row.get("sellerMemberId") or f"Broker {(((contract_id or 1) + 7) % 50) + 1}")
+                                b_broker_raw = row.get("buyerMemberId")
+                                s_broker_raw = row.get("sellerMemberId")
+
+                                # FAIL-FAST: Reject records with missing broker IDs.
+                                # Do NOT generate synthetic IDs — missing IDs make
+                                # wash-trade detection impossible (Bug Condition 2.2).
+                                if not b_broker_raw or not s_broker_raw:
+                                    logger.warning(
+                                        "Skipping trade contract_id=%s for %s: "
+                                        "missing buyerMemberId=%s or sellerMemberId=%s. "
+                                        "No synthetic IDs generated.",
+                                        contract_id,
+                                        symbol,
+                                        b_broker_raw,
+                                        s_broker_raw,
+                                    )
+                                    continue
+
+                                b_broker = str(b_broker_raw)
+                                s_broker = str(s_broker_raw)
 
                                 formatted_ticks.append({
                                     "contract_id": contract_id,

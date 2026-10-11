@@ -43,7 +43,6 @@ from typing import Dict, Any, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-import duckdb
 import importlib.util
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -132,14 +131,14 @@ class Sovereign247AutonomousEngine:
         """
         Determines active phase and returns (phase_name, sleep_interval_seconds)
         Phases:
-        - LIVE_CONTINUOUS (11:00 AM - 3:00 PM NPT, Sun-Thu): 15s interval
-        - PRE_OPEN_AUCTION (10:30 AM - 11:00 AM NPT, Sun-Thu): 30s interval
-        - POST_MARKET_EOD (3:00 PM - 5:00 PM NPT, Sun-Thu): 60s interval
-        - OVERNIGHT_MAINTENANCE (All other times & Fri/Sat): 300s (5 min) interval
+        - LIVE_CONTINUOUS (11:00 AM - 3:00 PM NPT, Mon-Fri): 15s interval
+        - PRE_OPEN_AUCTION (10:30 AM - 11:00 AM NPT, Mon-Fri): 30s interval
+        - POST_MARKET_EOD (3:00 PM - 5:00 PM NPT, Mon-Fri): 60s interval
+        - OVERNIGHT_MAINTENANCE (All other times & Sat/Sun): 300s (5 min) interval
         """
         npt_now, weekday, hour, minute = self.get_nepal_time()
         time_minutes = hour * 60 + minute
-        is_trading_day = (weekday in [6, 0, 1, 2, 3]) # Sunday to Thursday
+        is_trading_day = (weekday in [0, 1, 2, 3, 4]) # Monday to Friday (Friday is open, only Sat/Sun off)
 
         if is_trading_day:
             if 660 <= time_minutes < 900: # 11:00 AM to 3:00 PM
@@ -157,15 +156,16 @@ class Sovereign247AutonomousEngine:
         """Phase 1: Real-time 15s computation across all 6 research pillars."""
         npt_now, _, _, _ = self.get_nepal_time()
         parquet_path = BASE_DIR / "01_raw_data" / "nepse_floorsheet_2026-10-07.parquet"
-        conn = duckdb.connect(":memory:")
+        from scripts.db_connection import connection_manager
 
         cartel_results = []
         if parquet_path.exists():
-            df_ticks = conn.execute(f"""
-                SELECT stockSymbol as symbol, buyerMemberId as buyer_broker,
-                       sellerMemberId as seller_broker, contractQuantity as quantity, contractRate as rate
-                FROM '{parquet_path}'
-            """).df()
+            with connection_manager.acquire() as conn:
+                df_ticks = conn.execute(f"""
+                    SELECT stockSymbol as symbol, buyerMemberId as buyer_broker,
+                           sellerMemberId as seller_broker, contractQuantity as quantity, contractRate as rate
+                    FROM '{parquet_path}'
+                """).df()
 
             active_symbols = ["SAHAS", "NGPL", "NABIL", "CIT", "SHIVM", "API", "CHCL", "LBBL"]
             for sym in active_symbols:
@@ -268,7 +268,7 @@ class Sovereign247AutonomousEngine:
         npt_now, _, _, _ = self.get_nepal_time()
         logger.info(f"[{phase_name}] Running Background Reconciliation & Integrity Verification...")
 
-        conn = duckdb.connect(":memory:")
+        from scripts.db_connection import connection_manager
         parquet_path = BASE_DIR / "02_processed_parquet" / "market_master_union.parquet"
 
         audit_summary = {
@@ -280,9 +280,10 @@ class Sovereign247AutonomousEngine:
         }
 
         if parquet_path.exists():
-            row_count = conn.execute(f"SELECT count(*) FROM '{parquet_path}'").fetchone()[0]
-            max_date = conn.execute(f"SELECT max(date) FROM '{parquet_path}'").fetchone()[0]
-            tickers = conn.execute(f"SELECT count(distinct ticker) FROM '{parquet_path}'").fetchone()[0]
+            with connection_manager.acquire() as conn:
+                row_count = conn.execute(f"SELECT count(*) FROM '{parquet_path}'").fetchone()[0]
+                max_date = conn.execute(f"SELECT max(date) FROM '{parquet_path}'").fetchone()[0]
+                tickers = conn.execute(f"SELECT count(distinct ticker) FROM '{parquet_path}'").fetchone()[0]
 
             audit_summary["checks"] = {
                 "total_historical_bars": row_count,

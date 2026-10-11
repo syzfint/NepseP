@@ -4,6 +4,13 @@ import json
 import pandas as pd
 import numpy as np
 import duckdb
+import os
+from pathlib import Path
+
+_BASE_DIR = Path(__file__).resolve().parent.parent
+if str(_BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(_BASE_DIR))
+from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
 
 def main():
     print("==========================================================================")
@@ -11,7 +18,7 @@ def main():
     print("==========================================================================")
     
     db_path = "02_processed_parquet/market_master_union.parquet"
-    con = duckdb.connect()
+    with connection_manager.acquire() as con:
     
     # --------------------------------------------------------------------------
     # G0 CERTIFICATION & DATA AUDIT

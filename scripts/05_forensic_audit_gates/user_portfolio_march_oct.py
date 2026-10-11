@@ -1,9 +1,8 @@
 import duckdb
 import pandas as pd
+from scripts.db_connection import connection_manager
 
 path = "02_processed_parquet/market_master_union.parquet"
-conn = duckdb.connect(":memory:")
-
 query = f"""
 WITH p_start AS (
     SELECT ticker, close as p_mar27
@@ -33,7 +32,8 @@ JOIN tot_turnover t ON s.ticker = t.ticker
 ORDER BY return_pct DESC;
 """
 
-df_perf = conn.execute(query).df()
+with connection_manager.acquire() as conn:
+    df_perf = conn.execute(query).df()
 print("Top 10 Performers (March 27 to Oct 7, 2026):")
 print(df_perf.head(10).to_string())
 

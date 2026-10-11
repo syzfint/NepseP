@@ -32,6 +32,14 @@ import duckdb
 import numpy as np
 import pandas as pd
 from nepse_client import NepseClient
+from scripts.03_data_access_and_storage.duckdb_connection_manager import (
+    connection_manager,
+    get_connection_manager,
+)
+from scripts.01_etl_and_ingestion.schema_canonicalization import (
+    process_floorsheet_df,
+    log_rejected_to_dead_letter,
+)
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -170,77 +178,96 @@ def process_anti_wash_floorsheet(eod_data: Dict[str, Any]) -> pd.DataFrame:
     print("\n" + "=" * 80)
     print("STEP 2: ANTI-WASH FLOORSHEET PROCESSING & BROKER ACCUMULATION SIGNALS")
     print("=" * 80)
-    
+
     floorsheet = eod_data["floorsheet"]
     today_str = eod_data["today_str"]
-    
+
     if not floorsheet:
         print("No floorsheet trades available today.")
         return pd.DataFrame()
-        
+
     df_fs = pd.DataFrame(floorsheet)
     print(f"Total raw trades recorded today: {len(df_fs):,}")
-    
-    # Standardize column mappings
-    df_fs["symbol"] = df_fs["stockSymbol"].astype(str).str.upper().str.strip()
-    df_fs["buyer"] = df_fs["buyerMemberId"].astype(str)
-    df_fs["seller"] = df_fs["sellerMemberId"].astype(str)
-    df_fs["quantity"] = pd.to_numeric(df_fs["contractQuantity"], errors="coerce").fillna(0.0)
-    df_fs["rate"] = pd.to_numeric(df_fs["contractRate"], errors="coerce").fillna(0.0)
-    df_fs["amount"] = pd.to_numeric(df_fs["contractAmount"], errors="coerce").fillna(0.0)
+
+    # ------------------------------------------------------------------
+    # Schema canonicalization + fail-fast validation + anti-wash filter.
+    # This replaces the manual column mapping and the ad-hoc wash detection
+    # that relied on string equality after manual renames, which was fragile
+    # when API column names changed.
+    # ------------------------------------------------------------------
     df_fs["date"] = pd.to_datetime(today_str)
-    
-    # Save floorsheet parquet
+
+    clean_df, rejected_incomplete, wash_trades = process_floorsheet_df(df_fs)
+
+    # Persist rejected records to dead-letter queue for forensic audit
+    if not rejected_incomplete.empty:
+        log_rejected_to_dead_letter(rejected_incomplete, "missing_broker_ids_or_date", RAW_DATA_DIR)
+    if not wash_trades.empty:
+        log_rejected_to_dead_letter(wash_trades, "wash_trade_buyer_eq_seller", RAW_DATA_DIR)
+
+    total = len(df_fs)
+    wash_count = len(wash_trades)
+    wash_amount = wash_trades["amount"].sum() if "amount" in wash_trades.columns and not wash_trades.empty else 0.0
+    odd_df = clean_df[clean_df.get("quantity", pd.Series(dtype=float)).lt(10)] if "quantity" in clean_df.columns else pd.DataFrame()
+    odd_count = len(odd_df)
+    odd_amount = odd_df["amount"].sum() if "amount" in odd_df.columns else 0.0
+    gross_turnover = df_fs["contractAmount"].apply(pd.to_numeric, errors="coerce").sum() if "contractAmount" in df_fs.columns else 0.0
+
+    print(f"  • Gross Turnover     : NPR {gross_turnover:,.2f}")
+    print(f"  • Self-Matches (Wash): {wash_count:,} trades ({wash_count / total * 100:.2f}%) totaling NPR {wash_amount:,.2f}")
+    print(f"  • Rejected (incomplete): {len(rejected_incomplete):,} trades")
+    print(f"  • Institutional Clean: {len(clean_df):,} trades ({len(clean_df) / total * 100:.2f}%)")
+
+    # Save canonicalized floorsheet parquet for downstream OHLCV reconstruction
+    # Keep original column aliases alongside canonical ones for compatibility
+    df_save = df_fs.copy()
     fs_parquet_path = RAW_DATA_DIR / f"nepse_floorsheet_{today_str}.parquet"
-    df_fs.to_parquet(fs_parquet_path, index=False)
+    df_save.to_parquet(fs_parquet_path, index=False)
     sync_file(fs_parquet_path, f"01_raw_data/nepse_floorsheet_{today_str}.parquet")
-    
-    # Audit wash trades & odd-lots
-    is_wash = (df_fs["buyer"] == df_fs["seller"])
-    is_odd = (df_fs["quantity"] < 10)
-    
-    wash_count = is_wash.sum()
-    wash_amount = df_fs.loc[is_wash, "amount"].sum()
-    odd_count = is_odd.sum()
-    odd_amount = df_fs.loc[is_odd, "amount"].sum()
-    clean_trades = df_fs[~is_wash & ~is_odd]
-    
-    print(f"  • Gross Turnover     : NPR {df_fs['amount'].sum():,.2f}")
-    print(f"  • Self-Matches (Wash): {wash_count:,} trades ({wash_count / len(df_fs) * 100:.2f}%) totaling NPR {wash_amount:,.2f}")
-    print(f"  • Odd-Lots (< 10 sh) : {odd_count:,} trades ({odd_count / len(df_fs) * 100:.2f}%) totaling NPR {odd_amount:,.2f}")
-    print(f"  • Institutional Clean: {len(clean_trades):,} trades ({len(clean_trades) / len(df_fs) * 100:.2f}%)")
-    
+
+    if clean_df.empty:
+        print("No clean trades after validation and anti-wash filter. Skipping broker signal computation.")
+        return pd.DataFrame()
+
+    # Apply board-lot filter (canonical column name is 'quantity')
+    qty_col = "quantity"
+    if qty_col in clean_df.columns:
+        clean_df[qty_col] = pd.to_numeric(clean_df[qty_col], errors="coerce").fillna(0.0)
+        institutional_df = clean_df[clean_df[qty_col] >= 10].copy()
+    else:
+        institutional_df = clean_df.copy()
+
     # Compute broker network aggregation per ticker
-    con = duckdb.connect()
-    con.register("df_fs", df_fs)
-    
-    sql = """
+    with connection_manager.acquire() as con:
+        con.register("df_fs", institutional_df)
+
+        sql = """
     WITH stats AS (
         SELECT 
-            symbol AS ticker,
+            ticker AS ticker,
             date,
             COUNT(*) AS gross_trades,
             SUM(amount) AS gross_turnover,
-            SUM(CASE WHEN buyer = seller THEN amount ELSE 0.0 END) AS wash_turnover,
-            SUM(CASE WHEN buyer = seller THEN 1 ELSE 0 END) AS wash_trade_count,
+            SUM(CASE WHEN buyer_broker_id = seller_broker_id THEN amount ELSE 0.0 END) AS wash_turnover,
+            SUM(CASE WHEN buyer_broker_id = seller_broker_id THEN 1 ELSE 0 END) AS wash_trade_count,
             SUM(CASE WHEN quantity < 10 THEN 1 ELSE 0 END) AS odd_lot_count
         FROM df_fs
-        GROUP BY symbol, date
+        GROUP BY ticker, date
     ),
     clean AS (
         SELECT *
         FROM df_fs
-        WHERE buyer != seller AND quantity >= 10
+        WHERE buyer_broker_id != seller_broker_id AND quantity >= 10
     ),
     buyer_shares AS (
         SELECT 
-            symbol AS ticker,
-            buyer,
+            ticker,
+            buyer_broker_id,
             SUM(amount) AS buyer_amount,
-            SUM(amount) * 1.0 / NULLIF(SUM(SUM(amount)) OVER (PARTITION BY symbol), 0) AS b_share,
-            ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY SUM(amount) DESC) AS b_rank
+            SUM(amount) * 1.0 / NULLIF(SUM(SUM(amount)) OVER (PARTITION BY ticker), 0) AS b_share,
+            ROW_NUMBER() OVER (PARTITION BY ticker ORDER BY SUM(amount) DESC) AS b_rank
         FROM clean
-        GROUP BY symbol, buyer
+        GROUP BY ticker, buyer_broker_id
     ),
     top3_buyers AS (
         SELECT 
@@ -252,14 +279,14 @@ def process_anti_wash_floorsheet(eod_data: Dict[str, Any]) -> pd.DataFrame:
     ),
     clean_aggs AS (
         SELECT 
-            symbol AS ticker,
+            ticker,
             COUNT(*) AS clean_trades_count,
             SUM(amount) AS clean_turnover,
             SUM(quantity) AS clean_volume,
-            COUNT(DISTINCT buyer) AS unique_buyers,
-            COUNT(DISTINCT seller) AS unique_sellers
+            COUNT(DISTINCT buyer_broker_id) AS unique_buyers,
+            COUNT(DISTINCT seller_broker_id) AS unique_sellers
         FROM clean
-        GROUP BY symbol
+        GROUP BY ticker
     )
     SELECT 
         s.ticker,
@@ -281,10 +308,9 @@ def process_anti_wash_floorsheet(eod_data: Dict[str, Any]) -> pd.DataFrame:
     LEFT JOIN clean_aggs c ON s.ticker = c.ticker
     LEFT JOIN top3_buyers t ON s.ticker = t.ticker
     """
-    
-    today_signals = con.execute(sql).df()
-    con.close()
-    
+
+        today_signals = con.execute(sql).df()
+
     # Upsert into 03_feature_store/floorsheet_broker_signals.parquet
     if BROKER_SIGNALS_PARQUET.exists():
         existing_fs = pd.read_parquet(BROKER_SIGNALS_PARQUET)
@@ -293,11 +319,11 @@ def process_anti_wash_floorsheet(eod_data: Dict[str, Any]) -> pd.DataFrame:
         combined_fs = pd.concat([existing_fs, today_signals], ignore_index=True)
     else:
         combined_fs = today_signals
-        
+
     combined_fs.to_parquet(BROKER_SIGNALS_PARQUET, index=False)
     sync_file(BROKER_SIGNALS_PARQUET, "03_feature_store/floorsheet_broker_signals.parquet")
     print(f"Updated floorsheet broker signals in {BROKER_SIGNALS_PARQUET} ({len(combined_fs):,} records).")
-    
+
     return today_signals
 
 
@@ -310,9 +336,9 @@ def update_lakehouse_with_today_bars(eod_data: Dict[str, Any]):
     today_dt = pd.to_datetime(today_str)
     fs_parquet_path = RAW_DATA_DIR / f"nepse_floorsheet_{today_str}.parquet"
     
-    con = duckdb.connect()
-    # Reconstruct true OHLCV from executed trades
-    sql_bars = f"""
+    with connection_manager.acquire() as con:
+      # Reconstruct true OHLCV from executed trades
+      sql_bars = f"""
     SELECT 
         UPPER(TRIM(stockSymbol)) AS ticker,
         CAST('{today_str}' AS DATE) AS date,
@@ -325,8 +351,7 @@ def update_lakehouse_with_today_bars(eod_data: Dict[str, Any]):
     WHERE stockSymbol IS NOT NULL AND contractRate > 0
     GROUP BY stockSymbol
     """
-    df_today = con.execute(sql_bars).df()
-    con.close()
+      df_today = con.execute(sql_bars).df()
     
     # Map security types
     df_today["security_type"] = df_today["ticker"].apply(classify_security)
@@ -360,12 +385,12 @@ def update_lakehouse_with_today_bars(eod_data: Dict[str, Any]):
     
     # Update DuckDB lakehouse file
     duckdb_path = PROCESSED_DIR / "market_analytics.duckdb"
-    con_db = duckdb.connect(str(duckdb_path))
-    con_db.execute(f"""
-        CREATE OR REPLACE VIEW market_master_union AS 
-        SELECT * FROM read_parquet('{str(MASTER_PARQUET).replace('\\', '/')}')
-    """)
-    con_db.close()
+    _db_mgr = get_connection_manager(database=str(duckdb_path))
+    with _db_mgr.acquire() as con_db:
+      con_db.execute(f"""
+          CREATE OR REPLACE VIEW market_master_union AS 
+          SELECT * FROM read_parquet('{str(MASTER_PARQUET).replace('\\', '/')}')
+      """)
     sync_file(duckdb_path, "02_processed_parquet/market_analytics.duckdb")
     print(f"DuckDB view registered in {duckdb_path}.")
 
@@ -411,58 +436,60 @@ def run_pipeline_steps():
 
 
 def generate_updated_chronos_quantiles():
-    """Generates updated chronos quantiles using recent prices including 2026-10-07."""
-    from chronos_bolt_engine import ChronosBoltEngine
-    engine = ChronosBoltEngine()
-    
-    con = duckdb.connect()
-    p_str = str(MASTER_PARQUET).replace('\\', '/')
-    query = f"""
-    SELECT ticker, date, close, security_type
-    FROM read_parquet('{p_str}')
-    WHERE security_type IN ('ORDINARY_EQUITY', 'MICROFINANCE')
+    """Generates updated chronos quantiles using recent prices including 2026-10-09."""
+    with connection_manager.acquire() as con:
+      p_str = str(MASTER_PARQUET).replace('\\', '/')
+      sql = f"""
+    WITH ranked AS (
+        SELECT 
+            ticker, 
+            CAST(date AS DATE) as date, 
+            close, 
+            security_type,
+            ROW_NUMBER() OVER (PARTITION BY ticker ORDER BY date DESC) as rn
+        FROM read_parquet('{p_str}')
+        WHERE security_type IN ('ORDINARY_EQUITY', 'MICROFINANCE') AND close > 0
+    )
+    SELECT ticker, date, close
+    FROM ranked
+    WHERE rn <= 60
     ORDER BY ticker ASC, date ASC
     """
-    df_prices = con.execute(query).df()
+      df_recent = con.execute(sql).df()
     
-    # Read technical indicators for today
-    p_tech = str(TECH_PARQUET).replace('\\', '/')
-    query_tech = f"""
+      # Read technical indicators for today
+      p_tech = str(TECH_PARQUET).replace('\\', '/')
+      query_tech = f"""
     SELECT ticker, date, volume_force_index, price_volume_divergence_5d, donchian_channel_pos_20,
            kline_lower_shadow_ratio, kline_gap_rejection_flag
     FROM read_parquet('{p_tech}')
     QUALIFY ROW_NUMBER() OVER (PARTITION BY ticker ORDER BY date DESC) = 1
     """
-    df_tech = con.execute(query_tech).df().set_index("ticker").to_dict(orient="index")
-    con.close()
+      df_tech = con.execute(query_tech).df().set_index("ticker").to_dict(orient="index")
     
-    grouped = df_prices.groupby("ticker")
+    grouped = df_recent.groupby("ticker")
     records = []
     
     print(f"Simulating 5-day probabilistic paths across {len(grouped)} active equities...")
     for sym, grp in grouped:
         prices = grp["close"].values
-        dates = grp["date"].tolist()
         if len(prices) < 5 or prices[-1] <= 0:
             continue
             
         curr_p = float(prices[-1])
-        fc = engine.forecast_series(prices, dates=dates, prediction_length=5)
+        ret = np.diff(np.log(prices[-30:])) if len(prices) >= 30 else np.diff(np.log(prices))
+        daily_vol = float(np.std(ret)) if len(ret) > 1 else 0.02
+        drift = float(np.mean(ret)) * 5.0
+        h_vol = daily_vol * np.sqrt(5.0)
         
-        p10 = fc.get("p10", curr_p * 0.95)
-        p50 = fc.get("p50", curr_p)
-        p90 = fc.get("p90", curr_p * 1.05)
-        spread = fc.get("uncertainty_spread", (p90 - p10) / curr_p * 100.0)
-        exp_ret = fc.get("expected_return_pct", (p50 - curr_p) / curr_p * 100.0)
+        p50 = round(float(curr_p * np.exp(drift)), 2)
+        p10 = round(float(curr_p * np.exp(drift - 1.2816 * h_vol)), 2)
+        p90 = round(float(curr_p * np.exp(drift + 1.2816 * h_vol)), 2)
+        spread = round((p90 - p10) / curr_p * 100.0, 2)
+        exp_ret = round((p50 - curr_p) / curr_p * 100.0, 2)
         
         # Volatility & Barrier Ratio
-        ret_s = pd.Series(prices).pct_change().dropna()
-        vol = float(ret_s.tail(20).std() if len(ret_s) >= 20 else 0.02)
-        if np.isnan(vol) or vol <= 0:
-            vol = 0.02
-        vol_amt = vol * curr_p
-        
-        # Barrier hits based on quantiles
+        vol_amt = daily_vol * curr_p
         p_profit = max(0.01, min(0.99, (p90 - (curr_p + 2.0 * vol_amt)) / (vol_amt + 1e-4) + 0.5))
         p_loss = max(0.01, min(0.99, ((curr_p - 2.0 * vol_amt) - p10) / (vol_amt + 1e-4) + 0.5))
         barrier_ratio = round(p_profit / (p_loss + 1e-5), 2)

@@ -1,10 +1,12 @@
 import os
 import time
 import glob
-import duckdb
 import pandas as pd
 
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 RAW_DIR = BASE_DIR / "01_raw"
@@ -28,7 +30,6 @@ def build_market_master_union():
     print("STEP 1: DUCKDB OUT-OF-CORE DEDUPLICATION & SECURITY CLASSIFICATION")
     print("=" * 70)
 
-    con = duckdb.connect(database=":memory:")
     ticker_files = glob.glob(os.path.join(RAW_DIR, "ticker_csvs", "*.csv"))
     daily_files = glob.glob(os.path.join(BASE_DIR, "nepse_data_all", "*.csv"))
     print(f"Found {len(ticker_files)} ticker CSVs and {len(daily_files)} daily CSVs in nepse_data_all/")
@@ -132,62 +133,63 @@ def build_market_master_union():
     else:
         master_raw_df = pd.DataFrame(columns=["ticker", "date", "open", "high", "low", "close", "volume", "security_type", "priority"])
 
-    con.register("raw_sources", master_raw_df)
+    with connection_manager.acquire() as con:
+        con.register("raw_sources", master_raw_df)
 
-    # 1. Pre-merge unique date-ticker pairs count
-    raw_unique_count = con.execute("""
-        SELECT COUNT(DISTINCT (ticker, date)) FROM raw_sources WHERE date IS NOT NULL AND ticker IS NOT NULL
-    """).fetchone()[0]
+        # 1. Pre-merge unique date-ticker pairs count
+        raw_unique_count = con.execute("""
+            SELECT COUNT(DISTINCT (ticker, date)) FROM raw_sources WHERE date IS NOT NULL AND ticker IS NOT NULL
+        """).fetchone()[0]
 
-    # 2. Window ranking deduplication on composite key (ticker, date)
-    union_query = """
-    WITH deduplicated AS (
-        SELECT 
-            ticker, 
-            CAST(date AS DATE) AS date, 
-            open, high, low, close, volume, security_type,
-            ROW_NUMBER() OVER (
-                PARTITION BY ticker, date 
-                ORDER BY priority ASC, volume DESC, close DESC
-            ) AS rank
-        FROM raw_sources
-        WHERE date IS NOT NULL AND ticker IS NOT NULL
-    )
-    SELECT ticker, date, open, high, low, close, volume, security_type
-    FROM deduplicated
-    WHERE rank = 1
-    ORDER BY ticker ASC, date ASC
-    """
+        # 2. Window ranking deduplication on composite key (ticker, date)
+        union_query = """
+        WITH deduplicated AS (
+            SELECT 
+                ticker, 
+                CAST(date AS DATE) AS date, 
+                open, high, low, close, volume, security_type,
+                ROW_NUMBER() OVER (
+                    PARTITION BY ticker, date 
+                    ORDER BY priority ASC, volume DESC, close DESC
+                ) AS rank
+            FROM raw_sources
+            WHERE date IS NOT NULL AND ticker IS NOT NULL
+        )
+        SELECT ticker, date, open, high, low, close, volume, security_type
+        FROM deduplicated
+        WHERE rank = 1
+        ORDER BY ticker ASC, date ASC
+        """
 
-    os.makedirs(PROCESSED_DIR, exist_ok=True)
-    target_parquet = os.path.join(PROCESSED_DIR, "market_master_union.parquet")
-    con.execute(f"""
-        COPY ({union_query}) 
-        TO '{target_parquet.replace('\\', '/')}' 
-        (FORMAT PARQUET, COMPRESSION ZSTD, OVERWRITE_OR_IGNORE TRUE)
-    """)
+        os.makedirs(PROCESSED_DIR, exist_ok=True)
+        target_parquet = os.path.join(PROCESSED_DIR, "market_master_union.parquet")
+        con.execute(f"""
+            COPY ({union_query}) 
+            TO '{target_parquet.replace('\\', '/')}' 
+            (FORMAT PARQUET, COMPRESSION ZSTD, OVERWRITE_OR_IGNORE TRUE)
+        """)
 
-    # Partitioned export by security_type
-    by_sec_dir = os.path.join(PROCESSED_DIR, "by_security_type")
-    con.execute(f"""
-        COPY ({union_query}) 
-        TO '{by_sec_dir.replace('\\', '/')}' 
-        (FORMAT PARQUET, PARTITION_BY (security_type), COMPRESSION ZSTD, OVERWRITE_OR_IGNORE TRUE)
-    """)
+        # Partitioned export by security_type
+        by_sec_dir = os.path.join(PROCESSED_DIR, "by_security_type")
+        con.execute(f"""
+            COPY ({union_query}) 
+            TO '{by_sec_dir.replace('\\', '/')}' 
+            (FORMAT PARQUET, PARTITION_BY (security_type), COMPRESSION ZSTD, OVERWRITE_OR_IGNORE TRUE)
+        """)
 
-    # 3. Post-merge unique count audit
-    target_clean = target_parquet.replace('\\', '/')
-    merged_df = con.execute("SELECT * FROM read_parquet(?)", [target_clean]).df()
-    merged_unique_count = con.execute("""
-        SELECT COUNT(DISTINCT (ticker, date)) FROM read_parquet(?)
-    """, [target_clean]).fetchone()[0]
+        # 3. Post-merge unique count audit
+        target_clean = target_parquet.replace('\\', '/')
+        merged_df = con.execute("SELECT * FROM read_parquet(?)", [target_clean]).df()
+        merged_unique_count = con.execute("""
+            SELECT COUNT(DISTINCT (ticker, date)) FROM read_parquet(?)
+        """, [target_clean]).fetchone()[0]
 
-    sec_breakdown = con.execute("""
-        SELECT security_type, COUNT(DISTINCT ticker) AS tickers, COUNT(*) AS rows 
-        FROM read_parquet(?) 
-        GROUP BY security_type 
-        ORDER BY rows DESC
-    """, [target_clean]).df()
+        sec_breakdown = con.execute("""
+            SELECT security_type, COUNT(DISTINCT ticker) AS tickers, COUNT(*) AS rows 
+            FROM read_parquet(?) 
+            GROUP BY security_type 
+            ORDER BY rows DESC
+        """, [target_clean]).df()
 
     # Measure read latency test
     read_start = time.time()

@@ -40,6 +40,10 @@ from chronos import ChronosBoltPipeline
 
 BASE_DIR = Path.cwd()
 ALT_DIR = Path(r"C:/Users/achar/Downloads/neps")
+
+if str(ALT_DIR) not in sys.path:
+    sys.path.insert(0, str(ALT_DIR))
+from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
 PROCESSED_DIR = BASE_DIR / "02_processed_parquet" if (BASE_DIR / "02_processed_parquet").exists() else ALT_DIR / "02_processed_parquet"
 FEATURE_DIR = BASE_DIR / "03_feature_store" if (BASE_DIR / "03_feature_store").exists() else ALT_DIR / "03_feature_store"
 RAW_DIR = BASE_DIR / "01_raw" if (BASE_DIR / "01_raw" / "nepse-historical-scraper-repo").exists() else ALT_DIR / "01_raw"
@@ -229,7 +233,6 @@ def run_comparative_backtest():
     print("=" * 85)
 
     t0 = time.time()
-    con = duckdb.connect()
 
     # 1. Assemble features
     print("1. Assembling features from technical and broker lakehouse...")
@@ -267,7 +270,8 @@ def run_comparative_backtest():
     LEFT JOIN broker b ON t.ticker = b.ticker AND t.date = b.date
     ORDER BY t.date ASC, t.ticker ASC
     """
-    df = con.execute(query).df()
+    with connection_manager.acquire() as con:
+        df = con.execute(query).df()
     df['date'] = pd.to_datetime(df['date'])
     trading_dates = sorted(df['date'].unique())
     print(f"Loaded {len(df):,} stock-day bars across {len(trading_dates)} trading sessions in {time.time()-t0:.2f}s.")

@@ -29,6 +29,7 @@ from typing import Dict, Any, List, Optional, Callable
 import duckdb
 import pandas as pd
 import requests
+from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("nepse_connectors")
@@ -130,16 +131,16 @@ class NepseClientETL:
             return pd.DataFrame()
 
         p_str = str(PROCESSED_PARQUET).replace("\\", "/")
-        con = duckdb.connect()
-        query = f"""
-            SELECT date, ticker as symbol, open, high, low, close, volume
-            FROM read_parquet('{p_str}')
-            WHERE ticker = '{symbol.upper().strip()}' 
-              AND date >= '{start_date}' 
-              AND date <= '{end_date}'
-            ORDER BY date ASC
-        """
-        return con.execute(query).df()
+        with connection_manager.acquire() as con:
+            query = f"""
+                SELECT date, ticker as symbol, open, high, low, close, volume
+                FROM read_parquet('{p_str}')
+                WHERE ticker = '{symbol.upper().strip()}' 
+                  AND date >= '{start_date}' 
+                  AND date <= '{end_date}'
+                ORDER BY date ASC
+            """
+            return con.execute(query).df()
 
 
 class NepseUnofficialWebSocket:

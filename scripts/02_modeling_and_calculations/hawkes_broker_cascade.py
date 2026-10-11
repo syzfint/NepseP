@@ -60,6 +60,22 @@ class HawkesParameters:
     cascade_hazard_score: float  # Scale 0.0 - 100.0
 
 
+# Task 7.2 — Safe default parameters returned whenever MLE fails to converge.
+# mu=0.01 : minimal background rate (system is quiet)
+# alpha=0.0: no excitation — previous trades have no self-exciting effect
+# beta=1.0 : standard decay rate (harmless baseline)
+# branching_ratio=0.0 : firmly sub-critical, no cascade signal
+SAFE_HAWKES_DEFAULTS = HawkesParameters(
+    mu=0.01,
+    alpha=0.0,
+    beta=1.0,
+    branching_ratio=0.0,
+    log_likelihood=0.0,
+    is_supercritical=False,
+    cascade_hazard_score=0.0,
+)
+
+
 @dataclass
 class BrokerCascadeAlert:
     symbol: str
@@ -134,6 +150,25 @@ class HawkesBrokerCascadeEngine:
             method="L-BFGS-B",
             bounds=bounds
         )
+
+        # Task 7.7 — Log every optimizer result for governance visibility.
+        logger.debug(
+            "Hawkes MLE: res.success=%s, fun=%.4f, message=%s",
+            res.success, res.fun, res.message,
+        )
+
+        # Task 7.1 — Explicit success validation (Bug C5.1 fix).
+        # On failure res.fun = 1e9 and res.x contains garbage; using those
+        # values would produce a supercritical cascade alert for a quiet stock.
+        if not res.success:
+            logger.warning(
+                "Hawkes MLE optimization failed for %d timestamps: %s. "
+                "Using safe default parameters (no cascade signal).",
+                len(ts_rel), res.message,
+            )
+            # Task 7.7 — explicit safe-default fallback log entry.
+            logger.warning("Using safe Hawkes defaults — no cascade signal")
+            return SAFE_HAWKES_DEFAULTS
 
         mu, alpha, beta = res.x
         branching_ratio = round(alpha / beta, 4) if beta > 0 else 0.0

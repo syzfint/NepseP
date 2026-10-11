@@ -5,6 +5,7 @@ import glob
 from pathlib import Path
 import duckdb
 import pandas as pd
+from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
 
 BASE_DIR = Path(os.environ.get("NEPSE_BASE_DIR", r"C:/Users/achar/Downloads/neps"))
 RAW_DIR = BASE_DIR / "01_raw"
@@ -31,7 +32,6 @@ def build_market_master_union():
     print("=" * 70)
 
     t0 = time.time()
-    con = duckdb.connect(database=":memory:")
 
     q_daily = f"""
     SELECT 
@@ -74,18 +74,6 @@ def build_market_master_union():
     FROM read_csv_auto('{str(RAW_DIR / "ticker_csvs" / "*.csv").replace('\\', '/')}', filename=True, union_by_name=True, ignore_errors=True)
     """
 
-    con.execute(f"""
-    CREATE TABLE all_sources AS 
-    SELECT * FROM ({q_daily}) WHERE close > 0 AND date IS NOT NULL
-    UNION ALL
-    SELECT * FROM ({q_scraper}) WHERE close > 0 AND date IS NOT NULL
-    UNION ALL
-    SELECT * FROM ({q_ticker}) WHERE close > 0 AND date IS NOT NULL
-    """)
-
-    raw_cnt = con.execute("SELECT count(*) FROM all_sources").fetchone()[0]
-    print(f"Loaded {raw_cnt:,} total raw rows in {time.time() - t0:.2f}s.")
-
     dedup_sql = """
     WITH ranked AS (
         SELECT ticker, date, open, high, low, close, volume,
@@ -101,21 +89,34 @@ def build_market_master_union():
     WHERE rn = 1
     ORDER BY ticker ASC, date ASC
     """
-    
-    con.execute(f"CREATE TABLE master_union AS {dedup_sql}")
-    df_m = con.execute("SELECT * FROM master_union").df()
-    df_m['security_type'] = df_m['ticker'].apply(classify_security)
-    
-    target_parquet = PROCESSED_DIR / "market_master_union.parquet"
-    df_m.to_parquet(target_parquet, compression="zstd", index=False)
-    
-    by_sec_dir = PROCESSED_DIR / "by_security_type"
-    con.register("df_m_view", df_m)
-    con.execute(f"""
-        COPY df_m_view TO '{str(by_sec_dir).replace('\\', '/')}' 
-        (FORMAT PARQUET, PARTITION_BY (security_type), COMPRESSION ZSTD, OVERWRITE_OR_IGNORE TRUE)
-    """)
-    
+
+    with connection_manager.acquire() as con:
+        con.execute(f"""
+        CREATE TABLE all_sources AS 
+        SELECT * FROM ({q_daily}) WHERE close > 0 AND date IS NOT NULL
+        UNION ALL
+        SELECT * FROM ({q_scraper}) WHERE close > 0 AND date IS NOT NULL
+        UNION ALL
+        SELECT * FROM ({q_ticker}) WHERE close > 0 AND date IS NOT NULL
+        """)
+
+        raw_cnt = con.execute("SELECT count(*) FROM all_sources").fetchone()[0]
+        print(f"Loaded {raw_cnt:,} total raw rows in {time.time() - t0:.2f}s.")
+
+        con.execute(f"CREATE TABLE master_union AS {dedup_sql}")
+        df_m = con.execute("SELECT * FROM master_union").df()
+        df_m['security_type'] = df_m['ticker'].apply(classify_security)
+
+        target_parquet = PROCESSED_DIR / "market_master_union.parquet"
+        df_m.to_parquet(target_parquet, compression="zstd", index=False)
+
+        by_sec_dir = PROCESSED_DIR / "by_security_type"
+        con.register("df_m_view", df_m)
+        con.execute(f"""
+            COPY df_m_view TO '{str(by_sec_dir).replace('\\', '/')}' 
+            (FORMAT PARQUET, PARTITION_BY (security_type), COMPRESSION ZSTD, OVERWRITE_OR_IGNORE TRUE)
+        """)
+
     elapsed = time.time() - t0
     min_date = df_m['date'].min()
     max_date = df_m['date'].max()

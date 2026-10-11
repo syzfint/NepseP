@@ -87,7 +87,6 @@ class TMSOrderStagingEngine:
     def __init__(self, data_lakehouse_path: Optional[Path] = None):
         self.lakehouse_path = data_lakehouse_path or (BASE_DIR / "02_processed_parquet" / "market_master_union.parquet")
         self.promoter_path = BASE_DIR / "static_data" / "promoter_lockin.parquet"
-        self._con = duckdb.connect()
 
     def estimate_top3_lob_depth(self, symbol: str, latest_close: float) -> int:
         """
@@ -102,7 +101,9 @@ class TMSOrderStagingEngine:
                 ORDER BY date DESC
                 LIMIT 20
             """
-            res = self._con.execute(query).fetchone()
+            from scripts.db_connection import connection_manager
+            with connection_manager.acquire() as _con:
+                res = _con.execute(query).fetchone()
             if res and res[0] and res[0] > 0:
                 med_vol = float(res[0])
                 # Top-3 depth estimated at 4.5% of 20-session median daily volume (minimum 100 shares)

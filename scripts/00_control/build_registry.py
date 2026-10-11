@@ -21,7 +21,6 @@ import json
 import hashlib
 import datetime
 from pathlib import Path
-import duckdb
 
 BASE_DIR = Path.cwd()
 REGISTRY_DIR = BASE_DIR / "registry"
@@ -45,66 +44,65 @@ def sha256_file(path: Path) -> str:
 
 def register_artifacts():
     print("Populating lightweight institutional registries...")
-    con = duckdb.connect()
+    from scripts.db_connection import connection_manager
 
-    # 1. DATASETS
-    master_p = BASE_DIR / "02_processed_parquet" / "market_master_union.parquet"
-    if master_p.exists():
-        stat = con.execute(f"SELECT COUNT(*), COUNT(DISTINCT ticker), MIN(date), MAX(date) FROM read_parquet('{str(master_p).replace('\\', '/')}')").fetchone()
-        dataset_meta = {
-            "artifact_id": "DATASET-091",
-            "name": "NEPSE Lakehouse Market Master Union",
-            "path": "02_processed_parquet/market_master_union.parquet",
-            "sha256": sha256_file(master_p),
-            "bytes": master_p.stat().st_size,
-            "row_count": stat[0],
-            "unique_tickers": stat[1],
-            "min_date": str(stat[2]),
-            "max_date": str(stat[3]),
-            "created_at_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            "status": "IMMUTABLE_REGISTERED"
-        }
-        with open(DATASETS_DIR / "DATASET-091.json", "w", encoding="utf-8") as f:
-            json.dump(dataset_meta, f, indent=2)
-        print("  [OK] Registered DATASET-091")
+    with connection_manager.acquire() as con:
+        # 1. DATASETS
+        master_p = BASE_DIR / "02_processed_parquet" / "market_master_union.parquet"
+        if master_p.exists():
+            stat = con.execute(f"SELECT COUNT(*), COUNT(DISTINCT ticker), MIN(date), MAX(date) FROM read_parquet('{str(master_p).replace('\\', '/')}')").fetchone()
+            dataset_meta = {
+                "artifact_id": "DATASET-091",
+                "name": "NEPSE Lakehouse Market Master Union",
+                "path": "02_processed_parquet/market_master_union.parquet",
+                "sha256": sha256_file(master_p),
+                "bytes": master_p.stat().st_size,
+                "row_count": stat[0],
+                "unique_tickers": stat[1],
+                "min_date": str(stat[2]),
+                "max_date": str(stat[3]),
+                "created_at_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                "status": "IMMUTABLE_REGISTERED"
+            }
+            with open(DATASETS_DIR / "DATASET-091.json", "w", encoding="utf-8") as f:
+                json.dump(dataset_meta, f, indent=2)
+            print("  [OK] Registered DATASET-091")
 
-    # 2. FEATURES
-    tech_p = BASE_DIR / "03_feature_store" / "technical_indicators.parquet"
-    if tech_p.exists():
-        stat_f = con.execute(f"SELECT COUNT(*) FROM read_parquet('{str(tech_p).replace('\\', '/')}')").fetchone()[0]
-        feature_meta = {
-            "artifact_id": "FEATURESET-044",
-            "name": "34 Point-in-Time Technical & Microstructure Indicators",
-            "path": "03_feature_store/technical_indicators.parquet",
-            "sha256": sha256_file(tech_p),
-            "bytes": tech_p.stat().st_size,
-            "row_count": stat_f,
-            "column_count": 34,
-            "created_at_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            "status": "IMMUTABLE_REGISTERED"
-        }
-        with open(FEATURES_DIR / "FEATURESET-044.json", "w", encoding="utf-8") as f:
-            json.dump(feature_meta, f, indent=2)
-        print("  [OK] Registered FEATURESET-044")
+        # 2. FEATURES
+        tech_p = BASE_DIR / "03_feature_store" / "technical_indicators.parquet"
+        if tech_p.exists():
+            stat_f = con.execute(f"SELECT COUNT(*) FROM read_parquet('{str(tech_p).replace('\\', '/')}')").fetchone()[0]
+            feature_meta = {
+                "artifact_id": "FEATURESET-044",
+                "name": "34 Point-in-Time Technical & Microstructure Indicators",
+                "path": "03_feature_store/technical_indicators.parquet",
+                "sha256": sha256_file(tech_p),
+                "bytes": tech_p.stat().st_size,
+                "row_count": stat_f,
+                "column_count": 34,
+                "created_at_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                "status": "IMMUTABLE_REGISTERED"
+            }
+            with open(FEATURES_DIR / "FEATURESET-044.json", "w", encoding="utf-8") as f:
+                json.dump(feature_meta, f, indent=2)
+            print("  [OK] Registered FEATURESET-044")
 
-    broker_p = BASE_DIR / "03_feature_store" / "floorsheet_broker_signals.parquet"
-    if broker_p.exists():
-        stat_b = con.execute(f"SELECT COUNT(*) FROM read_parquet('{str(broker_p).replace('\\', '/')}')").fetchone()[0]
-        broker_meta = {
-            "artifact_id": "FEATURESET-BROKER-012",
-            "name": "Anti-Wash Floorsheet Broker Accumulation Signals",
-            "path": "03_feature_store/floorsheet_broker_signals.parquet",
-            "sha256": sha256_file(broker_p),
-            "bytes": broker_p.stat().st_size,
-            "row_count": stat_b,
-            "created_at_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            "status": "IMMUTABLE_REGISTERED"
-        }
-        with open(FEATURES_DIR / "FEATURESET-BROKER-012.json", "w", encoding="utf-8") as f:
-            json.dump(broker_meta, f, indent=2)
-        print("  [OK] Registered FEATURESET-BROKER-012")
-
-    con.close()
+        broker_p = BASE_DIR / "03_feature_store" / "floorsheet_broker_signals.parquet"
+        if broker_p.exists():
+            stat_b = con.execute(f"SELECT COUNT(*) FROM read_parquet('{str(broker_p).replace('\\', '/')}')").fetchone()[0]
+            broker_meta = {
+                "artifact_id": "FEATURESET-BROKER-012",
+                "name": "Anti-Wash Floorsheet Broker Accumulation Signals",
+                "path": "03_feature_store/floorsheet_broker_signals.parquet",
+                "sha256": sha256_file(broker_p),
+                "bytes": broker_p.stat().st_size,
+                "row_count": stat_b,
+                "created_at_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                "status": "IMMUTABLE_REGISTERED"
+            }
+            with open(FEATURES_DIR / "FEATURESET-BROKER-012.json", "w", encoding="utf-8") as f:
+                json.dump(broker_meta, f, indent=2)
+            print("  [OK] Registered FEATURESET-BROKER-012")
 
     # 3. MODELS
     models = [

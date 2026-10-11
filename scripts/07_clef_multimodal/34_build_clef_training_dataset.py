@@ -63,6 +63,9 @@ logging.basicConfig(
 logger = logging.getLogger("ClefDatasetBuilder")
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+import sys as _sys_34_mm
+_sys_34_mm.path.insert(0, str(BASE_DIR))
+from scripts.db_connection import get_connection_manager as _get_cm_34mm
 
 # Load Pydantic Schemas from 04_data_schemas_and_pydantic_entities.py
 import importlib.util
@@ -526,15 +529,15 @@ class ClefDatasetBuilder:
         # Also check DuckDB verified_events if 2025-2026
         if as_of_date_str >= "2025-01-01" and self.duckdb_path.exists():
             try:
-                con = duckdb.connect(str(self.duckdb_path), read_only=True)
-                rows = con.execute("""
-                    SELECT event_id, source, headline, summary, category, importance_tier, published_date_npt
-                    FROM verified_events
-                    WHERE published_date_npt <= ?
-                    ORDER BY published_date_npt DESC
-                    LIMIT 3
-                """, [as_of_date_str]).fetchall()
-                con.close()
+                _db_mgr_mm = _get_cm_34mm(database=str(self.duckdb_path))
+                with _db_mgr_mm.acquire() as con:
+                    rows = con.execute("""
+                        SELECT event_id, source, headline, summary, category, importance_tier, published_date_npt
+                        FROM verified_events
+                        WHERE published_date_npt <= ?
+                        ORDER BY published_date_npt DESC
+                        LIMIT 3
+                    """, [as_of_date_str]).fetchall()
                 for r in rows:
                     disclosures.append({
                         "event_id": str(r[0]),
@@ -843,7 +846,7 @@ class ClefDatasetBuilder:
         print("==========================================================================")
         
         t0 = time.time()
-        con = duckdb.connect()
+        from scripts.db_connection import connection_manager
 
         # Regime 1: 2021 Bull Run
         r1_dates = self.index_df[self.index_df['date'].dt.year == 2021].iloc[20:-5:5]
@@ -860,34 +863,34 @@ class ClefDatasetBuilder:
         regime_counts = {"2021_BULL_RUN": 0, "2023_BEAR_MARKET": 0, "2024_2026_CHOP": 0}
         stance_counts = {}
 
-        # Process Regime 1
-        logger.info("Extracting Regime 1: 2021 Liquidity-Driven Bull Run...")
-        for _, row in r1_dates.iterrows():
-            rec = self.build_single_training_pair(con, row, "2021_BULL_RUN")
-            if rec:
-                all_records.append(rec)
-                regime_counts["2021_BULL_RUN"] += 1
+        with connection_manager.acquire() as con:
+            # Process Regime 1
+            logger.info("Extracting Regime 1: 2021 Liquidity-Driven Bull Run...")
+            for _, row in r1_dates.iterrows():
+                rec = self.build_single_training_pair(con, row, "2021_BULL_RUN")
+                if rec:
+                    all_records.append(rec)
+                    regime_counts["2021_BULL_RUN"] += 1
+                    stance_counts[rec["market_stance"]] = stance_counts.get(rec["market_stance"], 0) + 1
+
+            # Process Regime 2
+            logger.info("Extracting Regime 2: 2023 Tight-Monetary Bear Market...")
+            for _, row in r2_dates.iterrows():
+                rec = self.build_single_training_pair(con, row, "2023_BEAR_MARKET")
+                if rec:
+                    all_records.append(rec)
+                    regime_counts["2023_BEAR_MARKET"] += 1
+                    stance_counts[rec["market_stance"]] = stance_counts.get(rec["market_stance"], 0) + 1
+
+            # Process Regime 3
+            logger.info("Extracting Regime 3: 2024–2026 High-Volatility Sideways Chop...")
+            for _, row in r3_dates.iterrows():
+                rec = self.build_single_training_pair(con, row, "2024_2026_CHOP")
+                if rec:
+                    all_records.append(rec)
+                    regime_counts["2024_2026_CHOP"] += 1
                 stance_counts[rec["market_stance"]] = stance_counts.get(rec["market_stance"], 0) + 1
 
-        # Process Regime 2
-        logger.info("Extracting Regime 2: 2023 Tight-Monetary Bear Market...")
-        for _, row in r2_dates.iterrows():
-            rec = self.build_single_training_pair(con, row, "2023_BEAR_MARKET")
-            if rec:
-                all_records.append(rec)
-                regime_counts["2023_BEAR_MARKET"] += 1
-                stance_counts[rec["market_stance"]] = stance_counts.get(rec["market_stance"], 0) + 1
-
-        # Process Regime 3
-        logger.info("Extracting Regime 3: 2024–2026 High-Volatility Sideways Chop...")
-        for _, row in r3_dates.iterrows():
-            rec = self.build_single_training_pair(con, row, "2024_2026_CHOP")
-            if rec:
-                all_records.append(rec)
-                regime_counts["2024_2026_CHOP"] += 1
-                stance_counts[rec["market_stance"]] = stance_counts.get(rec["market_stance"], 0) + 1
-
-        con.close()
         t1 = time.time()
         logger.info(f"Generated {len(all_records)} valid multimodal pairs in {t1 - t0:.2f} seconds.")
 

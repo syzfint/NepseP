@@ -28,6 +28,7 @@ from pathlib import Path
 import duckdb
 import pandas as pd
 import numpy as np
+from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("promoter_lockin")
@@ -41,7 +42,6 @@ OUT_PARQUET = STATIC_DIR / "promoter_lockin.parquet"
 
 def build_promoter_lockin_calendar():
     STATIC_DIR.mkdir(parents=True, exist_ok=True)
-    con = duckdb.connect()
     p_str = str(PROCESSED_PARQUET).replace("\\", "/")
 
     query = f"""
@@ -55,7 +55,8 @@ def build_promoter_lockin_calendar():
     GROUP BY ticker
     ORDER BY ipo_listing_date ASC
     """
-    df = con.execute(query).df()
+    with connection_manager.acquire() as con:
+        df = con.execute(query).df()
     df["ipo_listing_date"] = pd.to_datetime(df["ipo_listing_date"])
     df["latest_trade_date"] = pd.to_datetime(df["latest_trade_date"])
 
@@ -68,7 +69,8 @@ def build_promoter_lockin_calendar():
     df["is_recent_ipo"] = df["ipo_listing_date"] >= "2021-01-01"
 
     out_str = str(OUT_PARQUET).replace("\\", "/")
-    con.execute(f"COPY (SELECT * FROM df) TO '{out_str}' (FORMAT PARQUET)")
+    with connection_manager.acquire() as con:
+        con.execute(f"COPY (SELECT * FROM df) TO '{out_str}' (FORMAT PARQUET)")
     logger.info(f"Generated promoter lock-in calendar: {len(df)} companies saved to {OUT_PARQUET}")
 
     # Mirror to ALT_DIR
@@ -89,19 +91,19 @@ def check_promoter_lockin_risk(symbol: str, as_of_date: str = "2026-10-07") -> d
     if not OUT_PARQUET.exists():
         build_promoter_lockin_calendar()
 
-    con = duckdb.connect()
     p_str = str(OUT_PARQUET).replace("\\", "/")
-    res = con.execute(f"""
-        SELECT 
-            symbol,
-            ipo_listing_date,
-            lockin_expiry_date,
-            freeze_window_start,
-            freeze_window_end,
-            is_recent_ipo
-        FROM read_parquet('{p_str}')
-        WHERE symbol = '{symbol.upper().strip()}'
-    """).fetchone()
+    with connection_manager.acquire() as con:
+        res = con.execute(f"""
+            SELECT 
+                symbol,
+                ipo_listing_date,
+                lockin_expiry_date,
+                freeze_window_start,
+                freeze_window_end,
+                is_recent_ipo
+            FROM read_parquet('{p_str}')
+            WHERE symbol = '{symbol.upper().strip()}'
+        """).fetchone()
 
     if not res:
         return {"has_lockin_risk": False, "reason": "No listing record"}

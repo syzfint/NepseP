@@ -1,7 +1,7 @@
 """
 Native NEPSE Trading Calendar & Session Resolution Engine.
 Implements:
-1. Native NEPSE CustomBusinessDay in Pandas (Sun-Thu weekmask, Fri-Sat weekend).
+1. Native NEPSE CustomBusinessDay in Pandas (Mon-Fri weekmask, Sat-Sun weekend).
 2. Dynamic DuckDB Lakehouse query helpers for actual recorded trading sessions.
 3. Next and previous trading session resolution without Western calendar assumptions.
 4. Backward-compatible NepseTradingCalendar class for event studies and pipelines.
@@ -13,7 +13,6 @@ from pathlib import Path
 from typing import List, Optional, Tuple, Set, Union
 from enum import Enum
 
-import duckdb
 import pandas as pd
 from pandas.tseries.holiday import AbstractHolidayCalendar
 from pandas.tseries.offsets import CustomBusinessDay
@@ -24,7 +23,7 @@ class EventTimingConvention(str, Enum):
     PRE_MARKET = "PRE_MARKET"           # Published before 11:00 AM NPT on trading day -> T0 is today
     IN_SESSION = "IN_SESSION"           # Published 11:00 AM - 3:00 PM NPT -> T0 is today
     POST_MARKET = "POST_MARKET"         # Published after 3:00 PM NPT -> T0 is next trading day
-    WEEKEND_HOLIDAY = "WEEKEND_HOLIDAY" # Published on Fri/Sat/Holiday -> T0 is next trading day
+    WEEKEND_HOLIDAY = "WEEKEND_HOLIDAY" # Published on Sat/Sun/Holiday -> T0 is next trading day
 
 
 class NepseHolidayCalendar(AbstractHolidayCalendar):
@@ -38,8 +37,8 @@ class NepseHolidayCalendar(AbstractHolidayCalendar):
     ]
 
 
-# Native NEPSE Business Day: Sunday through Thursday (Friday and Saturday are weekend)
-NEPSE_WEEKDAYS = "Sun Mon Tue Wed Thu"
+# Native NEPSE Business Day: Monday through Friday (Only Saturday and Sunday are weekend)
+NEPSE_WEEKDAYS = "Mon Tue Wed Thu Fri"
 NEPSE_BUS_DAY = CustomBusinessDay(
     weekmask=NEPSE_WEEKDAYS,
     calendar=NepseHolidayCalendar()
@@ -63,8 +62,8 @@ def get_default_db_path() -> Path:
 
 def add_nepse_trading_days(start_date: Union[str, datetime, date, pd.Timestamp], n_days: int = 1) -> pd.Timestamp:
     """
-    Add N NEPSE trading days to start_date using Sun-Thu weekmask.
-    e.g. Thursday + 1 day -> Sunday. Friday + 1 day -> Sunday.
+    Add N NEPSE trading days to start_date using Mon-Fri weekmask.
+    e.g. Friday + 1 day -> Monday.
     """
     ts = pd.to_datetime(start_date)
     return ts + (n_days * NEPSE_BUS_DAY)
@@ -78,13 +77,13 @@ def sub_nepse_trading_days(start_date: Union[str, datetime, date, pd.Timestamp],
 
 def is_nepse_trading_day(d: Union[str, datetime, date, pd.Timestamp]) -> bool:
     """
-    Check if a given date falls on a standard NEPSE trading day (Sun-Thu).
-    Friday (4) and Saturday (5) return False.
+    Check if a given date falls on a standard NEPSE trading day (Mon-Fri).
+    Saturday (5) and Sunday (6) return False. Friday (4) is OPEN.
     """
     dt = pd.to_datetime(d)
     # dt.weekday(): 0=Mon, 1=Tue, 2=Wed, 3=Thu, 4=Fri, 5=Sat, 6=Sun
-    # In Nepal, Sun=6, Mon=0, Tue=1, Wed=2, Thu=3 are trading days.
-    return dt.weekday() not in (4, 5)
+    # Friday remains open; only Saturday (5) and Sunday (6) are off.
+    return dt.weekday() not in (5, 6)
 
 
 def get_actual_nepse_trading_dates(
@@ -102,20 +101,17 @@ def get_actual_nepse_trading_dates(
     if not os.path.exists(path_str):
         return []
 
-    con = duckdb.connect()
-    try:
-        query = f"""
-            SELECT DISTINCT CAST(date AS VARCHAR) as trade_date
-            FROM '{path_str}'
-            WHERE date >= '{min_date}'
-            ORDER BY trade_date ASC
-        """
+    from scripts.db_connection import connection_manager
+    query = f"""
+        SELECT DISTINCT CAST(date AS VARCHAR) as trade_date
+        FROM '{path_str}'
+        WHERE date >= '{min_date}'
+        ORDER BY trade_date ASC
+    """
+    with connection_manager.acquire() as con:
         rows = con.execute(query).fetchall()
-        trading_dates = [r[0][:10] for r in rows if r[0]]
-        return sorted(list(set(trading_dates)))
-    finally:
-        con.close()
-
+    trading_dates = [r[0][:10] for r in rows if r[0]]
+    return sorted(list(set(trading_dates)))
 
 def get_next_trading_session(
     current_date: Union[str, datetime, date, pd.Timestamp],
@@ -192,9 +188,9 @@ class NepseTradingCalendar:
         self._date_to_idx: dict = {d: i for i, d in enumerate(self.trading_dates)}
 
     def is_weekend(self, d: Union[date, datetime, pd.Timestamp]) -> bool:
-        """Nepal weekend: Friday (4) and Saturday (5)."""
+        """Weekend: Saturday (5) and Sunday (6). Friday (4) is a trading day."""
         dt = pd.to_datetime(d)
-        return dt.weekday() in (4, 5)
+        return dt.weekday() in (5, 6)
 
     def is_trading_day(self, date_str: str) -> bool:
         """Check if date is a verified trading session."""

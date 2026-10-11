@@ -40,6 +40,10 @@ logger = logging.getLogger("DataQualityAuditor")
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
+import sys
+sys.path.insert(0, str(BASE_DIR))
+from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
+
 
 @dataclass
 class QualityCheckItem:
@@ -65,7 +69,6 @@ class TSAuditor:
 
     def __init__(self, lakehouse_path: Optional[Path] = None):
         self.path = lakehouse_path or (BASE_DIR / "02_processed_parquet" / "market_master_union.parquet")
-        self._con = duckdb.connect()
 
     def run_full_audit(self) -> LakehouseAuditReport:
         """Executes the comprehensive suite of 4 pre-ingestion data quality checks."""
@@ -84,106 +87,107 @@ class TSAuditor:
         logger.info(f"Auditing Lakehouse: {self.path}...")
         p_str = self.path.as_posix()
 
-        # 1. Basic Stats
-        stats = self._con.execute(f"""
-            SELECT count(*), count(DISTINCT ticker), min(date), max(date)
-            FROM '{p_str}'
-        """).fetchone()
-        tot_records, unq_tickers, min_d, max_d = stats
-        date_range_str = f"{min_d} to {max_d}"
+        with connection_manager.acquire() as con:
+            # 1. Basic Stats
+            stats = con.execute(f"""
+                SELECT count(*), count(DISTINCT ticker), min(date), max(date)
+                FROM '{p_str}'
+            """).fetchone()
+            tot_records, unq_tickers, min_d, max_d = stats
+            date_range_str = f"{min_d} to {max_d}"
 
-        checks: List[QualityCheckItem] = []
-        all_pass = True
+            checks: List[QualityCheckItem] = []
+            all_pass = True
 
-        # Check 1: Null / NaN / Inf & Price Boundary Check
-        null_stats = self._con.execute(f"""
-            SELECT
-                sum(CASE WHEN close IS NULL OR close <= 0 THEN 1 ELSE 0 END),
-                sum(CASE WHEN volume IS NULL OR volume < 0 THEN 1 ELSE 0 END),
-                sum(CASE WHEN high < low THEN 1 ELSE 0 END)
-            FROM '{p_str}'
-        """).fetchone()
-        invalid_close, invalid_vol, invalid_high_low = null_stats
+            # Check 1: Null / NaN / Inf & Price Boundary Check
+            null_stats = con.execute(f"""
+                SELECT
+                    sum(CASE WHEN close IS NULL OR close <= 0 THEN 1 ELSE 0 END),
+                    sum(CASE WHEN volume IS NULL OR volume < 0 THEN 1 ELSE 0 END),
+                    sum(CASE WHEN high < low THEN 1 ELSE 0 END)
+                FROM '{p_str}'
+            """).fetchone()
+            invalid_close, invalid_vol, invalid_high_low = null_stats
 
-        if invalid_close == 0 and invalid_high_low <= 5:
-            stat = "PASS" if invalid_high_low == 0 else "PASS_WITH_WARNING"
+            if invalid_close == 0 and invalid_high_low <= 5:
+                stat = "PASS" if invalid_high_low == 0 else "PASS_WITH_WARNING"
+                checks.append(QualityCheckItem(
+                    check_name="Null & Price Boundary Integrity",
+                    status=stat,
+                    details=f"Zero null closes. 99.9996% price boundary conformance ({invalid_high_low} legacy anomalies flagged).",
+                    metrics={"invalid_close": invalid_close, "invalid_vol": invalid_vol, "high_low_violations": invalid_high_low}
+                ))
+            else:
+                all_pass = False
+                checks.append(QualityCheckItem(
+                    check_name="Null & Price Boundary Integrity",
+                    status="FAIL",
+                    details=f"Detected {invalid_close} invalid closes and {invalid_high_low} High < Low inversions.",
+                    metrics={"invalid_close": invalid_close, "high_low_violations": invalid_high_low}
+                ))
+
+            # Check 2: Flatline Suspended Price Carry-Forward Detection
+            flatlines = con.execute(f"""
+                SELECT ticker, count(*) as zero_vol_streak
+                FROM '{p_str}'
+                WHERE volume = 0
+                GROUP BY ticker
+                HAVING count(*) > 50
+                ORDER BY count(*) DESC
+                LIMIT 5
+            """).fetchall()
+
             checks.append(QualityCheckItem(
-                check_name="Null & Price Boundary Integrity",
-                status=stat,
-                details=f"Zero null closes. 99.9996% price boundary conformance ({invalid_high_low} legacy anomalies flagged).",
-                metrics={"invalid_close": invalid_close, "invalid_vol": invalid_vol, "high_low_violations": invalid_high_low}
-            ))
-        else:
-            all_pass = False
-            checks.append(QualityCheckItem(
-                check_name="Null & Price Boundary Integrity",
-                status="FAIL",
-                details=f"Detected {invalid_close} invalid closes and {invalid_high_low} High < Low inversions.",
-                metrics={"invalid_close": invalid_close, "high_low_violations": invalid_high_low}
-            ))
-
-        # Check 2: Flatline Suspended Price Carry-Forward Detection
-        flatlines = self._con.execute(f"""
-            SELECT ticker, count(*) as zero_vol_streak
-            FROM '{p_str}'
-            WHERE volume = 0
-            GROUP BY ticker
-            HAVING count(*) > 50
-            ORDER BY count(*) DESC
-            LIMIT 5
-        """).fetchall()
-
-        checks.append(QualityCheckItem(
-            check_name="Suspended Flatline Streak Detection",
-            status="PASS" if len(flatlines) < 20 else "WARNING",
-            details=f"Identified {len(flatlines)} counters with prolonged trading suspension / zero volume streaks.",
-            metrics={"flagged_counters_sample": [f"{r[0]} ({r[1]} sessions)" for r in flatlines[:3]]}
-        ))
-
-        # Check 3: Schema & Type Conformance
-        schema_info = self._con.execute(f"DESCRIBE SELECT * FROM '{p_str}'").fetchall()
-        expected_cols = {"ticker", "date", "open", "high", "low", "close", "volume"}
-        present_cols = {r[0].lower() for r in schema_info}
-        missing_cols = expected_cols - present_cols
-
-        if not missing_cols:
-            checks.append(QualityCheckItem(
-                check_name="Schema & Type Conformance",
-                status="PASS",
-                details=f"All {len(expected_cols)} mandatory OHLCV columns present with matching types.",
-                metrics={"columns_verified": list(present_cols)}
-            ))
-        else:
-            all_pass = False
-            checks.append(QualityCheckItem(
-                check_name="Schema & Type Conformance",
-                status="FAIL",
-                details=f"Missing mandatory columns: {missing_cols}",
-                metrics={"missing": list(missing_cols)}
+                check_name="Suspended Flatline Streak Detection",
+                status="PASS" if len(flatlines) < 20 else "WARNING",
+                details=f"Identified {len(flatlines)} counters with prolonged trading suspension / zero volume streaks.",
+                metrics={"flagged_counters_sample": [f"{r[0]} ({r[1]} sessions)" for r in flatlines[:3]]}
             ))
 
-        # Check 4: Zero Future Leakage / Monotonic Date Ordering
-        leakage_check = self._con.execute(f"""
-            SELECT count(*)
-            FROM '{p_str}'
-            WHERE date > current_date + INTERVAL 1 DAY
-        """).fetchone()[0]
+            # Check 3: Schema & Type Conformance
+            schema_info = con.execute(f"DESCRIBE SELECT * FROM '{p_str}'").fetchall()
+            expected_cols = {"ticker", "date", "open", "high", "low", "close", "volume"}
+            present_cols = {r[0].lower() for r in schema_info}
+            missing_cols = expected_cols - present_cols
 
-        if leakage_check == 0:
-            checks.append(QualityCheckItem(
-                check_name="Zero Future Timestamp Leakage",
-                status="PASS",
-                details="Zero timestamps exceed present date horizon. Point-in-time boundary clean.",
-                metrics={"future_leakage_rows": 0}
-            ))
-        else:
-            all_pass = False
-            checks.append(QualityCheckItem(
-                check_name="Zero Future Timestamp Leakage",
-                status="FAIL",
-                details=f"Detected {leakage_check} rows with future timestamps.",
-                metrics={"future_leakage_rows": leakage_check}
-            ))
+            if not missing_cols:
+                checks.append(QualityCheckItem(
+                    check_name="Schema & Type Conformance",
+                    status="PASS",
+                    details=f"All {len(expected_cols)} mandatory OHLCV columns present with matching types.",
+                    metrics={"columns_verified": list(present_cols)}
+                ))
+            else:
+                all_pass = False
+                checks.append(QualityCheckItem(
+                    check_name="Schema & Type Conformance",
+                    status="FAIL",
+                    details=f"Missing mandatory columns: {missing_cols}",
+                    metrics={"missing": list(missing_cols)}
+                ))
+
+            # Check 4: Zero Future Leakage / Monotonic Date Ordering
+            leakage_check = con.execute(f"""
+                SELECT count(*)
+                FROM '{p_str}'
+                WHERE date > current_date + INTERVAL 1 DAY
+            """).fetchone()[0]
+
+            if leakage_check == 0:
+                checks.append(QualityCheckItem(
+                    check_name="Zero Future Timestamp Leakage",
+                    status="PASS",
+                    details="Zero timestamps exceed present date horizon. Point-in-time boundary clean.",
+                    metrics={"future_leakage_rows": 0}
+                ))
+            else:
+                all_pass = False
+                checks.append(QualityCheckItem(
+                    check_name="Zero Future Timestamp Leakage",
+                    status="FAIL",
+                    details=f"Detected {leakage_check} rows with future timestamps.",
+                    metrics={"future_leakage_rows": leakage_check}
+                ))
 
         report = LakehouseAuditReport(
             lakehouse_path=str(self.path),

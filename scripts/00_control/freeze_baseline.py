@@ -125,22 +125,22 @@ def freeze_dataset_manifest():
         "promoter_lockin": BASE_DIR / "static_data" / "promoter_lockin.parquet",
         "floorsheet_2026_10_07": BASE_DIR / "01_raw_data" / "nepse_floorsheet_2026-10-07.parquet",
     }
-    con = duckdb.connect()
+    from scripts.db_connection import connection_manager
     d_manifest = {}
-    for name, p in datasets.items():
-        if p.exists():
-            p_str = str(p).replace("\\", "/")
-            stat = con.execute(f"SELECT COUNT(*) FROM read_parquet('{p_str}')").fetchone()[0]
-            d_manifest[name] = {
-                "file_path": str(p),
-                "sha256": sha256_file(p),
-                "bytes": p.stat().st_size,
-                "row_count": stat,
-                "modified": datetime.datetime.fromtimestamp(p.stat().st_mtime).isoformat()
-            }
-        else:
-            d_manifest[name] = {"status": "NOT_FOUND"}
-    con.close()
+    with connection_manager.acquire() as con:
+        for name, p in datasets.items():
+            if p.exists():
+                p_str = str(p).replace("\\", "/")
+                stat = con.execute(f"SELECT COUNT(*) FROM read_parquet('{p_str}')").fetchone()[0]
+                d_manifest[name] = {
+                    "file_path": str(p),
+                    "sha256": sha256_file(p),
+                    "bytes": p.stat().st_size,
+                    "row_count": stat,
+                    "modified": datetime.datetime.fromtimestamp(p.stat().st_mtime).isoformat()
+                }
+            else:
+                d_manifest[name] = {"status": "NOT_FOUND"}
     with open(BASELINE_DIR / "dataset_manifest.json", "w", encoding="utf-8") as f:
         json.dump(d_manifest, f, indent=2)
 

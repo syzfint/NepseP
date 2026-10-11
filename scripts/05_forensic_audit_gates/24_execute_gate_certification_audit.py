@@ -4,6 +4,8 @@ import json
 import pandas as pd
 import numpy as np
 import duckdb
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
 
 def main():
     for _d in ("gates", "audits", "final_oos", "pbo_dsr", "certification"): os.makedirs(f"reports/{_d}", exist_ok=True)
@@ -12,31 +14,31 @@ def main():
     print("==========================================================================")
     
     db_path = "02_processed_parquet/market_master_union.parquet"
-    con = duckdb.connect()
-    
+
     # --------------------------------------------------------------------------
     # G0 CERTIFICATION & DATA AUDIT
     # --------------------------------------------------------------------------
     print("\n[Auditing G0: Data Truth & Survivorship]")
-    g0_checks = con.execute("""
-        SELECT 
-            COUNT(*) as total_rows,
-            COUNT(DISTINCT ticker) as unique_tickers,
-            COUNT(DISTINCT date) as unique_dates,
-            CAST(MIN(date) AS VARCHAR) as min_date,
-            CAST(MAX(date) AS VARCHAR) as max_date,
-            SUM(CASE WHEN close IS NULL OR open IS NULL OR volume IS NULL THEN 1 ELSE 0 END) as null_counts,
-            SUM(CASE WHEN close <= 0 OR volume < 0 THEN 1 ELSE 0 END) as invalid_counts
-        FROM read_parquet(?)
-    """, [db_path]).df()
-    
-    # Check duplicate ticker-date pairs
-    dup_checks = con.execute("""
-        SELECT ticker, date, COUNT(*) as cnt
-        FROM read_parquet(?)
-        GROUP BY ticker, date
-        HAVING COUNT(*) > 1
-    """, [db_path]).df()
+    with connection_manager.acquire() as con:
+        g0_checks = con.execute("""
+            SELECT 
+                COUNT(*) as total_rows,
+                COUNT(DISTINCT ticker) as unique_tickers,
+                COUNT(DISTINCT date) as unique_dates,
+                CAST(MIN(date) AS VARCHAR) as min_date,
+                CAST(MAX(date) AS VARCHAR) as max_date,
+                SUM(CASE WHEN close IS NULL OR open IS NULL OR volume IS NULL THEN 1 ELSE 0 END) as null_counts,
+                SUM(CASE WHEN close <= 0 OR volume < 0 THEN 1 ELSE 0 END) as invalid_counts
+            FROM read_parquet(?)
+        """, [db_path]).df()
+        
+        # Check duplicate ticker-date pairs
+        dup_checks = con.execute("""
+            SELECT ticker, date, COUNT(*) as cnt
+            FROM read_parquet(?)
+            GROUP BY ticker, date
+            HAVING COUNT(*) > 1
+        """, [db_path]).df()
     
     g0_checks['duplicate_rows'] = len(dup_checks)
     g0_checks['survivorship_bias_risk'] = "HIGH_FOR_PRE_2010_MODERATE_POST_2010"
@@ -46,12 +48,13 @@ def main():
     # G5 CERTIFICATION & LIQUIDITY TIMING AUDIT
     # --------------------------------------------------------------------------
     print("[Auditing G5: Liquidity Information Time]")
-    sample_liq = con.execute("""
-        SELECT ticker, CAST(date AS VARCHAR) as date, volume, close
-        FROM read_parquet(?)
-        WHERE ticker IN ('NABIL', 'NICA') AND date >= ?
-        ORDER BY ticker, date
-    """, [db_path, "2023-01-01"]).df()
+    with connection_manager.acquire() as con:
+        sample_liq = con.execute("""
+            SELECT ticker, CAST(date AS VARCHAR) as date, volume, close
+            FROM read_parquet(?)
+            WHERE ticker IN ('NABIL', 'NICA') AND date >= ?
+            ORDER BY ticker, date
+        """, [db_path, "2023-01-01"]).df()
     sample_liq['date'] = pd.to_datetime(sample_liq['date'])
     sample_liq['adv_20d_same_day'] = sample_liq.groupby('ticker')['volume'].transform(lambda x: x.rolling(20).mean())
     sample_liq['adv_20d_lagged_t1'] = sample_liq.groupby('ticker')['volume'].transform(lambda x: x.shift(1).rolling(20).mean())

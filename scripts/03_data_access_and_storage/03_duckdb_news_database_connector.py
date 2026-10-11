@@ -10,6 +10,7 @@ Implements:
 import os
 import json
 import duckdb
+from contextlib import contextmanager
 from typing import List, Optional, Dict, Any, Tuple
 from datetime import datetime
 from .models import (
@@ -18,6 +19,7 @@ from .models import (
     EventCategory, EventScope, VerificationStatus,
     ProcessingStatus, EventTimingConvention
 )
+from scripts.03_data_access_and_storage.duckdb_connection_manager import get_connection_manager
 
 
 class NewsHarnessDB:
@@ -26,15 +28,18 @@ class NewsHarnessDB:
     """
     def __init__(self, db_path: str = "nepse_news_harness.duckdb"):
         self.db_path = db_path
+        self._db_mgr = get_connection_manager(database=db_path)
         self._init_db()
 
+    @contextmanager
     def _get_connection(self):
-        return duckdb.connect(self.db_path)
+        """Yield a pooled connection via the connection manager."""
+        with self._db_mgr.acquire() as conn:
+            yield conn
 
     def _init_db(self):
         """Initializes tables and indexes with strict schemas."""
-        conn = self._get_connection()
-        try:
+        with self._get_connection() as conn:
             # 1. Raw disclosures table
             conn.execute("""
             CREATE TABLE IF NOT EXISTS raw_disclosures (
@@ -130,13 +135,9 @@ class NewsHarnessDB:
             CREATE SEQUENCE IF NOT EXISTS news_audit_seq START 1;
             """)
 
-        finally:
-            conn.close()
-
     def upsert_raw_disclosure(self, raw: RawDisclosure) -> bool:
         """Idempotently saves raw disclosure snapshot."""
-        conn = self._get_connection()
-        try:
+        with self._get_connection() as conn:
             # Check if exists by raw_hash
             cur = conn.execute("SELECT raw_hash FROM raw_disclosures WHERE raw_hash = ?", [raw.raw_hash])
             existing = cur.fetchone()
@@ -155,13 +156,10 @@ class NewsHarnessDB:
                 raw.verification_status.value, json.dumps(raw.source_metadata)
             ])
             return True
-        finally:
-            conn.close()
 
     def upsert_verified_event(self, event: VerifiedEvent) -> bool:
         """Idempotently saves verified event record."""
-        conn = self._get_connection()
-        try:
+        with self._get_connection() as conn:
             # Check if event_id exists
             cur = conn.execute("SELECT event_id FROM verified_events WHERE event_id = ?", [event.event_id])
             existing = cur.fetchone()
@@ -204,13 +202,10 @@ class NewsHarnessDB:
                     event.failure_reason, event.created_at
                 ])
                 return True
-        finally:
-            conn.close()
 
     def save_market_features(self, feat: PreEventMarketFeatures):
         """Saves point-in-time pre-event market features."""
-        conn = self._get_connection()
-        try:
+        with self._get_connection() as conn:
             conn.execute("""
             INSERT OR REPLACE INTO pre_event_market_features (
                 event_id, t_minus_1_date, market_turnover, market_return_1d,
@@ -221,13 +216,10 @@ class NewsHarnessDB:
                 feat.market_return_1d, feat.market_volatility_20d,
                 feat.market_breadth_advance_pct, feat.is_valid, feat.missing_reason
             ])
-        finally:
-            conn.close()
 
     def save_outcome(self, event_id: str, record: EventStudyRecord):
         """Saves all horizon outcomes for an event study record."""
-        conn = self._get_connection()
-        try:
+        with self._get_connection() as conn:
             for label, outcome in record.outcomes.items():
                 outcome_id = f"{event_id}_{record.entity_type}_{record.entity_id}_{label}"
                 conn.execute("""
@@ -244,8 +236,6 @@ class NewsHarnessDB:
                     outcome.volume_ratio, outcome.turnover_ratio,
                     record.has_overlapping_event, record.quality_status
                 ])
-        finally:
-            conn.close()
 
     def get_events(
         self,
@@ -258,8 +248,7 @@ class NewsHarnessDB:
         offset: int = 0
     ) -> List[Dict[str, Any]]:
         """Queries events with filters and scalar tuple unwrapping."""
-        conn = self._get_connection()
-        try:
+        with self._get_connection() as conn:
             query = "SELECT * FROM verified_events WHERE 1=1"
             params = []
 
@@ -300,13 +289,10 @@ class NewsHarnessDB:
                 events.append(ev)
 
             return events
-        finally:
-            conn.close()
 
     def get_event_by_id(self, event_id: str) -> Optional[Dict[str, Any]]:
         """Fetches single event by event_id."""
-        conn = self._get_connection()
-        try:
+        with self._get_connection() as conn:
             cur = conn.execute("SELECT * FROM verified_events WHERE event_id = ?", [event_id])
             cols = [desc[0] for desc in cur.description]
             row = cur.fetchone()
@@ -318,13 +304,10 @@ class NewsHarnessDB:
             if isinstance(ev.get('affected_symbols'), str):
                 ev['affected_symbols'] = json.loads(ev['affected_symbols'])
             return ev
-        finally:
-            conn.close()
 
     def get_event_outcomes(self, event_id: str) -> List[Dict[str, Any]]:
         """Fetches all outcome records for a given event_id."""
-        conn = self._get_connection()
-        try:
+        with self._get_connection() as conn:
             cur = conn.execute("""
             SELECT * FROM event_study_outcomes 
             WHERE event_id = ? 
@@ -333,13 +316,10 @@ class NewsHarnessDB:
             cols = [desc[0] for desc in cur.description]
             rows = cur.fetchall()
             return [dict(zip(cols, r)) for r in rows]
-        finally:
-            conn.close()
 
     def get_all_outcomes(self) -> List[Dict[str, Any]]:
         """Fetches all event outcomes with event metadata joined."""
-        conn = self._get_connection()
-        try:
+        with self._get_connection() as conn:
             cur = conn.execute("""
             SELECT 
                 o.outcome_id, o.event_id, o.entity_type, o.entity_id,
@@ -353,17 +333,12 @@ class NewsHarnessDB:
             """)
             cols = [desc[0] for desc in cur.description]
             return [dict(zip(cols, r)) for r in cur.fetchall()]
-        finally:
-            conn.close()
 
     def count_events(self) -> int:
         """Returns total number of verified events safely."""
-        conn = self._get_connection()
-        try:
+        with self._get_connection() as conn:
             cur = conn.execute("SELECT COUNT(*) FROM verified_events")
             row = cur.fetchone()
             if row is None:
                 return 0
             return int(row[0])  # Scalar extraction!
-        finally:
-            conn.close()

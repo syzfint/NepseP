@@ -1,0 +1,229 @@
+# Implementation Plan
+
+- [ ] 1. Write bug condition exploration test
+  - **Property 1: Bug Condition** - System Integrity Failures Under Load
+  - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bugs exist
+  - **DO NOT attempt to fix the test or the code when it fails**
+  - **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
+  - **GOAL**: Surface counterexamples that demonstrate system integrity bugs exist
+  - **Scoped PBT Approach**: Focus on the most critical failure modes: connection exhaustion, event loop blocking, data corruption, temporal contamination, and missing features
+  - Test implementation details from Bug Condition in design:
+    - Connection pool exhaustion under concurrent access
+    - Event loop blocking with sync operations in async handlers
+    - Parquet corruption during concurrent reads/writes
+    - Same-day join temporal contamination
+    - Zero-filled features instead of computed values
+    - Unvalidated optimizer failures
+  - The test assertions should match the Expected Behavior Properties from design
+  - Run test on UNFIXED code
+  - **EXPECTED OUTCOME**: Test FAILS (this is correct - it proves the bugs exist)
+  - Document counterexamples found to understand root cause
+  - Mark task complete when test is written, run, and failures are documented
+  - _Requirements: R1.1, R1.2, R1.3, R2.1, R2.2, R3.1, R4.1, R5.1_
+
+- [ ] 2. Write preservation property tests (BEFORE implementing fix)
+  - **Property 2: Preservation** - System Performance and API Compatibility
+  - **IMPORTANT**: Follow observation-first methodology
+  - Observe behavior on UNFIXED code for non-buggy operations:
+    - API response times for simple operations
+    - Memory usage patterns during normal operation
+    - Database query performance on clean data
+    - Output format consistency for existing features
+    - Client application compatibility
+  - Write property-based tests capturing observed behavior patterns from Preservation Requirements:
+    - Performance preservation (throughput >= 95% baseline, memory <= 120% baseline)
+    - API compatibility preservation (endpoints functional, formats consistent)
+    - Data accuracy preservation (historical data intact, calculation precision maintained)
+  - Property-based testing generates many test cases for stronger guarantees
+  - Run tests on UNFIXED code
+  - **EXPECTED OUTCOME**: Tests PASS (this confirms baseline behavior to preserve)
+  - Mark task complete when tests are written, run, and passing on unfixed code
+  - _Requirements: P3.1, P3.2, P3.5, P3.6, P3.9, P3.10_
+
+- [ ] 3. Fix for NEPSE quantitative engine data integrity and architecture issues
+
+  - [ ] 3.1 Implement centralized DuckDB connection pool manager
+    - Create `scripts/03_data_access_and_storage/duckdb_connection_manager.py`
+    - Implement thread-safe connection pooling with max 5-10 connections
+    - Add automatic connection cleanup and resource management
+    - Provide `get_connection()`, `return_connection()`, and `execute_query()` methods
+    - Include connection validation and health checks
+    - Add comprehensive logging for connection lifecycle events
+    - _Bug_Condition: isBugCondition(operation) = (operation.type == "duckdb_connect") AND (operation.connection_pool == null)_
+    - _Expected_Behavior: connectionPool.getConnection().isValid() == true AND connectionPool.activeConnections <= maxConnections_
+    - _Preservation: System throughput >= 95% baseline, memory usage <= 120% baseline_
+    - _Requirements: R1.1, P3.1, P3.2_
+
+  - [ ] 3.2 Replace all direct DuckDB connections with pool manager
+    - Audit and identify all 40+ `duckdb.connect()` call sites across codebase
+    - Replace direct connections in critical files:
+      - `scripts/01_etl_and_ingestion/nepse_ingestion_connectors.py`
+      - `scripts/01_etl_and_ingestion/nfrs_point_in_time_extractor.py`
+      - `scripts/02_modeling_and_calculations/*.py`
+      - `scripts/03_data_access_and_storage/*.py`
+    - Update `TMSOrderStagingEngine` and `PointInTimeNFRSExtractor` to use pooled connections
+    - Remove instance variable connection assignments (`self._con`)
+    - Add proper exception handling and connection cleanup
+    - _Bug_Condition: Unpooled connections causing resource exhaustion and deadlocks_
+    - _Expected_Behavior: All database access goes through connection pool_
+    - _Preservation: Maintain existing query functionality and performance_
+    - _Requirements: R1.1_
+
+  - [ ] 3.3 Implement async task offloading for FastAPI endpoints
+    - Create `scripts/08_dashboard_ui/async_task_manager.py`
+    - Implement `AsyncTaskManager` with `ThreadPoolExecutor` integration
+    - Add `execute_cpu_bound()` method for CPU-intensive tasks
+    - Add `execute_io_bound()` method with `httpx.AsyncClient`
+    - Modify FastAPI endpoints to offload blocking operations:
+      - Chart rendering (matplotlib operations) to thread pool
+      - DataFrame transformations to background threads
+      - Replace `requests.post()` with async HTTP client in `clef_synthesize`
+    - Set response timeout limits and proper error handling
+    - _Bug_Condition: isBugCondition(handler) = (handler.is_async == true) AND (contains_sync_io_or_cpu_bound(handler) == true)_
+    - _Expected_Behavior: eventLoop.isBlocked() == false AND cpuBoundTask.executedInThread == true_
+    - _Preservation: API endpoints remain functional, response formats consistent_
+    - _Requirements: R1.2, P3.5, P3.6_
+
+  - [ ] 3.4 Implement atomic Parquet file operations
+    - Create `scripts/03_data_access_and_storage/atomic_file_operations.py`
+    - Implement `AtomicParquetWriter` class with temp file + rename pattern
+    - Add `write_dataframe()` method with automatic cleanup on failure
+    - Replace direct `pandas.to_parquet()` calls in:
+      - `scripts/01_build_master_union.py`
+      - `scripts/02_feature_engineering.py`
+      - All modules writing to `market_master_union.parquet`
+    - Add DDL schema synchronization to prevent conflicting table definitions
+    - Implement versioned migration schema registry
+    - _Bug_Condition: isBugCondition(write) = (write.target == "parquet") AND (write.atomic == false)_
+    - _Expected_Behavior: writeOperation.isAtomic() == true AND concurrentRead.corrupted == false_
+    - _Preservation: Data integrity maintained, no corruption during concurrent access_
+    - _Requirements: R1.3, R1.4, P3.9_
+
+  - [ ] 3.5 Implement schema canonicalization for broker data
+    - Create `scripts/01_etl_and_ingestion/schema_canonicalizer.py`
+    - Implement `SchemaCanonicalizer` with standardized column mappings:
+      - `Buyer`, `buyerMemberId` → `buyer_broker_id`
+      - `Seller`, `sellerMemberId` → `seller_broker_id`
+    - Add data type standardization (float broker IDs → clean integers)
+    - Handle edge cases like `"58.0"` string conversion to `58`
+    - Update anti-wash filtering logic to use canonical column names
+    - Add validation to ensure broker ID columns exist before processing
+    - _Bug_Condition: isBugCondition(mapping) = (source_schema != target_schema) AND (anti_wash_filter_uses(mapping))_
+    - _Expected_Behavior: antiWashFilter.columnsFound == true AND brokerIdType == Integer_
+    - _Preservation: Anti-wash detection functionality maintained and improved_
+    - _Requirements: R2.1, P3.11_
+
+  - [ ] 3.6 Implement strict validation and eliminate synthetic data generation
+    - Modify `scripts/01_etl_and_ingestion/nepse_ingestion_connectors.py`
+    - Remove synthetic broker ID generation logic:
+      - Eliminate `buyer_id = (contract_id % 50) + 1`
+      - Eliminate `seller_id = ((contract_id + 7) % 50) + 1`
+    - Implement fail-fast validation for incomplete trade records
+    - Add dead-letter queue for failed ingestion records
+    - Replace `except Exception: pass` with explicit error handling and logging
+    - Add alert telemetry for ingestion failures
+    - Remove synthetic OHLCV data generation when enrichment fails
+    - _Bug_Condition: isBugCondition(record) = (record.broker_id == null) AND (record.synthetic_id_generated == true)_
+    - _Expected_Behavior: incompleteRecord.action == "REJECT" AND syntheticData.generated == false_
+    - _Preservation: Data quality improved while maintaining ingestion throughput_
+    - _Requirements: R2.2, R2.3, P3.11_
+
+  - [ ] 3.7 Implement temporal integrity enforcement with mandatory lag
+    - Create `scripts/02_modeling_and_calculations/temporal_integrity_engine.py`
+    - Implement `TemporalIntegrityEngine` with configurable lag (default 1 session)
+    - Replace same-day joins with lagged joins:
+      - Change `ON e.ticker = f.ticker AND e.trade_date = CAST(f.trade_date AS DATE)`
+      - To `ON e.ticker = f.ticker AND i.trade_date = p.trade_date - INTERVAL 1 DAY`
+    - Update `scripts/02_modeling_and_calculations/broker_concentration_analysis.py`
+    - Fix column name alignment between writing and reading operations
+    - Add contamination detection and validation
+    - _Bug_Condition: isBugCondition(join) = (institutional_features.date == price_returns.date)_
+    - _Expected_Behavior: institutionalFeatures.date < priceReturns.date_
+    - _Preservation: Historical model performance maintained with improved integrity_
+    - _Requirements: R3.1, R3.2, P3.11_
+
+  - [ ] 3.8 Implement complete feature computation pipeline
+    - Create `scripts/02_modeling_and_calculations/feature_computation_engine.py`
+    - Implement missing feature calculations:
+      - `compute_fractional_diff()` with d=0.35 using fracdiff library
+      - `compute_macd_normalized()` with proper MACD calculation and normalization
+      - `compute_rsi_14()` with 14-period RSI
+      - `compute_log_return()` and `compute_range_volatility()`
+    - Replace zero-fill loops with actual feature computation calls
+    - Add strict feature validation with `validate_feature_completeness()`
+    - Remove silent backfilling: replace `df[col] = 0.0` with validation errors
+    - Update `scripts/02_modeling_and_calculations/feature_engineering.py`
+    - Add runtime assertions using Pandera schema validation
+    - _Bug_Condition: isBugCondition(feature) = (feature in declared_features) AND (feature not in computed_features)_
+    - _Expected_Behavior: fracDiffComputed == true AND macdNormComputed == true AND rsi14Computed == true_
+    - _Preservation: Model input consistency improved while maintaining prediction accuracy_
+    - _Requirements: R4.1, R4.2, P3.10_
+
+  - [ ] 3.9 Implement model validation framework
+    - Create `scripts/02_modeling_and_calculations/model_validation_framework.py`
+    - Implement `ModelValidationFramework` with optimizer success validation
+    - Add `validate_optimization_result()` method to check `result.success`
+    - Provide robust fallback parameters for failed optimizations
+    - Update Hawkes point process fitting to validate MLE convergence
+    - Modify Chronos-Bolt inference to return explicit status flags
+    - Add volatility floor enforcement for triple-barrier calculations
+    - Implement proper Isolation Forest fitting on historical distributions
+    - _Bug_Condition: isBugCondition(optimization) = (optimization.success == false) AND (optimization.result_used == true)_
+    - _Expected_Behavior: optimization.success == true OR fallbackUsed == true_
+    - _Preservation: Model reliability improved while maintaining prediction capability_
+    - _Requirements: R5.1, R5.2, R5.3, P3.12_
+
+  - [ ] 3.10 Add comprehensive monitoring and alerting
+    - Implement connection pool monitoring with metrics
+    - Add event loop health monitoring for FastAPI endpoints  
+    - Create data integrity validation alerts
+    - Add feature computation success/failure tracking
+    - Implement model validation status monitoring
+    - Add performance regression detection
+    - Create alerting for temporal contamination detection
+    - _Expected_Behavior: Comprehensive system health visibility_
+    - _Preservation: System observability improved_
+    - _Requirements: All requirements validation_
+
+  - [ ] 3.11 Verify bug condition exploration test now passes
+    - **Property 1: Expected Behavior** - System Integrity Restored Under Load
+    - **IMPORTANT**: Re-run the SAME test from task 1 - do NOT write a new test
+    - The test from task 1 encodes the expected behavior
+    - When this test passes, it confirms the expected behavior is satisfied
+    - Run bug condition exploration test from step 1:
+      - Connection pool handles concurrent access without exhaustion
+      - Event loop remains unblocked with async task offloading
+      - Parquet files are not corrupted during concurrent operations
+      - Temporal joins maintain proper 1-session lag
+      - All features are computed, not zero-filled
+      - Optimizer results are validated before use
+    - **EXPECTED OUTCOME**: Test PASSES (confirms bugs are fixed)
+    - _Requirements: Expected Behavior Properties from design_
+
+  - [ ] 3.12 Verify preservation tests still pass
+    - **Property 2: Preservation** - System Performance and API Compatibility Maintained
+    - **IMPORTANT**: Re-run the SAME tests from task 2 - do NOT write new tests
+    - Run preservation property tests from step 2:
+      - System performance maintained (throughput >= 95% baseline)
+      - Memory usage within limits (<= 120% baseline)
+      - API compatibility preserved (endpoints functional, formats consistent)
+      - Data accuracy maintained (historical data intact, precision preserved)
+    - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
+    - Confirm all tests still pass after fix (no regressions)
+
+- [ ] 4. Checkpoint - Ensure all tests pass
+  - Run complete test suite including:
+    - Unit tests for all new components
+    - Integration tests for data pipeline
+    - Performance regression tests
+    - Concurrency safety tests
+    - Property-based tests for system integrity
+  - Verify success criteria:
+    - Zero DuckDB connection errors under concurrent load
+    - Zero event loop blocking events > 100ms  
+    - Zero data corruption incidents
+    - 100% feature computation coverage
+    - 100% optimizer validation coverage
+    - API response time < 2 seconds (95th percentile)
+    - System uptime > 99.9%
+  - Ensure all tests pass, ask the user if questions arise.

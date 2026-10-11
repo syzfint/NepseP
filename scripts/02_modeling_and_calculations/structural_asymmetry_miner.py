@@ -23,6 +23,10 @@ import pandas as pd
 import numpy as np
 import duckdb
 
+if str(Path(__file__).resolve().parents[2]) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("asymmetry_miner")
 
@@ -42,7 +46,6 @@ class StructuralAsymmetryMiner:
     def __init__(self, as_of_date: str = "2026-10-07"):
         self.as_of_date = as_of_date
         self.as_of_dt = pd.to_datetime(as_of_date)
-        self.con = duckdb.connect()
 
     def mine_promoter_lockin_asymmetries(self) -> pd.DataFrame:
         """
@@ -76,7 +79,8 @@ class StructuralAsymmetryMiner:
         LEFT JOIN latest_prices p ON l.symbol = p.symbol
         ORDER BY l.lockin_expiry_date ASC
         """
-        df = self.con.execute(query).df()
+        with connection_manager.acquire() as con:
+            df = con.execute(query).df()
         df["lockin_expiry_date"] = pd.to_datetime(df["lockin_expiry_date"])
         df["freeze_window_start"] = pd.to_datetime(df["freeze_window_start"])
         df["freeze_window_end"] = pd.to_datetime(df["freeze_window_end"])
@@ -122,7 +126,8 @@ class StructuralAsymmetryMiner:
             contractAmount as amount
         FROM read_parquet('{f_str}')
         """
-        df_trades = self.con.execute(query).df()
+        with connection_manager.acquire() as con:
+            df_trades = con.execute(query).df()
 
         results = []
         for sym, grp in df_trades.groupby("symbol"):

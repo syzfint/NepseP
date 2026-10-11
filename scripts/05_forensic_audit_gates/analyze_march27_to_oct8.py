@@ -1,9 +1,9 @@
 import duckdb
 import pandas as pd
 import numpy as np
+from scripts.db_connection import connection_manager
 
 path = "02_processed_parquet/market_master_union.parquet"
-conn = duckdb.connect(":memory:")
 
 # Query daily aggregate statistics from 2026-03-27 to 2026-10-07
 query = f"""
@@ -46,7 +46,8 @@ GROUP BY date
 ORDER BY date ASC;
 """
 
-df_market = conn.execute(query).df()
+with connection_manager.acquire() as conn:
+    df_market = conn.execute(query).df()
 print(f"Total trading days between March 27, 2026 and Oct 7, 2026: {len(df_market)}")
 print("First 5 sessions:")
 print(df_market.head().to_string())

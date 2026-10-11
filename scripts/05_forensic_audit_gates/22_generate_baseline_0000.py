@@ -6,6 +6,8 @@ import subprocess
 import pandas as pd
 import numpy as np
 import duckdb
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
 
 def get_file_hash(filepath):
     if not os.path.exists(filepath):
@@ -54,30 +56,30 @@ def main():
     file_hashes = {f: get_file_hash(f) for f in tracked_files}
     
     # 3. Data Inventory & Coverage Audit
-    con = duckdb.connect()
     master_path = "02_processed_parquet/market_master_union.parquet"
     
     if os.path.exists(master_path):
-        df_summary = con.execute("""
-            SELECT 
-                COUNT(*) as total_rows,
-                COUNT(DISTINCT ticker) as unique_tickers,
-                COUNT(DISTINCT date) as unique_dates,
-                CAST(MIN(date) AS VARCHAR) as min_date,
-                CAST(MAX(date) AS VARCHAR) as max_date
-            FROM read_parquet(?)
-        """, [master_path]).df()
-        
-        coverage_df = con.execute("""
-            SELECT 
-                ticker,
-                MIN(date) as first_date,
-                MAX(date) as last_date,
-                COUNT(*) as observation_count
-            FROM read_parquet(?)
-            GROUP BY ticker
-            ORDER BY observation_count DESC
-        """, [master_path]).df()
+        with connection_manager.acquire() as con:
+            df_summary = con.execute("""
+                SELECT 
+                    COUNT(*) as total_rows,
+                    COUNT(DISTINCT ticker) as unique_tickers,
+                    COUNT(DISTINCT date) as unique_dates,
+                    CAST(MIN(date) AS VARCHAR) as min_date,
+                    CAST(MAX(date) AS VARCHAR) as max_date
+                FROM read_parquet(?)
+            """, [master_path]).df()
+            
+            coverage_df = con.execute("""
+                SELECT 
+                    ticker,
+                    MIN(date) as first_date,
+                    MAX(date) as last_date,
+                    COUNT(*) as observation_count
+                FROM read_parquet(?)
+                GROUP BY ticker
+                ORDER BY observation_count DESC
+            """, [master_path]).df()
         coverage_df.to_csv("reports/gates/GATE0_SYMBOL_COVERAGE.csv", index=False)
         print(f"Data Coverage Saved: {len(coverage_df)} tickers profiled.")
     else:

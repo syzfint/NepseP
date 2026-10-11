@@ -43,6 +43,13 @@ import pandas as pd
 
 BASE_DIR = Path(os.environ.get("NEPSE_BASE_DIR", r"C:/Users/achar/Downloads/neps"))
 PROCESSED_DIR = BASE_DIR / "02_processed_parquet"
+
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+from scripts.03_data_access_and_storage.duckdb_connection_manager import (
+    connection_manager,
+    get_connection_manager,
+)
 FEATURE_DIR = BASE_DIR / "03_feature_store"
 
 def calculate_broker_commission(amount: float) -> float:
@@ -296,50 +303,51 @@ def main():
     print("=" * 80)
 
     t0 = time.time()
-    con = duckdb.connect()
+    with connection_manager.acquire() as con:
 
-    # Load 2024 to 2026 EOD data
-    master_path = PROCESSED_DIR / "market_master_union.parquet"
-    print(f"Loading EOD market data from {master_path}...")
-    df_prices = con.execute(f"""
-        WITH ranked AS (
-            SELECT 
-                ticker, 
-                CAST(date AS DATE) as date,
-                open, high, low, close, volume,
-                LAG(close, 1) OVER (PARTITION BY ticker ORDER BY date) as prev_close,
-                AVG(close * volume) OVER (PARTITION BY ticker ORDER BY date ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING) as turnover_20d,
-                SUM(CASE WHEN volume > 0 THEN 1 ELSE 0 END) OVER (PARTITION BY ticker ORDER BY date ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING) as active_days_20d,
-                (LAG(close, 1) OVER (PARTITION BY ticker ORDER BY date) / 
-                 (AVG(close) OVER (PARTITION BY ticker ORDER BY date ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING) + 1e-6)) - 1.0 as dist_sma20,
-                (STDDEV(close) OVER (PARTITION BY ticker ORDER BY date ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING) /
-                 (AVG(close) OVER (PARTITION BY ticker ORDER BY date ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING) + 1e-6)) as volatility_20
-            FROM read_parquet('{str(master_path).replace('\\', '/')}')
-            WHERE security_type = 'ORDINARY_EQUITY' AND date >= '2024-01-01'
-        )
-        SELECT * FROM ranked
-        ORDER BY date ASC, ticker ASC
-    """).df()
-    df_prices["date"] = pd.to_datetime(df_prices["date"])
-    print(f"Loaded {len(df_prices):,} EOD price records ({df_prices['date'].min().strftime('%Y-%m-%d')} to {df_prices['date'].max().strftime('%Y-%m-%d')}).")
+        # Load 2024 to 2026 EOD data
+        master_path = PROCESSED_DIR / "market_master_union.parquet"
+        print(f"Loading EOD market data from {master_path}...")
+        df_prices = con.execute(f"""
+            WITH ranked AS (
+                SELECT 
+                    ticker, 
+                    CAST(date AS DATE) as date,
+                    open, high, low, close, volume,
+                    LAG(close, 1) OVER (PARTITION BY ticker ORDER BY date) as prev_close,
+                    AVG(close * volume) OVER (PARTITION BY ticker ORDER BY date ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING) as turnover_20d,
+                    SUM(CASE WHEN volume > 0 THEN 1 ELSE 0 END) OVER (PARTITION BY ticker ORDER BY date ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING) as active_days_20d,
+                    (LAG(close, 1) OVER (PARTITION BY ticker ORDER BY date) / 
+                     (AVG(close) OVER (PARTITION BY ticker ORDER BY date ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING) + 1e-6)) - 1.0 as dist_sma20,
+                    (STDDEV(close) OVER (PARTITION BY ticker ORDER BY date ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING) /
+                     (AVG(close) OVER (PARTITION BY ticker ORDER BY date ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING) + 1e-6)) as volatility_20
+                FROM read_parquet('{str(master_path).replace("\\", "/")}')
+                WHERE security_type = 'ORDINARY_EQUITY' AND date >= '2024-01-01'
+            )
+            SELECT * FROM ranked
+            ORDER BY date ASC, ticker ASC
+        """).df()
+        df_prices["date"] = pd.to_datetime(df_prices["date"])
+        print(f"Loaded {len(df_prices):,} EOD price records ({df_prices['date'].min().strftime('%Y-%m-%d')} to {df_prices['date'].max().strftime('%Y-%m-%d')}).")
 
-    # Load broker features
-    broker_path = FEATURE_DIR / "floorsheet_broker_signals.parquet"
-    if broker_path.exists():
-        print(f"Loading floorsheet broker signals from {broker_path}...")
-        df_broker = con.execute(f"SELECT * FROM read_parquet('{str(broker_path).replace('\\', '/')}')").df()
-        df_broker["date"] = pd.to_datetime(df_broker["date"])
-        print(f"Loaded {len(df_broker):,} broker signal records.")
-    else:
-        df_broker = pd.DataFrame()
+        # Load broker features
+        broker_path = FEATURE_DIR / "floorsheet_broker_signals.parquet"
+        if broker_path.exists():
+            print(f"Loading floorsheet broker signals from {broker_path}...")
+            df_broker = con.execute(f"SELECT * FROM read_parquet('{str(broker_path).replace('\\', '/')}')").df()
+            df_broker["date"] = pd.to_datetime(df_broker["date"])
+            print(f"Loaded {len(df_broker):,} broker signal records.")
+        else:
+            df_broker = pd.DataFrame()
 
     # Load corporate events
     events_db = PROCESSED_DIR / "news_and_events.duckdb"
     events_set = set()
     if events_db.exists():
         print(f"Loading corporate dividend and announcement events from {events_db}...")
-        c_ev = duckdb.connect(str(events_db))
-        ev_rows = c_ev.execute("SELECT affected_symbols, published_date_npt FROM verified_events").fetchall()
+        ev_mgr = get_connection_manager(database=str(events_db))
+        with ev_mgr.acquire() as c_ev:
+            ev_rows = c_ev.execute("SELECT affected_symbols, published_date_npt FROM verified_events").fetchall()
         for sym_json, pub_d in ev_rows:
             try:
                 syms = json.loads(sym_json)
@@ -348,7 +356,6 @@ def main():
                     events_set.add((s, d_str))
             except:
                 pass
-        c_ev.close()
         print(f"Indexed {len(events_set):,} active corporate disclosure triggers.")
 
     # Execute Simulations

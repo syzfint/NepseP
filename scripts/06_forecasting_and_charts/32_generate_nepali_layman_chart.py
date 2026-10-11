@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 import numpy as np
 import pandas as pd
-import duckdb
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.font_manager as fm
@@ -14,6 +13,7 @@ base_dir = Path(__file__).resolve().parent.parent.parent
 if str(base_dir) not in sys.path:
     sys.path.insert(0, str(base_dir))
 
+from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
 from scripts.nepse_trading_calendar import (
     NEPSE_BUS_DAY,
     get_actual_nepse_trading_dates,
@@ -36,16 +36,15 @@ def main():
     if not idx_path.exists():
         idx_path = base_dir / "01_raw" / "nepse-historical-scraper-repo" / "data" / "index" / "unadjusted" / "NEPSE_unadjusted.csv"
 
-    con = duckdb.connect()
-    df_mkt = con.execute("""
-        SELECT CAST(date AS VARCHAR) as date, 
-               open, high, low, close, 
-               volume / 1e9 as total_turnover_billion
-        FROM read_parquet(?)
-        ORDER BY date DESC
-        LIMIT 5
-    """, [str(base_dir / "02_processed_parquet" / "nepse_index.parquet")]).df().sort_values('date')
-    con.close()
+    with connection_manager.acquire() as con:
+        df_mkt = con.execute("""
+            SELECT CAST(date AS VARCHAR) as date, 
+                   open, high, low, close, 
+                   volume / 1e9 as total_turnover_billion
+            FROM read_parquet(?)
+            ORDER BY date DESC
+            LIMIT 5
+        """, [str(base_dir / "02_processed_parquet" / "nepse_index.parquet")]).df().sort_values('date')
 
     latest_actual_dt = pd.to_datetime(df_mkt['date'].iloc[-1])
     latest_close = float(df_mkt['close'].iloc[-1])

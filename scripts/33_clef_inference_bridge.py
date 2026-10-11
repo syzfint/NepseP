@@ -187,15 +187,16 @@ class ClefInferenceBridge:
         elif db_path.exists():
             try:
                 import duckdb
-                con = duckdb.connect(str(db_path), read_only=True)
-                rows = con.execute("""
-                    SELECT event_id, source, headline, category, importance_tier, published_date_npt, affected_symbols
-                    FROM verified_events
-                    WHERE published_date_npt <= ?
-                    ORDER BY published_date_npt DESC
-                    LIMIT 5
-                """, [as_of_date]).fetchall()
-                con.close()
+                from scripts.03_data_access_and_storage.duckdb_connection_manager import get_connection_manager as _get_cm
+                _db_mgr = _get_cm(database=str(db_path))
+                with _db_mgr.acquire() as con:
+                    rows = con.execute("""
+                        SELECT event_id, source, headline, category, importance_tier, published_date_npt, affected_symbols
+                        FROM verified_events
+                        WHERE published_date_npt <= ?
+                        ORDER BY published_date_npt DESC
+                        LIMIT 5
+                    """, [as_of_date]).fetchall()
                 for r in rows:
                     raw_syms = r[6]
                     symbols = json.loads(raw_syms) if isinstance(raw_syms, str) else (raw_syms or [])

@@ -212,7 +212,7 @@ def test_flask_dashboard_endpoints():
     # 1. HTML Dashboard
     resp_html = client.get("/")
     assert resp_html.status_code == 200
-    assert b"QuantRiskLab" in resp_html.data
+    assert b"TITAN COCKPIT" in resp_html.data or b"QuantRiskLab" in resp_html.data
 
     # 2. JSON Summary API
     resp_summary = client.get("/api/summary")

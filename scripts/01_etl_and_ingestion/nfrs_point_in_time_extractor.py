@@ -25,6 +25,7 @@ from typing import Dict, Any, List, Optional, Tuple
 import duckdb
 import pandas as pd
 import numpy as np
+from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("nfrs_pit_extractor")
@@ -45,7 +46,6 @@ class PointInTimeNFRSExtractor:
     def __init__(self, pit_parquet: Optional[Path] = None):
         self.pit_parquet = pit_parquet or NFRS_PIT_PARQUET
         self.pit_parquet.parent.mkdir(parents=True, exist_ok=True)
-        self.con = duckdb.connect()
 
     def record_nfrs_quarterly(
         self,
@@ -85,13 +85,15 @@ class PointInTimeNFRSExtractor:
 
         p_str = str(self.pit_parquet).replace("\\", "/")
         if self.pit_parquet.exists():
-            df_existing = self.con.execute(f"SELECT * FROM read_parquet('{p_str}')").df()
+            with connection_manager.acquire() as con:
+                df_existing = con.execute(f"SELECT * FROM read_parquet('{p_str}')").df()
             df_all = pd.concat([df_existing, df_new], ignore_index=True)
             df_all = df_all.drop_duplicates(subset=["symbol", "quarter_label"], keep="last")
         else:
             df_all = df_new
 
-        self.con.execute(f"COPY (SELECT * FROM df_all) TO '{p_str}' (FORMAT PARQUET)")
+        with connection_manager.acquire() as con:
+            con.execute(f"COPY (SELECT * FROM df_all) TO '{p_str}' (FORMAT PARQUET)")
 
         # Mirror to ALT_DIR
         if ALT_DIR.exists():
@@ -120,7 +122,8 @@ class PointInTimeNFRSExtractor:
             WHERE symbol = '{symbol.upper().strip()}'
             ORDER BY official_publication_timestamp ASC
         """
-        fund_df = self.con.execute(query).df()
+        with connection_manager.acquire() as con:
+            fund_df = con.execute(query).df()
         if fund_df.empty:
             return trades_df
 
@@ -155,7 +158,6 @@ class FreeFloatDilutionEngine:
 
     def __init__(self, lockin_parquet: Optional[Path] = None):
         self.lockin_parquet = lockin_parquet or LOCKIN_PARQUET
-        self.con = duckdb.connect()
 
     def evaluate_dilution_shock(
         self,
@@ -179,11 +181,12 @@ class FreeFloatDilutionEngine:
         lockin_record = None
         if self.lockin_parquet.exists():
             p_str = str(self.lockin_parquet).replace("\\", "/")
-            res = self.con.execute(f"""
-                SELECT symbol, ipo_listing_date, lockin_expiry_date, freeze_window_start, freeze_window_end
-                FROM read_parquet('{p_str}')
-                WHERE symbol = '{symbol.upper().strip()}'
-            """).fetchone()
+            with connection_manager.acquire() as con:
+                res = con.execute(f"""
+                    SELECT symbol, ipo_listing_date, lockin_expiry_date, freeze_window_start, freeze_window_end
+                    FROM read_parquet('{p_str}')
+                    WHERE symbol = '{symbol.upper().strip()}'
+                """).fetchone()
             if res:
                 lockin_record = {
                     "symbol": res[0],

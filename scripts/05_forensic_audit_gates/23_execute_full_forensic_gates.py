@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 import duckdb
 from scipy.stats import spearmanr
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
 
 def get_file_hash(filepath):
     if not os.path.exists(filepath):
@@ -27,19 +29,20 @@ def main():
         print(f"ERROR: {db_path} not found.")
         sys.exit(1)
         
-    con = duckdb.connect()
-    
+    with connection_manager.acquire() as _con_unused:
+        pass  # connection_manager initialized
     # --------------------------------------------------------------------------
     # GATE 1: FEATURE TRUNCATION LEAKAGE AUDIT
     # --------------------------------------------------------------------------
     print("\n--- [GATE 1] Running Feature Truncation Leakage Audit ---")
     # Fetch sample data for 3 liquid tickers across historical dates
-    sample_df = con.execute("""
-        SELECT ticker, CAST(date AS VARCHAR) as date, open, high, low, close, volume 
-        FROM read_parquet(?) 
-        WHERE ticker IN ('NABIL', 'NICA', 'CIT') 
-        ORDER BY ticker, date
-    """, [db_path]).df()
+    with connection_manager.acquire() as con:
+        sample_df = con.execute("""
+            SELECT ticker, CAST(date AS VARCHAR) as date, open, high, low, close, volume 
+            FROM read_parquet(?) 
+            WHERE ticker IN ('NABIL', 'NICA', 'CIT') 
+            ORDER BY ticker, date
+        """, [db_path]).df()
     sample_df['date'] = pd.to_datetime(sample_df['date'])
     
     # Define test feature: 20-day Volatility & 5-day Return
@@ -135,12 +138,13 @@ def main():
     # --------------------------------------------------------------------------
     print("\n--- [GATE 3] Running Rank IC Manual Reconciliation & Permutation Test ---")
     # Fetch cross-sectional data across trading days
-    df_ic = con.execute("""
-        SELECT ticker, CAST(date AS VARCHAR) as date, open, close, volume
-        FROM read_parquet(?)
-        WHERE date >= ? AND date <= ?
-        ORDER BY ticker, date
-    """, [db_path, "2020-01-01", "2024-01-01"]).df()
+    with connection_manager.acquire() as con:
+        df_ic = con.execute("""
+            SELECT ticker, CAST(date AS VARCHAR) as date, open, close, volume
+            FROM read_parquet(?)
+            WHERE date >= ? AND date <= ?
+            ORDER BY ticker, date
+        """, [db_path, "2020-01-01", "2024-01-01"]).df()
     df_ic['date'] = pd.to_datetime(df_ic['date'])
     
     # Calculate features & 5-day forward return

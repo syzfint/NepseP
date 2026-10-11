@@ -39,6 +39,7 @@ from typing import Dict, Any, List, Optional
 import pyarrow as pa
 import pyarrow.parquet as pq
 import duckdb
+from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
 
 # Setup logging
 logging.basicConfig(
@@ -177,11 +178,6 @@ class DuckDBWindowDeduplicator:
         Executes ROW_NUMBER() window-ranked deduplication:
         ROW_NUMBER() OVER (PARTITION BY ticker, date ORDER BY timestamp DESC)
         """
-        close_con = False
-        if con is None:
-            con = duckdb.connect()
-            close_con = True
-
         logger.info("Executing DuckDB window-ranked deduplication merge...")
         query = f"""
             WITH raw_union AS (
@@ -196,11 +192,12 @@ class DuckDBWindowDeduplicator:
             FROM raw_union
             WHERE rn = 1
         """
-        df_dedup = con.execute(query).df()
+        if con is not None:
+            df_dedup = con.execute(query).df()
+        else:
+            with connection_manager.acquire() as _con:
+                df_dedup = _con.execute(query).df()
         logger.info(f"Window deduplication complete: {len(df_dedup):,} unique master records preserved.")
-
-        if close_con:
-            con.close()
         return df_dedup
 
 
@@ -212,11 +209,11 @@ class WebSocketIngestionWorker:
         self.is_running = False
 
     def is_market_open_npt(self) -> bool:
-        """Checks if current Nepal time is within trading hours (11:00 AM - 3:00 PM NPT, Sun-Thu)."""
+        """Checks if current Nepal time is within trading hours (11:00 AM - 3:00 PM NPT, Mon-Fri)."""
         now_npt = datetime.now(NPT_TIMEZONE)
-        # NEPSE trading days: Sunday (6) to Thursday (3) in Python weekday where Monday=0, Sunday=6
-        # Sunday is 6, Monday is 0, Tuesday is 1, Wednesday is 2, Thursday is 3
-        is_trading_day = now_npt.weekday() in [6, 0, 1, 2, 3]
+        # NEPSE trading days: Monday (0) to Friday (4) in Python weekday where Monday=0, Sunday=6
+        # Friday remains open; only Saturday (5) and Sunday (6) are off
+        is_trading_day = now_npt.weekday() in [0, 1, 2, 3, 4]
         market_open = now_npt.replace(hour=11, minute=0, second=0, microsecond=0)
         market_close = now_npt.replace(hour=15, minute=0, second=0, microsecond=0)
         return is_trading_day and (market_open <= now_npt <= market_close)

@@ -17,3 +17,4 @@ nepse_data_all/
 nepse_lakehouse/
 data/
 models/
+.aider*

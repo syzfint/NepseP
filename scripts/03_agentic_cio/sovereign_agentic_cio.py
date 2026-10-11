@@ -45,6 +45,8 @@ LOG_DIR = BASE_DIR / "logs"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 LOG_FILE = LOG_DIR / "sovereign_agentic_cio.log"
 
+from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] [AGENTIC-CIO] %(message)s",
@@ -191,15 +193,15 @@ class LakehouseAnalyticalReader:
             }
 
         try:
-            con = duckdb.connect(":memory:")
-            query = f"""
+            with connection_manager.acquire() as con:
+                query = f"""
                 SELECT date, close, volume
                 FROM '{self.parquet_path}'
                 WHERE ticker = '{ticker}'
                 ORDER BY date DESC
                 LIMIT {lookback_days}
             """
-            df = con.execute(query).df()
+                df = con.execute(query).df()
             if df.empty or len(df) < 5:
                 return {
                     "ticker": ticker,

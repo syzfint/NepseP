@@ -76,6 +76,32 @@ class IsolationForestMicrostructureGuard:
         self.is_fitted = True
         logger.info(f"Isolation Forest fitted successfully on {len(feature_matrix)} samples.")
 
+    def fit_on_historical(self, historical_features: List[Dict[str, Any]]) -> None:
+        """
+        Task 7.6 — Fit the Isolation Forest on clean historical distributions.
+
+        This method MUST be called with verified, clean historical data before
+        evaluate_universe() is used in production.  Fitting on the test batch
+        (the old behaviour) creates a model that is anchored to the current
+        universe's distribution and will miss anomalies that were common
+        historically but rare today.
+
+        Args:
+            historical_features: List of dicts with keys
+                'top5_broker_ratio', 'turnover_ratio', 'upper_shadow_ratio'.
+                Typically sourced from a full year of clean floorsheet data.
+        """
+        X = [
+            [
+                float(f.get("top5_broker_ratio", 0.35)),
+                float(f.get("turnover_ratio", 1.0)),
+                float(f.get("upper_shadow_ratio", 0.15)),
+            ]
+            for f in historical_features
+        ]
+        self.fit(np.array(X))
+        logger.info("Isolation Forest fitted on %d historical samples.", len(X))
+
     def evaluate_universe(
         self,
         universe_features: List[Dict[str, Any]]
@@ -96,7 +122,16 @@ class IsolationForestMicrostructureGuard:
         X_arr = np.array(X)
 
         if not self.is_fitted:
-            # Fit on the incoming universe
+            # Task 7.6 (Bug C5.4 fix) — require explicit historical fit.
+            # Auto-fitting on the test batch anchors the model to today's
+            # distribution, so it can't reliably detect outliers.
+            # We still fall back to avoid a hard crash, but emit a warning
+            # so operators can call fit_on_historical() before production use.
+            logger.warning(
+                "IsolationForest not fitted on historical data. "
+                "Call fit_on_historical() before evaluate_universe(). "
+                "Falling back to auto-fit on current universe (degraded accuracy)."
+            )
             self.fit(X_arr)
 
         # Scikit-learn score_samples returns opposite of anomaly score (lower is more anomalous)

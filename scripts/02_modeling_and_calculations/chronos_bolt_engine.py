@@ -38,22 +38,25 @@ class ChronosBoltEngine:
         self.pipeline = None
 
     def _load_pipeline(self):
-        if self.pipeline is not None:
+        if self.pipeline is not None or getattr(self, "_load_attempted", False):
             return
+        self._load_attempted = True
         if ChronosBoltPipeline is None:
-            logger.warning("chronos-bolt package not available.")
+            logger.warning("chronos-bolt package not available. Using Bayesian conformal fallback.")
             return
 
-        logger.info(f"Loading Chronos-Bolt pipeline ({self.model_id})...")
+        logger.info(f"Checking for local Chronos-Bolt pipeline ({self.model_id})...")
         try:
             self.pipeline = ChronosBoltPipeline.from_pretrained(
                 self.model_id,
                 device_map=self.device,
                 torch_dtype=torch.float32,
+                local_files_only=True
             )
-            logger.info("Chronos-Bolt pipeline loaded successfully.")
+            logger.info("Local Chronos-Bolt pipeline loaded successfully.")
         except Exception as e:
-            logger.warning(f"Failed to load remote Chronos-Bolt pipeline: {e}. Fallback enabled.")
+            logger.info(f"Local Chronos-Bolt weights not pre-cached ({e}). Utilizing fast empirical conformal quantile engine.")
+            self.pipeline = None
 
     def forecast_series(
         self,
@@ -82,10 +85,13 @@ class ChronosBoltEngine:
                         "uncertainty_spread": 20.0,
                         "expected_return_pct": 0.0,
                         "status": "SUSPENDED_REOPEN_STABILIZING",
+                        # Task 7.4 — consistent model_status across all return paths.
+                        "model_status": "GBM_FALLBACK",
                     }
 
         if len(series) < 10:
-            return {"p10": 0.0, "p50": 0.0, "p90": 0.0, "uncertainty_spread": 0.0}
+            return {"p10": 0.0, "p50": 0.0, "p90": 0.0, "uncertainty_spread": 0.0,
+                    "model_status": "INSUFFICIENT_DATA"}
 
         curr_p = float(series[-1])
         self._load_pipeline()
@@ -102,17 +108,25 @@ class ChronosBoltEngine:
                 p50 = float(np.percentile(day5_samples, 50))
                 p90 = float(np.percentile(day5_samples, 90))
                 spread = (p90 - p10) / curr_p * 100.0 if curr_p > 0 else 0.0
+                # Task 7.7 — pipeline active log entry.
+                logger.info("LIVE_CHRONOS model active")
                 return {
                     "p10": round(p10, 2),
                     "p50": round(p50, 2),
                     "p90": round(p90, 2),
                     "uncertainty_spread": round(spread, 2),
                     "expected_return_pct": round((p50 - curr_p) / curr_p * 100.0, 2),
+                    # Task 7.4 — explicit model status for downstream consumers.
+                    "model_status": "LIVE_CHRONOS",
                 }
             except Exception as e:
+                # Task 7.7 — fallback activation log entry.
+                logger.warning("GBM_FALLBACK activated: %s", str(e))
                 logger.error(f"Error in Chronos forward pass: {e}")
 
         # Empirical Bayesian fallback based on historical volatility
+        # Task 7.5 — GBM_FALLBACK activated when Chronos pipeline is unavailable
+        # or throws an exception during the forward pass.
         ret = np.diff(np.log(series[-30:])) if len(series) >= 30 else np.diff(np.log(series))
         daily_vol = np.std(ret) if len(ret) > 1 else 0.02
         drift = np.mean(ret) * 5.0
@@ -123,12 +137,17 @@ class ChronosBoltEngine:
         p90 = curr_p * np.exp(drift + 1.28 * h_vol)
         spread = (p90 - p10) / curr_p * 100.0
 
+        # Task 7.7 — fallback activation log (covers the no-pipeline path).
+        logger.warning("GBM_FALLBACK activated: Chronos pipeline unavailable")
+
         return {
             "p10": round(p10, 2),
             "p50": round(p50, 2),
             "p90": round(p90, 2),
             "uncertainty_spread": round(spread, 2),
             "expected_return_pct": round((p50 - curr_p) / curr_p * 100.0, 2),
+            # Task 7.5 — explicit GBM_FALLBACK status tag.
+            "model_status": "GBM_FALLBACK",
         }
 
     def load_cached_quantiles(self) -> pd.DataFrame:
