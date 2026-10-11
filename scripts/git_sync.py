@@ -37,12 +37,12 @@ def main():
     # 2. Check status
     status = run_cmd(["git", "status", "--porcelain"])
     if not status.stdout.strip():
-        print("  ✓ Working tree is clean. No unstaged changes.")
+        print("  [OK] Working tree is clean. No unstaged changes.")
         # Push any pending commits
-        print("  • Checking for unpushed commits...")
+        print("  [*] Checking for unpushed commits...")
         push_res = run_cmd(["git", "push", "origin", "master"])
         if push_res.returncode == 0:
-            print("  ✓ Repository is up to date with origin/master.")
+            print("  [OK] Repository is up to date with origin/master.")
         else:
             print(f"  Note: {push_res.stderr.strip()}")
         return
@@ -55,7 +55,7 @@ def main():
         commit_msg = f"chore(sync): automated progress sync [{now_str}]"
 
     # 4. Stage changes
-    print(f"  • Staging changes...")
+    print("  [*] Staging changes...")
     run_cmd(["git", "add", "-A"])
 
     # 5. Commit with enforced author
@@ -79,15 +79,15 @@ def main():
         return
 
     commit_hash = run_cmd(["git", "rev-parse", "--short", "HEAD"]).stdout.strip()
-    print(f"  ✓ Created commit [{commit_hash}]: {commit_msg}")
-    print(f"    Author: {AUTHOR_NAME} <{AUTHOR_EMAIL}>")
+    print(f"  [OK] Created commit [{commit_hash}]: {commit_msg}")
+    print(f"       Author: {AUTHOR_NAME} <{AUTHOR_EMAIL}>")
 
     # 6. Push to origin
-    print(f"  • Pushing commit [{commit_hash}] to origin/master...")
+    print(f"  [*] Pushing commit [{commit_hash}] to origin/master...")
     push_res = run_cmd(["git", "push", "origin", "master"])
     if push_res.returncode == 0:
-        print(f"  ✓ Successfully pushed to origin/master!")
-        print(f"  ★ Green square registered on https://github.com/{AUTHOR_NAME.lower()}!")
+        print("  [OK] Successfully pushed to origin/master!")
+        print(f"  [+] Green square registered on https://github.com/{AUTHOR_NAME.lower()}!")
     else:
         print(f"  Push warning: {push_res.stderr.strip()}")
 
