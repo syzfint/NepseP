@@ -221,3 +221,5 @@ wrapt==2.5.0
 xxhash==4.0.1
 yarl==1.24.2
 zipp==4.1.0
+
+nepali_datetime==1.0.8.5
