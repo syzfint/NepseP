@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  news_backend:
+    image: sharmaraghu/news-backend:latest
+    container_name: news-backend
+    ports:
+      - "8000:8000"
+    networks:
+      - news-network
+
+  scheduler_service:
+    image: sharmaraghu/news-backend:latest
+    container_name: scheduler-service
+    depends_on:
+      - news_backend
+    networks:
+      - news-network
+    command: ["python", "-u", "-m", "src.services.schedule_service"]
+
+  nepali_news_scrapers:
+    image: sharmaraghu/nepali-news-scrapers:latest
+    depends_on:
+      - news_backend
+    networks:
+      - news-network
+    deploy:
+      replicas: 4
+      restart_policy:
+        condition: on-failure
+    command: ["python", "-m", "nepali_news_scrapers.main"]
+
+networks:
+  news-network:
+    driver: bridge

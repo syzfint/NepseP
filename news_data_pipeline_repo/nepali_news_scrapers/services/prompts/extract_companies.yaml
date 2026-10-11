@@ -1,0 +1,23 @@
+prompt: |
+  Analyze this news content/article and identify:
+  
+  1. NEPSE sectors affected (ONLY from this list):
+  {sector_list}
+  
+  2. NEPSE companies mentioned (match either full names or symbols from this reference list):
+  {company_reference}
+  
+  Special Instructions:
+  - Return either official company symbols OR full names that exactly match the reference list
+  - For banks/financial institutions, prefer the official symbol (e.g., 'NMB' not 'NMB Bank')
+  - Include both if multiple valid forms appear
+  - Skip any names that don't exactly match the reference list
+  
+  Return JSON format:
+  {{
+    "affected_sectors": ["sector1", ...],
+    "mentioned_companies": ["SYMBOL1", "Full Company Name", ...]
+  }}
+  
+  News Article:
+  {content}
