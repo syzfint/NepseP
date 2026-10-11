@@ -27,7 +27,7 @@ import numpy as np
 import pandas as pd
 import httpx
 from nepse_client import NepseClient
-from scripts.03_data_access_and_storage.duckdb_connection_manager import (
+from scripts.db_connection import (
     connection_manager,
     get_connection_manager,
 )

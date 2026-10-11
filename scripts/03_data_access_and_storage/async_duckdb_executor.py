@@ -273,7 +273,7 @@ class AsyncDuckDBExecutor:
 # ---------------------------------------------------------------------------
 
 #: Global singleton — import and use directly:
-#:   ``from scripts.03_data_access_and_storage.async_duckdb_executor import async_executor``
+#:   ``from scripts.db_connection import async_executor``
 async_executor = AsyncDuckDBExecutor()
 
 

@@ -46,7 +46,7 @@ PROCESSED_DIR = BASE_DIR / "02_processed_parquet"
 
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
-from scripts.03_data_access_and_storage.duckdb_connection_manager import (
+from scripts.db_connection import (
     connection_manager,
     get_connection_manager,
 )

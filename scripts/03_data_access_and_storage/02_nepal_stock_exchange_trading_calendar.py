@@ -20,7 +20,7 @@ import duckdb
 import pandas as pd
 from pandas.tseries.holiday import AbstractHolidayCalendar
 from pandas.tseries.offsets import CustomBusinessDay
-from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
+from scripts.db_connection import connection_manager
 
 
 class EventTimingConvention(str, Enum):

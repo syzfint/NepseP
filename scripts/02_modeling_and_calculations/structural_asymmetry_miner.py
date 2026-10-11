@@ -25,7 +25,7 @@ import duckdb
 
 if str(Path(__file__).resolve().parents[2]) not in sys.path:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
+from scripts.db_connection import connection_manager
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("asymmetry_miner")

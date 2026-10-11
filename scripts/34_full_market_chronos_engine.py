@@ -49,7 +49,7 @@ DUCKDB_PATH = PROCESSED_DIR / "market_analytics.duckdb"
 _PATH_FOR_CM = ALT_DIR if ALT_DIR.exists() else BASE_DIR
 if str(_PATH_FOR_CM) not in sys.path:
     sys.path.insert(0, str(_PATH_FOR_CM))
-from scripts.03_data_access_and_storage.duckdb_connection_manager import (
+from scripts.db_connection import (
     connection_manager,
     get_connection_manager,
 )

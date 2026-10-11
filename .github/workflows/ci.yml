@@ -26,6 +26,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Run CLEF Integration & Circuit Breaker Test Suite
+    - name: Run Full Institutional Test Suite (264 Tests)
       run: |
-        pytest tests/test_clef_integration.py -v --durations=10
+        python -m pytest tests/ -v --durations=10

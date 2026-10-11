@@ -19,7 +19,7 @@ from .models import (
     EventCategory, EventScope, VerificationStatus,
     ProcessingStatus, EventTimingConvention
 )
-from scripts.03_data_access_and_storage.duckdb_connection_manager import get_connection_manager
+from scripts.db_connection import get_connection_manager
 
 
 class NewsHarnessDB:

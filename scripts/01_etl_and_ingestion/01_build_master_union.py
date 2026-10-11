@@ -6,7 +6,7 @@ import pandas as pd
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
-from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
+from scripts.db_connection import connection_manager
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 RAW_DIR = BASE_DIR / "01_raw"
