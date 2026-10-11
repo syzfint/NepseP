@@ -5,7 +5,14 @@ import hashlib
 import numpy as np
 import pandas as pd
 import duckdb
+import os
+from pathlib import Path
 from scipy.stats import spearmanr
+
+_BASE_DIR = Path(__file__).resolve().parent.parent
+if str(_BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(_BASE_DIR))
+from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
 
 def get_file_hash(filepath):
     if not os.path.exists(filepath):
@@ -26,7 +33,8 @@ def main():
         print(f"ERROR: {db_path} not found.")
         sys.exit(1)
         
-    con = duckdb.connect()
+    _con_ctx = connection_manager.acquire()
+    con = _con_ctx.__enter__()
     
     # --------------------------------------------------------------------------
     # GATE 1: FEATURE TRUNCATION LEAKAGE AUDIT
@@ -275,6 +283,7 @@ def main():
     print("\n==========================================================================")
     print("       APEXMARKETENGINE AUDIT SUITE EXECUTION COMPLETE — ALL GATES PASSED   ")
     print("==========================================================================")
+    _con_ctx.__exit__(None, None, None)
 
 if __name__ == "__main__":
     main()

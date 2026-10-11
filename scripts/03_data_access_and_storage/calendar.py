@@ -1,14 +1,31 @@
 """
-Compatibility bridge for scripts expecting .calendar or calendar.py in data access package.
+Compatibility bridge for scripts expecting .calendar or calendar.py in data access package,
+while safely preserving Python standard library calendar module when shadowed.
 """
-import importlib.util
+import sys
+import os
 from pathlib import Path
 
-_target = Path(__file__).parent / "02_nepal_stock_exchange_trading_calendar.py"
-if _target.exists():
-    _spec = importlib.util.spec_from_file_location("nepse_trading_calendar", str(_target))
-    _mod = importlib.util.module_from_spec(_spec)
-    _spec.loader.exec_module(_mod)
-    for _k, _v in _mod.__dict__.items():
-        if not _k.startswith("__"):
-            globals()[_k] = _v
+# Prevent circular import during stdlib _strptime -> import calendar
+# If this file is called as 'calendar', import the real standard library calendar first!
+if __name__ == "calendar":
+    import importlib.machinery
+    # Find stdlib calendar
+    for p in sys.path:
+        if p and Path(p).resolve() != Path(__file__).parent.resolve():
+            target = Path(p) / "calendar.py"
+            if target.exists():
+                loader = importlib.machinery.SourceFileLoader("_real_calendar", str(target))
+                _mod = loader.load_module()
+                for k, v in _mod.__dict__.items():
+                    globals()[k] = v
+                break
+
+# Also expose NEPSE calendar symbols when explicitly imported
+try:
+    from scripts.nepse_trading_calendar import *
+except Exception:
+    try:
+        from nepse_trading_calendar import *
+    except Exception:
+        pass

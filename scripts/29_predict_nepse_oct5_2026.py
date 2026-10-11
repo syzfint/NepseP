@@ -4,6 +4,9 @@ import json
 import numpy as np
 import pandas as pd
 import duckdb
+import sys as _sys
+_sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
 
 def main():
     print("==========================================================================")
@@ -15,15 +18,13 @@ def main():
         print(f"ERROR: {db_path} not found.")
         sys.exit(1)
         
-    con = duckdb.connect()
-    
-    # 1. Fetch latest data up to 2026-10-02
-    df = con.execute(f"""
-        SELECT ticker, CAST(date AS VARCHAR) as date, open, high, low, close, volume
-        FROM '{db_path}'
-        WHERE date >= '2026-01-01'
-        ORDER BY ticker, date
-    """).df()
+    with connection_manager.acquire() as con:
+        df = con.execute(f"""
+            SELECT ticker, CAST(date AS VARCHAR) as date, open, high, low, close, volume
+            FROM '{db_path}'
+            WHERE date >= '2026-01-01'
+            ORDER BY ticker, date
+        """).df()
     df['date'] = pd.to_datetime(df['date'])
     
     latest_date = df['date'].max()

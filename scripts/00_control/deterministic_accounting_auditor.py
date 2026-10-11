@@ -25,7 +25,6 @@ import logging
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple, List
 import pandas as pd
-import duckdb
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("accounting_auditor")
@@ -217,18 +216,19 @@ class DeterministicAccountingGate:
         }
         df_new = pd.DataFrame([row])
 
-        con = duckdb.connect()
+        from scripts.db_connection import connection_manager
         p_str = str(NFRS_LEDGER_PATH).replace("\\", "/")
 
-        if NFRS_LEDGER_PATH.exists():
-            df_existing = con.execute(f"SELECT * FROM read_parquet('{p_str}')").df()
-            # Deduplicate by (symbol, quarter_end_date)
-            df_combined = pd.concat([df_existing, df_new], ignore_index=True)
-            df_combined = df_combined.drop_duplicates(subset=["symbol", "quarter_end_date"], keep="last")
-        else:
-            df_combined = df_new
+        with connection_manager.acquire() as con:
+            if NFRS_LEDGER_PATH.exists():
+                df_existing = con.execute(f"SELECT * FROM read_parquet('{p_str}')").df()
+                # Deduplicate by (symbol, quarter_end_date)
+                df_combined = pd.concat([df_existing, df_new], ignore_index=True)
+                df_combined = df_combined.drop_duplicates(subset=["symbol", "quarter_end_date"], keep="last")
+            else:
+                df_combined = df_new
 
-        con.execute(f"COPY (SELECT * FROM df_combined) TO '{p_str}' (FORMAT PARQUET)")
+            con.execute(f"COPY (SELECT * FROM df_combined) TO '{p_str}' (FORMAT PARQUET)")
 
         # Mirror to ALT_DIR
         if ALT_DIR.exists():
@@ -270,9 +270,10 @@ class DeterministicAccountingGate:
         """Retrieves verified NFRS ledger."""
         if not NFRS_LEDGER_PATH.exists():
             return pd.DataFrame()
-        con = duckdb.connect()
+        from scripts.db_connection import connection_manager
         p_str = str(NFRS_LEDGER_PATH).replace("\\", "/")
-        return con.execute(f"SELECT * FROM read_parquet('{p_str}')").df()
+        with connection_manager.acquire() as con:
+            return con.execute(f"SELECT * FROM read_parquet('{p_str}')").df()
 
     def get_manual_queue(self) -> List[Dict[str, Any]]:
         """Retrieves items in the manual review queue."""

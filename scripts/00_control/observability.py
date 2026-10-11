@@ -19,7 +19,6 @@ import time
 import datetime
 from pathlib import Path
 from typing import Dict, Any, List
-import duckdb
 import numpy as np
 import pandas as pd
 
@@ -41,17 +40,17 @@ class ObservabilityEngine:
     ) -> Dict[str, Any]:
         """Collects and stores comprehensive production observability metrics."""
         # 1. DATA TELEMETRY
-        con = duckdb.connect()
+        from scripts.db_connection import connection_manager
         p_str = str(lakehouse_path).replace("\\", "/")
-        data_stats = con.execute(f"""
-            SELECT 
-                COUNT(*) as rows,
-                COUNT(DISTINCT ticker) as tickers,
-                MAX(date) as max_date,
-                SUM(CASE WHEN close IS NULL OR close <= 0 THEN 1 ELSE 0 END) as invalid_closes
-            FROM read_parquet('{p_str}')
-        """).fetchone()
-        con.close()
+        with connection_manager.acquire() as con:
+            data_stats = con.execute(f"""
+                SELECT 
+                    COUNT(*) as rows,
+                    COUNT(DISTINCT ticker) as tickers,
+                    MAX(date) as max_date,
+                    SUM(CASE WHEN close IS NULL OR close <= 0 THEN 1 ELSE 0 END) as invalid_closes
+                FROM read_parquet('{p_str}')
+            """).fetchone()
 
         data_telemetry = {
             "lakehouse_rows": int(data_stats[0]),

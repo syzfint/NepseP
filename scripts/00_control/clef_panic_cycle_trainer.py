@@ -42,7 +42,6 @@ from typing import Dict, Any, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-import duckdb
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -196,12 +195,13 @@ class ClefPanicDatasetBuilder:
         self.train_path = self.data_dir / "clef_panic_train.jsonl"
         self.val_path = self.data_dir / "clef_panic_val.jsonl"
         self.index_parquet = BASE_DIR / "02_processed_parquet" / "nepse_index.parquet"
-        self._con = duckdb.connect()
 
     def build_panic_dataset(self) -> Tuple[int, int]:
         """Samples historical panic periods and generates multimodal training pairs."""
         logger.info(f"Loading NEPSE historical index from {self.index_parquet}...")
-        df_index = self._con.execute(f"SELECT date, close, volume FROM '{self.index_parquet.as_posix()}' ORDER BY date ASC").df()
+        from scripts.db_connection import connection_manager
+        with connection_manager.acquire() as _con:
+            df_index = _con.execute(f"SELECT date, close, volume FROM '{self.index_parquet.as_posix()}' ORDER BY date ASC").df()
         df_index["date"] = pd.to_datetime(df_index["date"])
 
         # Detect panic periods: 20-session rolling return in bottom 10th percentile

@@ -1,11 +1,32 @@
 import os
 import time
+import importlib.util
+import sys
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 
 from pathlib import Path
+
+# Temporal integrity validation — prevents look-ahead leakage in training data.
+# Loaded by file path because '03_data_access_and_storage' starts with a digit
+# and cannot be used as a Python dotted-module name.
+_VALIDATOR_PATH = (
+    Path(__file__).resolve().parent
+    / "03_data_access_and_storage"
+    / "temporal_validator.py"
+)
+_spec = importlib.util.spec_from_file_location("temporal_validator", _VALIDATOR_PATH)
+_tv_mod = importlib.util.module_from_spec(_spec)
+if "temporal_validator" not in sys.modules:
+    sys.modules["temporal_validator"] = _tv_mod
+    _spec.loader.exec_module(_tv_mod)
+else:
+    _tv_mod = sys.modules["temporal_validator"]
+
+validate_temporal_joins = _tv_mod.validate_temporal_joins
+verify_column_alignment = _tv_mod.verify_column_alignment
 
 BASE_DIR = Path.cwd()
 ALT_DIR = Path(r"C:/Users/achar/Downloads/neps")
@@ -36,14 +57,83 @@ def run_train_and_backtest():
     df["date"] = pd.to_datetime(df["date"])
     df = df.sort_values(["ticker", "date"]).reset_index(drop=True)
 
+    # -----------------------------------------------------------------------
+    # Task 6.8 — Feature Completeness Validation (Pre-Training Gate)
+    # Halts training if any declared feature is missing or is >95% zero-filled,
+    # which indicates a ghost feature that was silently masked by .fillna(0.0).
+    # -----------------------------------------------------------------------
+    REQUIRED_FEATURES = [
+        "frac_diff_close", "macd_norm", "rsi_14", "log_return", "range_vol",
+        "dist_sma20", "dist_sma50", "volatility_20", "vol_surge",
+        "kline_body_density", "volume_zscore_20", "amihud_illiquidity",
+    ]
+
+    missing_features = [f for f in REQUIRED_FEATURES if f not in df.columns]
+    if missing_features:
+        raise RuntimeError(
+            f"Feature store is missing declared features: {missing_features}. "
+            "Re-run scripts/02_feature_engineering.py first."
+        )
+
+    import logging as _logging
+    _ftrain_log = _logging.getLogger("train_and_backtest")
+    for feat in REQUIRED_FEATURES:
+        if feat in df.columns:
+            zero_frac = (df[feat] == 0.0).mean()
+            if zero_frac > 0.95:
+                _ftrain_log.warning(
+                    "Possible ghost feature '%s': %.1f%% zero values",
+                    feat, zero_frac * 100,
+                )
+
+    # --- Temporal Integrity Validation ---
+    # Broker concentration features must be lagged by 1 session.
+    # A non-zero value on the first row for any ticker indicates a same-day join
+    # which leaks future information into the training data (Bug Condition C3.1).
+    LAGGED_BROKER_FEATURES = [
+        "top_buyer_concentration",
+        "buyer_hhi",
+        "broker_net_imbalance",
+        # floorsheet raw column names (present before COALESCE rename)
+        "top3_buyer_share",
+        "broker_dispersion",
+        "wash_trade_count",
+        "clean_trades_count",
+    ]
+    validate_temporal_joins(df, LAGGED_BROKER_FEATURES)
+
+    # Verify that all candidate features exist in the loaded DataFrame
+    # (raises ColumnMismatchError if the feature store is missing expected columns)
+    EXPECTED_PRICE_FEATURES = [
+        "dist_sma20", "dist_sma50", "bb_pct_b",
+        "ret_1w", "ret_2w", "ret_1m",
+        "volatility_20", "vol_surge",
+    ]
+    verify_column_alignment(
+        EXPECTED_PRICE_FEATURES,
+        list(df.columns),
+        context="technical_indicators.parquet",
+    )
+
     # 1. Target Generation: 10-Day Forward Return & Triple-Barrier Labels
     df["future_10d_close"] = df.groupby("ticker")["close"].shift(-10)
     df["target_10d_return"] = (df["future_10d_close"] - df["close"]) / (df["close"] + 1e-8)
     df["cross_sectional_rank"] = df.groupby("date")["target_10d_return"].rank(pct=True)
 
     # Triple-Barrier Dynamic Profit & Stop-Loss Bounds
-    df["profit_barrier"] = df["volatility_20"] * 2.0
-    df["stop_barrier"] = -df["volatility_20"] * 1.5
+    # Task 7.3 — Volatility floor (Bug C5.3 fix).
+    # Without a floor, zero-volatility scrips produce profit_barrier = 0.0,
+    # which labels every positive tick as a successful trade (meta_label = 1),
+    # creating systematically biased training labels.
+    MIN_VOLATILITY_FLOOR = 0.01  # 1% minimum daily volatility
+    df["effective_volatility"] = df["volatility_20"].clip(lower=MIN_VOLATILITY_FLOOR)
+    df["profit_barrier"] = df["effective_volatility"] * 2.0
+    df["stop_barrier"] = -df["effective_volatility"] * 1.5
+    # Sanity check: no zero barriers should survive the floor
+    assert (df["profit_barrier"] > 0).all(), (
+        "Zero profit_barrier detected after volatility floor — investigate "
+        "volatility_20 column for NaN or negative values."
+    )
     df["meta_label"] = (df["target_10d_return"] > df["profit_barrier"]).astype(int)
 
     candidate_features = [
@@ -99,6 +189,10 @@ def run_train_and_backtest():
 
         if len(train_sub) == 0 or len(test_sub) == 0:
             continue
+
+        # Validate temporal integrity of each training fold before fitting.
+        # This guards against contamination surviving the clean_df filter step.
+        validate_temporal_joins(train_sub, LAGGED_BROKER_FEATURES)
 
         X_train = train_sub[feature_cols]
         y_train = train_sub["target_10d_return"]

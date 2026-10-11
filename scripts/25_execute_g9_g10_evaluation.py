@@ -5,6 +5,13 @@ import hashlib
 import numpy as np
 import pandas as pd
 import duckdb
+import os
+from pathlib import Path
+
+_BASE_DIR = Path(__file__).resolve().parent.parent
+if str(_BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(_BASE_DIR))
+from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
 
 def get_file_hash(filepath):
     if not os.path.exists(filepath):
@@ -47,15 +54,14 @@ def main():
     # G10: SINGLE-PASS OUT-OF-SAMPLE EVALUATION (2024-01-01 to 2026-10-02)
     # --------------------------------------------------------------------------
     print("\n--- [G10] Executing Single-Pass Frozen OOS Evaluation ---")
-    con = duckdb.connect()
-    
-    # Load 2024-2026 OOS data
-    df_oos = con.execute(f"""
-        SELECT ticker, CAST(date AS VARCHAR) as date, open, high, low, close, volume
-        FROM '{db_path}'
-        WHERE date >= '2024-01-01' AND date <= '2026-10-02'
-        ORDER BY ticker, date
-    """).df()
+    with connection_manager.acquire() as con:
+        # Load 2024-2026 OOS data
+        df_oos = con.execute(f"""
+            SELECT ticker, CAST(date AS VARCHAR) as date, open, high, low, close, volume
+            FROM '{db_path}'
+            WHERE date >= '2024-01-01' AND date <= '2026-10-02'
+            ORDER BY ticker, date
+        """).df()
     df_oos['date'] = pd.to_datetime(df_oos['date'])
     
     # Feature generation (strictly shifted by 1)

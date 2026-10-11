@@ -26,7 +26,6 @@ import logging
 from pathlib import Path
 from typing import List, Dict, Optional, Any
 
-import duckdb
 import numpy as np
 import pandas as pd
 import matplotlib
@@ -156,7 +155,7 @@ def run_master_pipeline():
     kronos_eval = KronosKlineEvaluator()
 
     # Load recent price data from parquet using DuckDB
-    con = duckdb.connect(database=":memory:")
+    from scripts.db_connection import connection_manager
     p_path = str(loader.parquet_path).replace("\\", "/")
     recent_query = f"""
         SELECT ticker as symbol, date, open, high, low, close, volume
@@ -164,7 +163,8 @@ def run_master_pipeline():
         WHERE date >= '2026-08-01'
         ORDER BY symbol, date ASC
     """
-    recent_df = con.execute(recent_query).df()
+    with connection_manager.acquire() as con:
+        recent_df = con.execute(recent_query).df()
     print(f"  Loaded {len(recent_df):,} recent daily bars for sequence tokenization.")
 
     # Compute sequence metrics per ticker

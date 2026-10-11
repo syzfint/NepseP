@@ -47,6 +47,10 @@ RAW_DIR = BASE_DIR / "01_raw"
 PROCESSED_DIR = BASE_DIR / "02_processed_parquet"
 FEATURE_DIR = BASE_DIR / "03_feature_store"
 
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
+
 def compute_broker_fee(trade_val: float) -> float:
     if trade_val <= 50000.0:
         rate = 0.0040
@@ -206,7 +210,6 @@ def run_institutional_backtest():
     print("STEP 2: RUNNING INSTITUTIONAL NEPSE REALITY-CONSTRAINED BACKTEST (2024–2026)")
     print("=" * 85)
 
-    con = duckdb.connect()
     tech_parquet = FEATURE_DIR / "technical_indicators.parquet"
     broker_parquet = FEATURE_DIR / "floorsheet_broker_signals.parquet"
     news_db = PROCESSED_DIR / "news_and_events.duckdb"
@@ -250,7 +253,8 @@ def run_institutional_backtest():
     ORDER BY t.date ASC, t.ticker ASC
     """
 
-    df = con.execute(query).df()
+    with connection_manager.acquire() as con:
+        df = con.execute(query).df()
     df['date'] = pd.to_datetime(df['date'])
     trading_dates = sorted(df['date'].unique())
     print(f"Loaded {len(df):,} stock-day bars across {len(trading_dates)} trading sessions in {time.time()-t0:.2f}s.")

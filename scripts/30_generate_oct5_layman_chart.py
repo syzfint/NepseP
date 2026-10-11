@@ -2,9 +2,15 @@ import os
 import sys
 import numpy as np
 import pandas as pd
-import duckdb
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import os
+from pathlib import Path
+
+_BASE_DIR = Path(__file__).resolve().parent.parent
+if str(_BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(_BASE_DIR))
+from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
 
 def main():
     print("==========================================================================")
@@ -12,19 +18,18 @@ def main():
     print("==========================================================================")
     
     db_path = "02_processed_parquet/market_master_union.parquet"
-    con = duckdb.connect()
-    
-    # Query last 5 trading days market summary
-    df_mkt = con.execute(f"""
-        SELECT date, 
-               AVG(close) as avg_close, 
-               SUM(volume * close) / 1e9 as total_turnover_billion
-        FROM '{db_path}'
-        WHERE date >= '2026-09-20'
-        GROUP BY date
-        ORDER BY date DESC
-        LIMIT 5
-    """).df().sort_values('date')
+    with connection_manager.acquire() as con:
+        # Query last 5 trading days market summary
+        df_mkt = con.execute(f"""
+            SELECT date, 
+                   AVG(close) as avg_close, 
+                   SUM(volume * close) / 1e9 as total_turnover_billion
+            FROM '{db_path}'
+            WHERE date >= '2026-09-20'
+            GROUP BY date
+            ORDER BY date DESC
+            LIMIT 5
+        """).df().sort_values('date')
     
     df_mkt['date_str'] = pd.to_datetime(df_mkt['date']).dt.strftime('%m/%d')
     

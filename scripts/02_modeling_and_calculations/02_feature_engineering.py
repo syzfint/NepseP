@@ -8,10 +8,17 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from statsmodels.tsa.stattools import adfuller
 
 from pathlib import Path
+import sys
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 PROCESSED_DIR = BASE_DIR / "02_processed_parquet"
 FEATURE_DIR = BASE_DIR / "03_feature_store"
+
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+from scripts.03_data_access_and_storage.duckdb_connection_manager import (
+    get_connection_manager,
+)
 
 def get_fractional_weights(d, size):
     w = [1.0]
@@ -55,8 +62,9 @@ def compute_textblob_sentiment():
     if not os.path.exists(db_path):
         return None
     try:
-        con = duckdb.connect(db_path)
-        news_df = con.execute("SELECT * FROM verified_events").df()
+        news_mgr = get_connection_manager(database=str(db_path))
+        with news_mgr.acquire() as con:
+            news_df = con.execute("SELECT * FROM verified_events").df()
         if news_df.empty:
             return None
         

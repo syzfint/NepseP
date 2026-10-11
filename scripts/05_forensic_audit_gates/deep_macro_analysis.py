@@ -1,9 +1,9 @@
 import duckdb
 import pandas as pd
 import numpy as np
+from scripts.db_connection import connection_manager
 
 path = "02_processed_parquet/market_master_union.parquet"
-conn = duckdb.connect(":memory:")
 
 # Monthly and sector analysis
 sector_query = f"""
@@ -40,11 +40,7 @@ FROM daily_ret
 GROUP BY security_type
 ORDER BY total_turnover_billions DESC;
 """
-df_sectors = conn.execute(sector_query).df()
-print("Sector / Security Breakdown (March 27 - Oct 7, 2026):")
-print(df_sectors.to_string())
 
-# Monthly aggregation
 month_query = f"""
 WITH daily AS (
     SELECT 
@@ -65,7 +61,14 @@ FROM daily
 GROUP BY month, month_str
 ORDER BY month ASC;
 """
-df_months = conn.execute(month_query).df()
+
+with connection_manager.acquire() as conn:
+    df_sectors = conn.execute(sector_query).df()
+    df_months = conn.execute(month_query).df()
+
+print("Sector / Security Breakdown (March 27 - Oct 7, 2026):")
+print(df_sectors.to_string())
+
 print("\nMonthly Turnover Breakdown:")
 print(df_months.to_string())
 

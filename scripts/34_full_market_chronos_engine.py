@@ -46,6 +46,14 @@ MASTER_PARQUET = PROCESSED_DIR / "market_master_union.parquet"
 CHRONOS_PARQUET = FEATURE_DIR / "chronos_quantiles_5d.parquet"
 DUCKDB_PATH = PROCESSED_DIR / "market_analytics.duckdb"
 
+_PATH_FOR_CM = ALT_DIR if ALT_DIR.exists() else BASE_DIR
+if str(_PATH_FOR_CM) not in sys.path:
+    sys.path.insert(0, str(_PATH_FOR_CM))
+from scripts.03_data_access_and_storage.duckdb_connection_manager import (
+    connection_manager,
+    get_connection_manager,
+)
+
 def sha256_file(filepath: Path) -> str:
     hasher = hashlib.sha256()
     with open(filepath, "rb") as f:
@@ -94,20 +102,19 @@ def run_full_market_inference(pipeline: ChronosBoltPipeline, batch_size: int = 6
     if not MASTER_PARQUET.exists():
         raise FileNotFoundError(f"Master parquet not found at {MASTER_PARQUET}")
 
-    con = duckdb.connect()
-    query = f"""
-        SELECT 
-            ticker AS symbol, 
-            CAST(date AS VARCHAR) AS date_str, 
-            close, 
-            volume,
-            security_type
-        FROM read_parquet('{str(MASTER_PARQUET).replace('\\', '/')}')
-        WHERE security_type IN ('ORDINARY_EQUITY', 'MICROFINANCE')
-        ORDER BY symbol ASC, date ASC
-    """
-    df_raw = con.execute(query).df()
-    con.close()
+    with connection_manager.acquire() as con:
+        query = f"""
+            SELECT 
+                ticker AS symbol, 
+                CAST(date AS VARCHAR) AS date_str, 
+                close, 
+                volume,
+                security_type
+            FROM read_parquet('{str(MASTER_PARQUET).replace('\\', '/')}')
+            WHERE security_type IN ('ORDINARY_EQUITY', 'MICROFINANCE')
+            ORDER BY symbol ASC, date ASC
+        """
+        df_raw = con.execute(query).df()
 
     df_raw['date'] = pd.to_datetime(df_raw['date_str'])
     latest_market_date = df_raw['date'].max()
@@ -227,12 +234,12 @@ def run_full_market_inference(pipeline: ChronosBoltPipeline, batch_size: int = 6
 
     # Register in DuckDB lakehouse
     if DUCKDB_PATH.exists():
-        con_db = duckdb.connect(str(DUCKDB_PATH))
-        con_db.execute(f"""
-            CREATE OR REPLACE VIEW chronos_quantiles_5d AS 
-            SELECT * FROM read_parquet('{str(CHRONOS_PARQUET).replace('\\', '/')}')
-        """)
-        con_db.close()
+        _db_mgr = get_connection_manager(database=str(DUCKDB_PATH))
+        with _db_mgr.acquire() as con_db:
+            con_db.execute(f"""
+                CREATE OR REPLACE VIEW chronos_quantiles_5d AS 
+                SELECT * FROM read_parquet('{str(CHRONOS_PARQUET).replace('\\', '/')}')
+            """)
         print(f"Registered view 'chronos_quantiles_5d' in {DUCKDB_PATH}.")
 
     return chronos_df
@@ -242,17 +249,16 @@ def run_calibration_and_stress_tests(pipeline: ChronosBoltPipeline, chronos_df: 
     print("STAGE 2: EMPIRICAL CALIBRATION & COUNTERFACTUAL STRESS TESTS")
     print("=" * 80)
 
-    con = duckdb.connect()
-    
-    # TEST 1: Walk-Forward Coverage Check (Gate G1) over past 60 sessions
-    print("\n[TEST 1] Walk-Forward Coverage Check (Gate G1 - 60 Trading Days)...")
-    dates_df = con.execute(f"""
-        SELECT DISTINCT date 
-        FROM read_parquet('{str(MASTER_PARQUET).replace('\\', '/')}')
-        ORDER BY date DESC
-        LIMIT 65
-    """).df()
-    dates_list = sorted(pd.to_datetime(dates_df['date']).tolist())
+    with connection_manager.acquire() as con:
+        # TEST 1: Walk-Forward Coverage Check (Gate G1) over past 60 sessions
+        print("\n[TEST 1] Walk-Forward Coverage Check (Gate G1 - 60 Trading Days)...")
+        dates_df = con.execute(f"""
+            SELECT DISTINCT date 
+            FROM read_parquet('{str(MASTER_PARQUET).replace('\\', '/')}')
+            ORDER BY date DESC
+            LIMIT 65
+        """).df()
+        dates_list = sorted(pd.to_datetime(dates_df['date']).tolist())
     
     if len(dates_list) >= 10:
         t_eval = dates_list[-6]
@@ -358,8 +364,8 @@ def run_gate_g4_meta_labeler(chronos_df: pd.DataFrame) -> pd.DataFrame:
 
     tech_path = FEATURE_DIR / "technical_indicators.parquet"
     if tech_path.exists():
-        con = duckdb.connect()
-        tech_df = con.execute(f"""
+        with connection_manager.acquire() as con:
+            tech_df = con.execute(f"""
             SELECT 
                 ticker, 
                 ret_1w, 
@@ -370,7 +376,6 @@ def run_gate_g4_meta_labeler(chronos_df: pd.DataFrame) -> pd.DataFrame:
             FROM read_parquet('{str(tech_path).replace('\\', '/')}')
             QUALIFY ROW_NUMBER() OVER (PARTITION BY ticker ORDER BY date DESC) = 1
         """).df()
-        con.close()
     else:
         tech_df = pd.DataFrame()
 
@@ -454,16 +459,15 @@ def render_forecast_charts(top_picks: pd.DataFrame):
         lows  = [2588.28, 2588.96, 2589.12, 2582.36, 2558.35, 2557.30]
         closes= [2603.71, 2598.89, 2599.15, 2587.25, 2566.76, 2578.73]
 
-    con = duckdb.connect()
-    df_to = con.execute(f"""
-        SELECT date, 
-               SUM(volume * close) / 1e9 as total_turnover_billion
-        FROM read_parquet('{str(MASTER_PARQUET).replace('\\', '/')}')
-        WHERE security_type = 'ORDINARY_EQUITY' AND date >= '2026-09-29'
-        GROUP BY date
-        ORDER BY date ASC
-    """).df()
-    con.close()
+    with connection_manager.acquire() as con:
+        df_to = con.execute(f"""
+            SELECT date, 
+                   SUM(volume * close) / 1e9 as total_turnover_billion
+            FROM read_parquet('{str(MASTER_PARQUET).replace('\\', '/')}')
+            WHERE security_type = 'ORDINARY_EQUITY' AND date >= '2026-09-29'
+            GROUP BY date
+            ORDER BY date ASC
+        """).df()
     turnovers = df_to['total_turnover_billion'].tolist()
 
     latest_close = closes[-1]

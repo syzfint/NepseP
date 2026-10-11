@@ -3,7 +3,6 @@ import sys
 import json
 import argparse
 from pathlib import Path
-import duckdb
 import numpy as np
 import pandas as pd
 
@@ -12,6 +11,7 @@ base_dir = Path(__file__).resolve().parent.parent.parent
 if str(base_dir) not in sys.path:
     sys.path.insert(0, str(base_dir))
 
+from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
 from scripts.nepse_trading_calendar import (
     NEPSE_BUS_DAY,
     get_actual_nepse_trading_dates,
@@ -31,17 +31,15 @@ def main():
         print(f"ERROR: {db_path} not found.")
         sys.exit(1)
         
-    con = duckdb.connect()
-    
-    # Fetch historical bars up to available range
-    df = con.execute("""
-        SELECT ticker, CAST(date AS VARCHAR) as date, open, high, low, close, volume, security_type
-        FROM read_parquet(?)
-        WHERE date >= ?
-        ORDER BY ticker, date
-    """, [str(db_path), "2026-01-01"]).df()
+    with connection_manager.acquire() as con:
+        # Fetch historical bars up to available range
+        df = con.execute("""
+            SELECT ticker, CAST(date AS VARCHAR) as date, open, high, low, close, volume, security_type
+            FROM read_parquet(?)
+            WHERE date >= ?
+            ORDER BY ticker, date
+        """, [str(db_path), "2026-01-01"]).df()
     df['date'] = pd.to_datetime(df['date'])
-    con.close()
     
     # Determine anchor date (last actual trading session)
     if args.as_of_date:
