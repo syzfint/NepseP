@@ -300,7 +300,7 @@ def get_connection_manager(database: str = ":memory:") -> "DuckDBConnectionManag
         return connection_manager
 
     with _file_managers_lock:
-        if database not in _file_managers:
+        if database not in _file_managers or _file_managers[database]._closed:
             _file_managers[database] = DuckDBConnectionManager(
                 max_connections=3,
                 acquire_timeout=30.0,
