@@ -5,7 +5,7 @@ import importlib.util
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
+from scripts.db_connection import connection_manager
 
 sgn_path = Path("scripts/02_modeling_and_calculations/syndicate_graph_network.py")
 spec = importlib.util.spec_from_file_location("syndicate_graph_network", sgn_path)

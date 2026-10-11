@@ -68,7 +68,7 @@ logger = logging.getLogger("ClefDatasetBuilder")
 BASE_DIR = Path(__file__).resolve().parent.parent
 import sys as _sys_34
 _sys_34.path.insert(0, str(BASE_DIR))
-from scripts.03_data_access_and_storage.duckdb_connection_manager import get_connection_manager as _get_cm_34
+from scripts.db_connection import get_connection_manager as _get_cm_34
 
 # Load Pydantic Schemas from 04_data_schemas_and_pydantic_entities.py
 import importlib.util
@@ -848,7 +848,7 @@ class ClefDatasetBuilder:
         print("==========================================================================")
         
         t0 = time.time()
-        from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager as _cm_34_gen
+        from scripts.db_connection import connection_manager as _cm_34_gen
         with _cm_34_gen.acquire() as con:
 
             # Regime 1: 2021 Bull Run

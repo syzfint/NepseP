@@ -43,7 +43,7 @@ ALT_DIR = Path(r"C:/Users/achar/Downloads/neps")
 
 if str(ALT_DIR) not in sys.path:
     sys.path.insert(0, str(ALT_DIR))
-from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
+from scripts.db_connection import connection_manager
 PROCESSED_DIR = BASE_DIR / "02_processed_parquet" if (BASE_DIR / "02_processed_parquet").exists() else ALT_DIR / "02_processed_parquet"
 FEATURE_DIR = BASE_DIR / "03_feature_store" if (BASE_DIR / "03_feature_store").exists() else ALT_DIR / "03_feature_store"
 RAW_DIR = BASE_DIR / "01_raw" if (BASE_DIR / "01_raw" / "nepse-historical-scraper-repo").exists() else ALT_DIR / "01_raw"

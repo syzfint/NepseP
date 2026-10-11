@@ -31,7 +31,7 @@ _ALT_DIR = Path(r"C:/Users/achar/Downloads/neps")
 _SEARCH_PATH = str(_ALT_DIR) if _ALT_DIR.exists() else str(BASE_DIR)
 if _SEARCH_PATH not in sys.path:
     sys.path.insert(0, _SEARCH_PATH)
-from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
+from scripts.db_connection import connection_manager
 
 MASTER_PARQUET = PROCESSED_DIR / "market_master_union.parquet"
 INDEX_PARQUET = PROCESSED_DIR / "nepse_index.parquet"

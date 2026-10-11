@@ -20,7 +20,7 @@ from typing import Optional, List
 import duckdb
 import numpy as np
 import pandas as pd
-from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
+from scripts.db_connection import connection_manager
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("duckdb_lakehouse")

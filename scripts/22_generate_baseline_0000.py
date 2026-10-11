@@ -11,7 +11,7 @@ import duckdb
 _BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _BASE_DIR not in sys.path:
     sys.path.insert(0, _BASE_DIR)
-from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
+from scripts.db_connection import connection_manager
 
 def get_file_hash(filepath):
     if not os.path.exists(filepath):

@@ -52,10 +52,10 @@ def _stub_connection_manager():
     _stub_mod.connection_manager = _fake_cm
     _stub_mod.get_connection_manager = MagicMock(return_value=_fake_cm)
 
-    # Register under every dotted prefix that Python's import machinery looks up
-    _pkg_scripts = types.ModuleType("scripts")
+    # Register under dotted prefix without blowing away the scripts package
+    if "scripts" not in sys.modules:
+        import scripts
     _pkg_03 = types.ModuleType("scripts.03_data_access_and_storage")
-    sys.modules.setdefault("scripts", _pkg_scripts)
     sys.modules["scripts.03_data_access_and_storage"] = _pkg_03
     sys.modules[
         "scripts.03_data_access_and_storage.duckdb_connection_manager"

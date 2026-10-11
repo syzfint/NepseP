@@ -25,14 +25,17 @@ from pathlib import Path
 from typing import Dict, Any, List
 import sqlite3
 
+_BASE_DIR = Path(__file__).resolve().parent.parent
+if str(_BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(_BASE_DIR))
+_SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
 try:
     import sweet_spot_engine as sse
 except ImportError:
-    try:
-        from scripts import sweet_spot_engine as sse
-    except ImportError:
-        sys.path.insert(0, str(Path(__file__).resolve().parent))
-        import sweet_spot_engine as sse
+    from scripts import sweet_spot_engine as sse
 
 
 import numpy as np

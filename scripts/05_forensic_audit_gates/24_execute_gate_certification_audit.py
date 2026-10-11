@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import duckdb
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
+from scripts.db_connection import connection_manager
 
 def main():
     for _d in ("gates", "audits", "final_oos", "pbo_dsr", "certification"): os.makedirs(f"reports/{_d}", exist_ok=True)

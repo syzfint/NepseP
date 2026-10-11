@@ -39,7 +39,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 # Try to import the connection manager - will be available after Task 3.1 is implemented
 try:
-    from scripts.03_data_access_and_storage.duckdb_connection_manager import connection_manager
+    from scripts.db_connection import connection_manager
     CONNECTION_MANAGER_AVAILABLE = True
 except ImportError:
     CONNECTION_MANAGER_AVAILABLE = False
@@ -180,7 +180,7 @@ class StoragePreservationValidator:
         try:
             # Use atomic write pattern if async executor available
             try:
-                from scripts.03_data_access_and_storage.async_duckdb_executor import atomic_parquet_write
+                from scripts.db_connection import atomic_parquet_write
                 atomic_parquet_write(df, file_path)
                 write_method = "atomic"
             except ImportError:
@@ -536,12 +536,15 @@ def test_single_connection_operations_baseline():
         # Query 3: Window functions
         start = time.time()
         result3 = con.execute("""
-            SELECT 
-                ticker, date, close,
-                AVG(close) OVER (PARTITION BY ticker ORDER BY date 
-                    ROWS BETWEEN 9 PRECEDING AND CURRENT ROW) as ma_10,
-                ROW_NUMBER() OVER (PARTITION BY ticker ORDER BY date DESC) as rn
-            FROM baseline
+            WITH ranked AS (
+                SELECT 
+                    ticker, date, close,
+                    AVG(close) OVER (PARTITION BY ticker ORDER BY date 
+                        ROWS BETWEEN 9 PRECEDING AND CURRENT ROW) as ma_10,
+                    ROW_NUMBER() OVER (PARTITION BY ticker ORDER BY date DESC) as rn
+                FROM baseline
+            )
+            SELECT * FROM ranked
             WHERE rn <= 10
         """).fetchdf()
         operations.append(('window_functions', time.time() - start, len(result3)))

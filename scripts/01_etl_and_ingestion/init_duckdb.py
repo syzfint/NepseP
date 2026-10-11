@@ -16,7 +16,7 @@ import os
 import glob
 from pathlib import Path
 import duckdb
-from scripts.03_data_access_and_storage.duckdb_connection_manager import get_connection_manager
+from scripts.db_connection import get_connection_manager
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 PROCESSED_DIR = BASE_DIR / "02_processed_parquet"

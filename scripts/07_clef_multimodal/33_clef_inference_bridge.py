@@ -187,7 +187,7 @@ class ClefInferenceBridge:
         elif db_path.exists():
             try:
                 import duckdb
-                from scripts.03_data_access_and_storage.duckdb_connection_manager import get_connection_manager as _get_cm
+                from scripts.db_connection import get_connection_manager as _get_cm
                 _db_mgr = _get_cm(database=str(db_path))
                 with _db_mgr.acquire() as con:
                     rows = con.execute("""
