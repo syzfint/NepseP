@@ -107,19 +107,22 @@ class DuckDBConnectionManager:
         max_connections: int = 10,
         acquire_timeout: float = 30.0,
         database: str = ":memory:",
+        read_only: bool = False,
     ) -> None:
         self._max_connections = max_connections
         self._acquire_timeout = acquire_timeout
         self._database = database
+        self._read_only = read_only
         self._lock = threading.Lock()
         self._not_full = threading.Condition(self._lock)
         self._pool: list[_PooledConnection] = []
         self._next_id = 0
         self._closed = False
         logger.info(
-            "DuckDBConnectionManager initialised (max_connections=%d, database=%s)",
+            "DuckDBConnectionManager initialised (max_connections=%d, database=%s, read_only=%s)",
             max_connections,
             database,
+            read_only,
         )
 
     # ------------------------------------------------------------------
@@ -241,14 +244,24 @@ class DuckDBConnectionManager:
 
     def _create_connection(self) -> _PooledConnection:
         """Create a new DuckDB connection (in-memory or file-based) and add it to the pool."""
-        conn = duckdb.connect(database=self._database)
+        try:
+            conn = duckdb.connect(database=self._database, read_only=self._read_only)
+        except Exception as e:
+            # If access is blocked by another process holding a write lock, retry read-only
+            if not self._read_only and self._database != ":memory:":
+                logger.warning("Write connection failed (%s), falling back to read_only=True", e)
+                conn = duckdb.connect(database=self._database, read_only=True)
+                self._read_only = True
+            else:
+                raise
         self._next_id += 1
         pc = _PooledConnection(conn, self._next_id)
         self._pool.append(pc)
         logger.debug(
-            "Created new connection conn_id=%d (pool_size=%d)",
+            "Created new connection conn_id=%d (pool_size=%d, read_only=%s)",
             self._next_id,
             len(self._pool),
+            self._read_only,
         )
         return pc
 
@@ -270,7 +283,7 @@ _file_managers: dict[str, "DuckDBConnectionManager"] = {}
 _file_managers_lock = threading.Lock()
 
 
-def get_connection_manager(database: str = ":memory:") -> "DuckDBConnectionManager":
+def get_connection_manager(database: str = ":memory:", read_only: bool = False) -> "DuckDBConnectionManager":
     """Return a ``DuckDBConnectionManager`` scoped to *database*.
 
     For the shared in-memory pool, use the module-level :data:`connection_manager`
@@ -278,36 +291,34 @@ def get_connection_manager(database: str = ":memory:") -> "DuckDBConnectionManag
     (e.g. ``news_and_events.duckdb``, ``market_analytics.duckdb``) where each
     file requires its own isolated connection pool.
 
-    Each unique *database* path maps to a single manager; repeated calls with
-    the same path return the same manager (cached singleton per path).
+    Each unique (database, read_only) pair maps to a manager; repeated calls with
+    the same parameters return the cached manager.
 
     Parameters
     ----------
     database:
         Path to a ``.duckdb`` file or ``":memory:"``.
+    read_only:
+        Whether to open connections in read-only mode (default False).
 
     Returns
     -------
     :class:`DuckDBConnectionManager`
-
-    Example
-    -------
-        db_manager = get_connection_manager(database=str(db_path))
-        with db_manager.acquire() as con:
-            con.execute("CREATE TABLE IF NOT EXISTS ...")
     """
     if database == ":memory:":
         return connection_manager
 
+    cache_key = f"{database}__ro_{read_only}"
     with _file_managers_lock:
-        if database not in _file_managers or _file_managers[database]._closed:
-            _file_managers[database] = DuckDBConnectionManager(
+        if cache_key not in _file_managers or _file_managers[cache_key]._closed:
+            _file_managers[cache_key] = DuckDBConnectionManager(
                 max_connections=3,
                 acquire_timeout=30.0,
                 database=database,
+                read_only=read_only,
             )
-            logger.info("get_connection_manager: created manager for %s", database)
-        return _file_managers[database]
+            logger.info("get_connection_manager: created manager for %s (read_only=%s)", database, read_only)
+        return _file_managers[cache_key]
 
 
 # ---------------------------------------------------------------------------

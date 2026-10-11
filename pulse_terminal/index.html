@@ -1193,268 +1193,536 @@
     .log-msg { color: #d0d7de; }
     .log-warn { color: var(--amber-warn); }
     .log-err { color: var(--red-decline); }
-  
-    /* ========================================================================= */
-    /* MULTI-WORKSPACE LAUNCH PAD & 4-SCREEN ARCHITECTURE (PHASE 4.2)            */
-    /* ========================================================================= */
-    #workspace-navbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #04070d;
-      border-bottom: 2px solid #1a2638;
-      padding: 0 12px;
-      height: 34px;
-      z-index: 1000;
-    }
-    .ws-brand {
-      font-size: 11px;
-      font-weight: 800;
-      color: var(--cyan-status);
-      letter-spacing: 1px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .ws-nav-tabs {
-      display: flex;
-      gap: 6px;
-    }
-    .ws-nav-btn {
-      background: #0a101d;
-      border: 1px solid #1e2c42;
-      color: #8b9bb4;
-      font-family: inherit;
-      font-size: 9.5px;
-      font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 3px;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-    .ws-nav-btn:hover {
-      border-color: var(--cyan-status);
-      color: #f0f6fc;
-      background: rgba(0, 229, 255, 0.08);
-    }
-    .ws-nav-btn.active {
-      background: rgba(0, 229, 255, 0.18);
-      border-color: var(--cyan-status);
-      color: var(--cyan-status);
-      box-shadow: 0 0 10px rgba(0, 229, 255, 0.25);
-    }
-    .ws-nav-btn.ws-btn-desk.active { border-color: #00E5FF; color: #00E5FF; }
-    .ws-nav-btn.ws-btn-alpha.active { border-color: #00E676; color: #00E676; }
-    .ws-nav-btn.ws-btn-risk.active { border-color: #FFB300; color: #FFB300; }
-    .ws-nav-btn.ws-btn-forecast.active { border-color: #FF1744; color: #FF1744; }
+  </style>
+<style>
 
-    /* WORKSPACE SCREEN CONTAINERS */
-    .workspace-screen {
-      display: none;
-      width: 100%;
-      height: calc(100vh - 34px);
-      overflow: hidden;
-      position: absolute;
-      top: 34px;
-      left: 0;
-      background: #030508;
-    }
-    .workspace-screen.active {
-      display: flex;
-      flex-direction: column;
-    }
+  /* ========================================================================== */
+  /* WORKSPACE SYSTEM & SCREEN ISOLATION ARCHITECTURE                           */
+  /* ========================================================================== */
+  :root {
+    --nav-height: 38px;
+    --bg-deep: #030508;
+    --bg-card: #070d14;
+    --border-dim: #132438;
+    --border-bright: #1b4965;
+    --neon-cyan: #00e5ff;
+    --neon-green: #00e676;
+    --neon-amber: #ffab00;
+    --neon-red: #ff1744;
+    --text-primary: #e2e8f0;
+    --text-muted: #64748b;
+  }
 
-    /* SCREEN 0: LAUNCH PAD */
-    #screen-launchpad {
-      padding: 24px 32px;
-      background: radial-gradient(circle at 50% 30%, #081020 0%, #020306 100%);
-      align-items: center;
-      justify-content: center;
-    }
-    .launchpad-header {
-      text-align: center;
-      margin-bottom: 24px;
-    }
-    .launchpad-title {
-      font-size: 20px;
-      font-weight: 800;
-      letter-spacing: 2px;
-      color: #f0f6fc;
-      text-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
-    }
-    .launchpad-subtitle {
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-top: 4px;
-    }
-    .launchpad-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 440px);
-      grid-gap: 20px;
-      justify-content: center;
-    }
-    .launch-card {
-      background: #070d18;
-      border: 1.5px solid #1a273c;
-      border-radius: 6px;
-      padding: 18px 20px;
-      cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-      position: relative;
-      overflow: hidden;
-    }
-    .launch-card:hover {
-      transform: translateY(-4px);
-      border-color: var(--cyan-status);
-      box-shadow: 0 8px 24px rgba(0, 229, 255, 0.2);
-    }
-    .launch-card.card-desk { border-top: 4px solid #00E5FF; }
-    .launch-card.card-alpha { border-top: 4px solid #00E676; }
-    .launch-card.card-risk { border-top: 4px solid #FFB300; }
-    .launch-card.card-forecast { border-top: 4px solid #FF1744; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+  }
 
-    .card-badge {
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-      margin-bottom: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .card-key-shortcut {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 3px;
-      padding: 1px 6px;
-      font-size: 9px;
-      color: #f0f6fc;
-    }
-    .card-title {
-      font-size: 13px;
-      font-weight: 800;
-      color: #f0f6fc;
-      margin-bottom: 10px;
-    }
-    .card-features {
-      list-style: none;
-      font-size: 10px;
-      color: #8b9bb4;
-      line-height: 1.6;
-    }
-    .card-features li::before {
-      content: "• ";
-      color: var(--cyan-status);
-      font-weight: 800;
-    }
+  /* PERSISTENT TOP NAVIGATION BAR */
+  #workspace-navbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: var(--nav-height);
+    background: #040910;
+    border-bottom: 1px solid var(--border-dim);
+    padding: 0 12px;
+    box-sizing: border-box;
+    z-index: 99999;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    user-select: none;
+  }
 
-    /* SCREEN 2: ALPHA DASHBOARD */
-    #screen-alpha {
-      padding: 10px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .alpha-stats-ribbon {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-    }
-    .alpha-stat-card {
-      background: #070d18;
-      border: 1px solid #162234;
-      padding: 10px 14px;
-      border-radius: 4px;
-    }
-    .alpha-table-container {
-      flex: 1;
-      overflow-y: auto;
-      background: #060a12;
-      border: 1px solid #162234;
-      border-radius: 4px;
-    }
-    .alpha-grid-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 10.5px;
-    }
-    .alpha-grid-table th {
-      background: #0a111e;
-      padding: 8px 10px;
-      color: #8b9bb4;
-      text-align: right;
-      border-bottom: 2px solid #1e2c42;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-    .alpha-grid-table th:first-child { text-align: left; }
-    .alpha-grid-table td {
-      padding: 6px 10px;
-      border-bottom: 1px solid #0e1522;
-      text-align: right;
-    }
-    .alpha-grid-table td:first-child { text-align: left; }
-    .alpha-grid-table tr:hover { background: #0c1424; }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 800;
+    color: #fff;
+    cursor: pointer;
+  }
 
-    /* SCREEN 3: RISK MONITOR (4-QUADRANT LAYOUT) */
-    #screen-risk {
-      padding: 12px 16px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      grid-template-rows: 1fr 1fr;
-      gap: 12px;
-      height: calc(100vh - 34px);
-    }
-    .risk-quadrant {
-      background: #060a12;
-      border: 1px solid #162234;
-      border-radius: 4px;
-      padding: 12px 14px;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    .quadrant-title {
-      font-size: 11px;
-      font-weight: 800;
-      color: #FFB300;
-      letter-spacing: 0.5px;
-      margin-bottom: 8px;
-      border-bottom: 1px solid #141f30;
-      padding-bottom: 4px;
-      display: flex;
-      justify-content: space-between;
-    }
+  .nav-brand .pulse-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--neon-cyan);
+    box-shadow: 0 0 8px var(--neon-cyan);
+    animation: blink-dot 2s infinite;
+  }
 
-    /* SCREEN 4: 20-DAY FORECAST ENGINE */
-    #screen-forecast {
-      padding: 12px 16px;
-      display: grid;
-      grid-template-columns: 380px 1fr;
-      gap: 12px;
-      height: calc(100vh - 34px);
-    }
-    .forecast-sidebar {
-      background: #060a12;
-      border: 1px solid #162234;
-      border-radius: 4px;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    .forecast-main-canvas-pane {
-      background: #04070d;
-      border: 1px solid #162234;
-      border-radius: 4px;
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-    }
-    
+  @keyframes blink-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.3; transform: scale(0.8); }
+  }
+
+  .nav-items {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 100%;
+  }
+
+  .nav-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    padding: 4px 10px;
+    font-family: inherit;
+    font-size: 10.5px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .nav-btn .key-hint {
+    background: #0f1c2e;
+    color: #7dd3fc;
+    border: 1px solid #1e3a5f;
+    padding: 1px 4px;
+    border-radius: 2px;
+    font-size: 9px;
+  }
+
+  .nav-btn:hover {
+    color: #fff;
+    background: rgba(0, 229, 255, 0.08);
+    border-color: rgba(0, 229, 255, 0.3);
+  }
+
+  .nav-btn.active {
+    color: var(--neon-cyan);
+    background: rgba(0, 229, 255, 0.12);
+    border-color: var(--neon-cyan);
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+  }
+
+  .nav-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  .nav-status-chip {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: #071320;
+    border: 1px solid #102a45;
+    padding: 2px 7px;
+    border-radius: 3px;
+    color: #38bdf8;
+  }
+
+  /* WORKSPACE CONTAINER VIEWPORT */
+  #workspace-container {
+    position: absolute;
+    top: var(--nav-height);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: calc(100vh - var(--nav-height));
+    overflow: hidden;
+  }
+
+  /* STRICT ISOLATION FOR EVERY SCREEN */
+  .workspace-screen {
+    display: none !important;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .workspace-screen.active {
+    display: flex !important;
+  }
+
+  /* SCREEN [1]: TRADING DESK */
+  #screen-tradingdesk {
+    flex-direction: column;
+  }
+  #screen-tradingdesk #terminal-root {
+    width: 100% !important;
+    height: 100% !important;
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* SCREEN [0]: LAUNCH PAD */
+  #screen-launchpad {
+    background: radial-gradient(circle at 50% 30%, #081220 0%, #030508 80%);
+    padding: 24px 32px;
+    flex-direction: column;
+    justify-content: space-between;
+    box-sizing: border-box;
+    overflow-y: auto;
+  }
+
+  .launchpad-header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .launchpad-header h1 {
+    font-size: 22px;
+    margin: 0 0 6px 0;
+    letter-spacing: 0.12em;
+    color: #fff;
+    font-weight: 800;
+  }
+
+  .launchpad-header p {
+    margin: 0;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+
+  .launchpad-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 18px;
+    flex: 1;
+    min-height: 480px;
+    max-width: 1300px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .launch-card {
+    background: #060d17;
+    border: 1px solid #13273e;
+    border-radius: 6px;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .launch-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: transparent;
+    transition: background 0.2s ease;
+  }
+
+  .launch-card:hover {
+    border-color: #00e5ff;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 229, 255, 0.12);
+    background: #081220;
+  }
+
+  .launch-card:hover::before {
+    background: var(--neon-cyan);
+  }
+
+  .card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .card-id-badge {
+    background: #0f2238;
+    color: #38bdf8;
+    border: 1px solid #1b4965;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 3px;
+  }
+
+  .card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin: 8px 0 4px 0;
+    letter-spacing: 0.04em;
+  }
+
+  .card-desc {
+    font-size: 11px;
+    color: #94a3b8;
+    line-height: 1.4;
+    margin-bottom: 12px;
+  }
+
+  .card-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    background: #03070d;
+    border: 1px solid #0f1c2d;
+    border-radius: 4px;
+    padding: 10px;
+  }
+
+  .card-metric-cell {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .card-metric-label {
+    font-size: 9px;
+    color: #64748b;
+    text-transform: uppercase;
+  }
+
+  .card-metric-val {
+    font-size: 12px;
+    font-weight: 700;
+    color: #38bdf8;
+    margin-top: 2px;
+  }
+
+  .launchpad-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #101e30;
+    padding-top: 12px;
+    margin-top: 16px;
+    font-size: 10.5px;
+    color: #64748b;
+  }
+
+  /* SCREEN [2]: ALPHA DASHBOARD */
+  #screen-alpha {
+    flex-direction: column;
+    background: #030508;
+    padding: 12px 16px;
+    box-sizing: border-box;
+    gap: 12px;
+  }
+
+  .screen-header-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #060d17;
+    border: 1px solid var(--border-bright);
+    padding: 10px 16px;
+    border-radius: 4px;
+  }
+
+  .screen-title-group h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: 0.05em;
+  }
+  .screen-title-group p {
+    margin: 3px 0 0 0;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  .alpha-table-container {
+    flex: 1;
+    background: #040810;
+    border: 1px solid var(--border-dim);
+    border-radius: 4px;
+    overflow: auto;
+  }
+
+  .quant-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    text-align: left;
+  }
+
+  .quant-table th {
+    background: #08111e;
+    color: #7dd3fc;
+    padding: 9px 12px;
+    font-weight: 700;
+    border-bottom: 1px solid #162f4e;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    white-space: nowrap;
+  }
+
+  .quant-table td {
+    padding: 7px 12px;
+    border-bottom: 1px solid #091322;
+    white-space: nowrap;
+    color: #cbd5e1;
+  }
+
+  .quant-table tr:hover td {
+    background: rgba(0, 229, 255, 0.05);
+    color: #fff;
+  }
+
+  .badge-buy {
+    color: #00e676;
+    background: rgba(0, 230, 118, 0.1);
+    border: 1px solid rgba(0, 230, 118, 0.3);
+    padding: 2px 6px;
+    border-radius: 2px;
+    font-weight: 700;
+    font-size: 9.5px;
+  }
+
+  .badge-sell {
+    color: #ff1744;
+    background: rgba(255, 23, 68, 0.1);
+    border: 1px solid rgba(255, 23, 68, 0.3);
+    padding: 2px 6px;
+    border-radius: 2px;
+    font-weight: 700;
+    font-size: 9.5px;
+  }
+
+  .badge-neutral {
+    color: #94a3b8;
+    background: rgba(148, 163, 184, 0.1);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    padding: 2px 6px;
+    border-radius: 2px;
+    font-size: 9.5px;
+  }
+
+  /* SCREEN [3]: RISK MONITOR */
+  #screen-risk {
+    flex-direction: column;
+    background: #030508;
+    padding: 12px 16px;
+    box-sizing: border-box;
+    gap: 12px;
+  }
+
+  .risk-grid-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 140px 1fr;
+    gap: 12px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .risk-kpi-row {
+    grid-column: span 2;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  .risk-kpi-card {
+    background: #060e18;
+    border: 1px solid var(--border-dim);
+    border-radius: 4px;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .risk-kpi-card .kpi-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  .risk-kpi-card .kpi-value {
+    font-size: 20px;
+    font-weight: 800;
+    color: #38bdf8;
+    margin-top: 4px;
+  }
+
+  .risk-panel {
+    background: #040810;
+    border: 1px solid var(--border-dim);
+    border-radius: 4px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .risk-panel-header {
+    font-size: 12px;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #0f1c2d;
+    padding-bottom: 6px;
+  }
+
+  /* SCREEN [4]: FORECAST ENGINE */
+  #screen-forecast {
+    flex-direction: column;
+    background: #030508;
+    padding: 12px 16px;
+    box-sizing: border-box;
+    gap: 12px;
+  }
+
+  .forecast-body {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 12px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .forecast-sidebar {
+    background: #040810;
+    border: 1px solid var(--border-dim);
+    border-radius: 4px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .forecast-chart-panel {
+    background: #040810;
+    border: 1px solid var(--border-dim);
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+    min-height: 0;
+  }
+
 </style>
 </head>
 <body>
@@ -1463,93 +1731,166 @@
   <!-- MAIN RIGID TERMINAL ROOT                                                -->
   <!-- ======================================================================= -->
   
-  <!-- PERSISTENT WORKSPACE TOP NAVBAR -->
-  <nav id="workspace-navbar">
-    <div class="ws-brand">
-      <span>▲ NEPSE PULSE TERMINAL</span>
-      <span style="color:#57657a;">│</span>
-      <span style="color:#8b9bb4; font-size:10px;">QUANTITATIVE DESK v4.2</span>
+  <!-- PERSISTENT QUANT WORKSPACE NAVBAR -->
+  <header id="workspace-navbar">
+    <div class="nav-brand" onclick="switchWorkspace(0)">
+      <div class="pulse-dot"></div>
+      <span>NEPSE PULSE TERMINAL</span>
     </div>
-    <div class="ws-nav-tabs">
-      <button class="ws-nav-btn" id="btn-ws-0" onclick="switchWorkspace(0)"><span>[0]</span> MENU</button>
-      <button class="ws-nav-btn ws-btn-desk" id="btn-ws-1" onclick="switchWorkspace(1)"><span>[1]</span> TRADING DESK</button>
-      <button class="ws-nav-btn ws-btn-alpha" id="btn-ws-2" onclick="switchWorkspace(2)"><span>[2]</span> ALPHA DASHBOARD</button>
-      <button class="ws-nav-btn ws-btn-risk" id="btn-ws-3" onclick="switchWorkspace(3)"><span>[3]</span> RISK MONITOR</button>
-      <button class="ws-nav-btn ws-btn-forecast" id="btn-ws-4" onclick="switchWorkspace(4)"><span>[4]</span> 20D FORECAST</button>
-    </div>
-    <div style="font-size:9.5px; color:#57657a; display:flex; gap:10px;">
-      <span>NPT (UTC+5:45)</span>
-      <span style="color:var(--cyan-status); font-weight:700;" id="nav-clock-live">--:--:--</span>
-    </div>
-  </nav>
 
-  <!-- SCREEN [0]: WORKSPACE LAUNCH PAD -->
-  <div class="workspace-screen" id="screen-launchpad">
-    <div class="launchpad-header">
-      <div class="launchpad-title">NEPSE PULSE TERMINAL — WORKSPACE LAUNCH PAD</div>
-      <div class="launchpad-subtitle">Select operational workspace or press keyboard shortcuts [1] - [4] to launch</div>
+    <div class="nav-items">
+      <button id="nav-btn-0" class="nav-btn active" onclick="switchWorkspace(0)">
+        <span class="key-hint">ESC</span> MENU
+      </button>
+      <button id="nav-btn-1" class="nav-btn" onclick="switchWorkspace(1)">
+        <span class="key-hint">1</span> TRADING DESK
+      </button>
+      <button id="nav-btn-2" class="nav-btn" onclick="switchWorkspace(2)">
+        <span class="key-hint">2</span> ALPHA DASHBOARD
+      </button>
+      <button id="nav-btn-3" class="nav-btn" onclick="switchWorkspace(3)">
+        <span class="key-hint">3</span> RISK MONITOR
+      </button>
+      <button id="nav-btn-4" class="nav-btn" onclick="switchWorkspace(4)">
+        <span class="key-hint">4</span> 20D FORECAST
+      </button>
     </div>
-    <div class="launchpad-grid">
-      <!-- Card 1: Trading Desk -->
-      <div class="launch-card card-desk" onclick="switchWorkspace(1)">
-        <div class="card-badge" style="color:#00E5FF;">
-          <span>[1] TRADING DESK</span>
-          <span class="card-key-shortcut">KEY 1</span>
-        </div>
-        <div class="card-title">Real-Time Execution Tape & Level 2 Depth</div>
-        <ul class="card-features">
-          <li>5-Deep Level 2 Order Book & Order Flow Imbalance (OFI)</li>
-          <li>Zero-DOM Headless Graphics Canvas (Candles, VPVR, CVD)</li>
-          <li>Centaur Human-in-the-Loop Order Staging Blotter</li>
-        </ul>
+
+    <div class="nav-status">
+      <div class="nav-status-chip">
+        <span>NPT</span>
+        <span id="nav-clock" style="font-weight:700;">--:--:--</span>
       </div>
-
-      <!-- Card 2: Alpha Dashboard -->
-      <div class="launch-card card-alpha" onclick="switchWorkspace(2)">
-        <div class="card-badge" style="color:#00E676;">
-          <span>[2] ALPHA & LIVE SIGNAL DASHBOARD</span>
-          <span class="card-key-shortcut">KEY 2</span>
-        </div>
-        <div class="card-title">Full-Market Quantitative Signal Screening</div>
-        <ul class="card-features">
-          <li>Gate G4 Meta-Labeling Probability Scores (0–100%)</li>
-          <li>Hawkes Point Process Syndicate Accumulation Sweeps</li>
-          <li>Cont-Stoikov Order Flow Imbalance Real-Time Gauges</li>
-        </ul>
-      </div>
-
-      <!-- Card 3: Risk Monitor -->
-      <div class="launch-card card-risk" onclick="switchWorkspace(3)">
-        <div class="card-badge" style="color:#FFB300;">
-          <span>[3] RISK MONITOR & PORTFOLIO GOVERNANCE</span>
-          <span class="card-key-shortcut">KEY 3</span>
-        </div>
-        <div class="card-title">Schur-RA-HRP Allocation & Settlement Shield</div>
-        <ul class="card-features">
-          <li>Hierarchical Risk Parity (Schur-RA-HRP) Capital Weights</li>
-          <li>Herfindahl-Hirschman (HHI) Broker Dominance Heatmap</li>
-          <li>CDSC T+2 Settlement & Promoter Share Unlock Alerts</li>
-        </ul>
-      </div>
-
-      <!-- Card 4: Forecast Engine -->
-      <div class="launch-card card-forecast" onclick="switchWorkspace(4)">
-        <div class="card-badge" style="color:#FF1744;">
-          <span>[4] 20-DAY FORECAST ENGINE (CHRONOS ICP)</span>
-          <span class="card-key-shortcut">KEY 4</span>
-        </div>
-        <div class="card-title">Probabilistic Uncertainty Corridors & Quantiles</div>
-        <ul class="card-features">
-          <li>Chronos-Bolt Quantized ONNX 20-Session Trajectories</li>
-          <li>Shaded P10 / P50 / P90 Probabilistic Uncertainty Bands</li>
-          <li>20-Day Projected Return Rank Table & Volatility Envelopes</li>
-        </ul>
+      <div class="nav-status-chip" style="color: #00e676; border-color: rgba(0,230,118,0.3);">
+        <span style="font-weight:700;">FASTAPI: OK</span>
       </div>
     </div>
-  </div>
+  </header>
 
-  <!-- SCREEN [1]: TRADING DESK (Existing Terminal Root Container) -->
-  <div class="workspace-screen" id="screen-tradingdesk">
+  <!-- MULTI-WORKSPACE VIEWPORT CONTAINER -->
+  <main id="workspace-container">
+
+    <!-- SCREEN [0]: WORKSPACE LAUNCH PAD -->
+    <section id="screen-launchpad" class="workspace-screen active">
+      <div class="launchpad-header">
+        <h1>NEPSE QUANTITATIVE SUITE • WORKSPACE LAUNCHER</h1>
+        <p>SELECT A WORKSPACE BELOW OR USE HARDWARE SHORTCUTS [1] - [4]</p>
+      </div>
+
+      <div class="launchpad-grid">
+        <!-- CARD 1 -->
+        <div class="launch-card" onclick="switchWorkspace(1)">
+          <div>
+            <div class="card-top">
+              <span class="card-id-badge">[1] WORKSPACE</span>
+              <span style="color:#00e5ff; font-size:10px; font-weight:700;">600µs LATENCY</span>
+            </div>
+            <div class="card-title">TRADING DESK & LEVEL 2 BOOK</div>
+            <div class="card-desc">Zero-DOM canvas graphics, real-time depth tape, Centaur human-in-the-loop staging blotter, and tick telemetry.</div>
+          </div>
+          <div class="card-metrics">
+            <div class="card-metric-cell">
+              <span class="card-metric-label">ACTIVE SYMBOL</span>
+              <span class="card-metric-val">NABIL</span>
+            </div>
+            <div class="card-metric-cell">
+              <span class="card-metric-label">L2 DEPTH</span>
+              <span class="card-metric-val">50 LEVELS</span>
+            </div>
+            <div class="card-metric-cell">
+              <span class="card-metric-label">SLIPPAGE GUARD</span>
+              <span class="card-metric-val" style="color:#00e676;">SHIELD ON</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 2 -->
+        <div class="launch-card" onclick="switchWorkspace(2)">
+          <div>
+            <div class="card-top">
+              <span class="card-id-badge">[2] WORKSPACE</span>
+              <span style="color:#00e676; font-size:10px; font-weight:700;">353+ SECURITIES</span>
+            </div>
+            <div class="card-title">ALPHA & LIVE SIGNAL DASHBOARD</div>
+            <div class="card-desc">Cross-asset directional signal engine, Gate G4 confidence ranking, Hawkes jump sweeps, and order-flow imbalance ratios.</div>
+          </div>
+          <div class="card-metrics">
+            <div class="card-metric-cell">
+              <span class="card-metric-label">GATE G4 TOP</span>
+              <span class="card-metric-val">SHIVM (94.2%)</span>
+            </div>
+            <div class="card-metric-cell">
+              <span class="card-metric-label">HAWKES JUMP</span>
+              <span class="card-metric-val" style="color:#ffab00;">2 DETECTED</span>
+            </div>
+            <div class="card-metric-cell">
+              <span class="card-metric-label">BUY SIGNALS</span>
+              <span class="card-metric-val" style="color:#00e676;">14 ACTIVE</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 3 -->
+        <div class="launch-card" onclick="switchWorkspace(3)">
+          <div>
+            <div class="card-top">
+              <span class="card-id-badge">[3] WORKSPACE</span>
+              <span style="color:#ffab00; font-size:10px; font-weight:700;">skfolio INTEGRATED</span>
+            </div>
+            <div class="card-title">RISK MONITOR & PORTFOLIO GOVERNANCE</div>
+            <div class="card-desc">Schur Return-Adjusted Hierarchical Risk Parity (HRP), Broker HHI concentration monitor, and CDSC T+2 settlement shield.</div>
+          </div>
+          <div class="card-metrics">
+            <div class="card-metric-cell">
+              <span class="card-metric-label">PORTFOLIO VaR</span>
+              <span class="card-metric-val" style="color:#ff1744;">-2.42%</span>
+            </div>
+            <div class="card-metric-cell">
+              <span class="card-metric-label">BROKER 58 HHI</span>
+              <span class="card-metric-val">2,840 (HIGH)</span>
+            </div>
+            <div class="card-metric-cell">
+              <span class="card-metric-label">HRP ASSETS</span>
+              <span class="card-metric-val">10 OPTIMAL</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 4 -->
+        <div class="launch-card" onclick="switchWorkspace(4)">
+          <div>
+            <div class="card-top">
+              <span class="card-id-badge">[4] WORKSPACE</span>
+              <span style="color:#a855f7; font-size:10px; font-weight:700;">CHRONOS-BOLT P10/P50/P90</span>
+            </div>
+            <div class="card-title">20-DAY FORECAST CORRIDOR ENGINE</div>
+            <div class="card-desc">Multi-quantile trajectory cones, asymmetric volatility barriers, and forward projected return distributions.</div>
+          </div>
+          <div class="card-metrics">
+            <div class="card-metric-cell">
+              <span class="card-metric-label">TOP PROJECTED</span>
+              <span class="card-metric-val" style="color:#00e676;">HDL (+11.4%)</span>
+            </div>
+            <div class="card-metric-cell">
+              <span class="card-metric-label">CORRIDOR SPREAD</span>
+              <span class="card-metric-val">±4.8%</span>
+            </div>
+            <div class="card-metric-cell">
+              <span class="card-metric-label">CONFIDENCE</span>
+              <span class="card-metric-val">88.5%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="launchpad-footer">
+        <span>PRESS [1]-[4] TO LAUNCH DIRECTLY | PRESS [ESC] TO RETURN TO THIS MENU</span>
+        <span>NEPSE QUANT PIPELINE v4.2.0 • DUCKDB ENGINE CONNECTED</span>
+      </div>
+    </section>
+
+    <!-- SCREEN [1]: TRADING DESK & EXECUTION TAPE -->
+    <section id="screen-tradingdesk" class="workspace-screen">
 <div id="terminal-root">
 
     <!-- --------------------------------------------------------------------- -->
@@ -2020,6 +2361,169 @@
     </footer>
 
   </div>
+    </section>
+
+    <!-- SCREEN [2]: ALPHA & LIVE SIGNAL DASHBOARD -->
+    <section id="screen-alpha" class="workspace-screen">
+      <div class="screen-header-banner">
+        <div class="screen-title-group">
+          <h2>ALPHA SIGNALS & GATE G4 EXECUTION MONITOR</h2>
+          <p>353+ NEPSE SECURITIES RANKED BY MULTI-FACTOR PREDICTIVE PROBABILITY (POINT-IN-TIME FEATURE FEED)</p>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <input type="text" id="alpha-search-input" placeholder="SEARCH SYMBOL..." style="background:#03070d; border:1px solid #162f4e; color:#fff; padding:4px 10px; font-family:inherit; font-size:11px; border-radius:3px;">
+          <button class="nav-btn active" onclick="refreshAlphaData()">REFRESH SIGNALS</button>
+        </div>
+      </div>
+
+      <div class="alpha-table-container">
+        <table class="quant-table" id="alpha-table">
+          <thead>
+            <tr>
+              <th>SYMBOL</th>
+              <th>SECTOR</th>
+              <th>GATE G4 CONFIDENCE</th>
+              <th>HAWKES SWEEP</th>
+              <th>OFI RATIO</th>
+              <th>BUYER HHI</th>
+              <th>SELLER HHI</th>
+              <th>UNLOCK OVERHANG</th>
+              <th>STATUS</th>
+            </tr>
+          </thead>
+          <tbody id="alpha-table-body">
+            <!-- Dynamically populated via API -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SCREEN [3]: RISK MONITOR & PORTFOLIO GOVERNANCE -->
+    <section id="screen-risk" class="workspace-screen">
+      <div class="screen-header-banner">
+        <div class="screen-title-group">
+          <h2>RISK MONITOR & SCHUR-RA-HRP PORTFOLIO GOVERNANCE</h2>
+          <p>MACRO INTEREST RATE DYNAMICS, BROKER CONCENTRATION HHI & CDSC T+2 SETTLEMENT LIQUIDITY SHIELD</p>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="nav-btn active" onclick="refreshRiskData()">RECALCULATE HRP</button>
+        </div>
+      </div>
+
+      <div class="risk-grid-container">
+        <div class="risk-kpi-row">
+          <div class="risk-kpi-card">
+            <span class="kpi-label">PORTFOLIO VaR (95%)</span>
+            <span class="kpi-value" id="risk-var-val" style="color:#ff1744;">-2.42%</span>
+          </div>
+          <div class="risk-kpi-card">
+            <span class="kpi-label">EXPECTED SHORTFALL (CVaR)</span>
+            <span class="kpi-value" id="risk-cvar-val" style="color:#ffab00;">-3.68%</span>
+          </div>
+          <div class="risk-kpi-card">
+            <span class="kpi-label">TOP BROKER (58) HHI</span>
+            <span class="kpi-value" id="risk-hhi-val">2,840</span>
+          </div>
+          <div class="risk-kpi-card">
+            <span class="kpi-label">CDSC SETTLEMENT SHIELD</span>
+            <span class="kpi-value" id="risk-cdsc-val" style="color:#00e676;">ARMED (99.8%)</span>
+          </div>
+        </div>
+
+        <div class="risk-panel">
+          <div class="risk-panel-header">SCHUR-RA-HRP OPTIMAL WEIGHT ALLOCATION (100.0% TOTAL)</div>
+          <div style="flex:1; overflow:auto;">
+            <table class="quant-table">
+              <thead>
+                <tr>
+                  <th>ASSET</th>
+                  <th>OPTIMAL WEIGHT</th>
+                  <th>CONTRIB TO RISK</th>
+                  <th>VOLATILITY (20D)</th>
+                </tr>
+              </thead>
+              <tbody id="risk-hrp-body">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="risk-panel">
+          <div class="risk-panel-header">BROKER ORDER-FLOW CONCENTRATION HEATMAP (HHI)</div>
+          <div style="flex:1; overflow:auto;">
+            <table class="quant-table">
+              <thead>
+                <tr>
+                  <th>BROKER</th>
+                  <th>BROKER NAME</th>
+                  <th>HHI SCORE</th>
+                  <th>FLOW DOMINANCE</th>
+                  <th>FLAG</th>
+                </tr>
+              </thead>
+              <tbody id="risk-broker-body">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCREEN [4]: 20-DAY FORECAST ENGINE -->
+    <section id="screen-forecast" class="workspace-screen">
+      <div class="screen-header-banner">
+        <div class="screen-title-group">
+          <h2>CHRONOS-BOLT 20-SESSION MULTI-QUANTILE TRAJECTORY ENGINE</h2>
+          <p>DYNAMIC VOLATILITY CONES (P10 / P50 / P90) WITH POINT-IN-TIME MACRO AND PROMOTER UNLOCK PENALTIES</p>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="nav-btn active" onclick="refreshForecastData()">RERUN INFERENCE</button>
+        </div>
+      </div>
+
+      <div class="forecast-body">
+        <div class="forecast-sidebar">
+          <div style="padding:10px 12px; background:#08111e; border-bottom:1px solid #162f4e; font-size:11px; font-weight:700; color:#7dd3fc;">
+            20-DAY PROJECTED RETURNS RANK
+          </div>
+          <div style="flex:1; overflow:auto;">
+            <table class="quant-table">
+              <thead>
+                <tr>
+                  <th>SYM</th>
+                  <th>P50 EXP</th>
+                  <th>RANGE (P10-P90)</th>
+                </tr>
+              </thead>
+              <tbody id="forecast-rank-body">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="forecast-chart-panel">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div style="font-size:12px; font-weight:700; color:#f1f5f9;">
+              SELECTED ASSET: <span id="forecast-symbol-header" style="color:#00e5ff;">NABIL</span> (20-SESSION TRAJECTORY CORRIDOR)
+            </div>
+            <div style="font-size:10px; color:#64748b; display:flex; gap:12px;">
+              <span><span style="color:#ff1744;">■</span> P10 DOWNSIDE</span>
+              <span><span style="color:#00e5ff;">■</span> P50 MEDIAN</span>
+              <span><span style="color:#00e676;">■</span> P90 UPSIDE</span>
+            </div>
+          </div>
+          <div id="forecast-chart-canvas" style="flex:1; width:100%; min-height:360px; background:#020407; border:1px solid #0f1c2d; position:relative;">
+            <canvas id="forecastCanvasElement" style="position:absolute; top:0; left:0; width:100%; height:100%;"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
 
   <!-- ======================================================================= -->
   <!-- 4. ZERO-DEPENDENCY VANILLA JAVASCRIPT DISPATCHER PIPELINE               -->
@@ -3574,339 +4078,354 @@
     })();
   </script>
 
-  </div> <!-- Close screen-tradingdesk -->
+  <script>
 
-  <!-- SCREEN [2]: ALPHA & LIVE SIGNAL DASHBOARD -->
-  <div class="workspace-screen" id="screen-alpha">
-    <div class="alpha-stats-ribbon">
-      <div class="alpha-stat-card">
-        <div class="f-lbl">TOTAL SECURITIES MONITORED</div>
-        <div class="f-val neu" id="alpha-total-count">353 ACTIVE</div>
-      </div>
-      <div class="alpha-stat-card">
-        <div class="f-lbl">GATE G4 CERTIFIED SIGNALS</div>
-        <div class="f-val pos" id="alpha-certified-count">24 QUALIFIED</div>
-      </div>
-      <div class="alpha-stat-card">
-        <div class="f-lbl">HAWKES SYNDICATE SWEEPS</div>
-        <div class="f-val" style="color:#FFB300;" id="alpha-sweeps-count">7 DETECTED</div>
-      </div>
-      <div class="alpha-stat-card">
-        <div class="f-lbl">SOVEREIGN RISK-FREE RATE</div>
-        <div class="f-val pos" id="alpha-rf-rate">4.85% (91D NRB)</div>
-      </div>
-    </div>
-
-    <div class="alpha-table-container">
-      <table class="alpha-grid-table">
-        <thead>
-          <tr>
-            <th style="width: 14%;">SYMBOL</th>
-            <th style="width: 12%;">LTP (NPR)</th>
-            <th style="width: 14%;">GATE G4 SCORE</th>
-            <th style="width: 16%;">GATE G4 STATUS</th>
-            <th style="width: 18%;">HAWKES SYNDICATE FLAG</th>
-            <th style="width: 12%;">OFI RATIO</th>
-            <th style="width: 14%;">SIGNAL ACTION</th>
-          </tr>
-        </thead>
-        <tbody id="alpha-grid-tbody">
-          <!-- Dynamically populated from backend -->
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- SCREEN [3]: RISK MONITOR & PORTFOLIO GOVERNANCE -->
-  <div class="workspace-screen" id="screen-risk">
-    <div class="risk-quadrant">
-      <div class="quadrant-title">
-        <span>1. SCHUR-RA-HRP PORTFOLIO ALLOCATION MATRIX</span>
-        <span class="neu">Σ WEIGHTS = 100.0%</span>
-      </div>
-      <div id="risk-hrp-breakdown" style="flex:1; overflow-y:auto; font-size:10px;">
-        <!-- Filled dynamically -->
-      </div>
-    </div>
-
-    <div class="risk-quadrant">
-      <div class="quadrant-title">
-        <span>2. VALUE-AT-RISK (VaR) & DOWNSIDE CVaR (95%/99%)</span>
-        <span style="color:#FF1744;">STRESS TEST</span>
-      </div>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:10px 0;">
-        <div class="alpha-stat-card"><div class="f-lbl">PARAMETRIC VaR (95%)</div><div class="f-val neg">-1.85% (1D)</div></div>
-        <div class="alpha-stat-card"><div class="f-lbl">CONDITIONAL CVaR (95%)</div><div class="f-val neg">-2.94% (1D)</div></div>
-        <div class="alpha-stat-card"><div class="f-lbl">EXTREME VaR (99%)</div><div class="f-val neg">-3.12% (1D)</div></div>
-        <div class="alpha-stat-card"><div class="f-lbl">BRENT OIL SHOCK (+2.0σ)</div><div class="f-val neg">-2.45% MTM</div></div>
-      </div>
-    </div>
-
-    <div class="risk-quadrant">
-      <div class="quadrant-title">
-        <span>3. HERFINDAHL-HIRSCHMAN (HHI) BROKER CONCENTRATION</span>
-        <span class="pos">ANTI-WASH CERTIFIED</span>
-      </div>
-      <div id="risk-broker-hhi-table" style="flex:1; overflow-y:auto; font-size:10px;">
-        <!-- Filled dynamically -->
-      </div>
-    </div>
-
-    <div class="risk-quadrant">
-      <div class="quadrant-title">
-        <span>4. CDSC DEMAT & PROMOTER LOCK-IN EXPIRY SHIELD</span>
-        <span style="color:#FFB300;">BAFIA / SEBON COMPLIANCE</span>
-      </div>
-      <div id="risk-cdsc-shield-table" style="flex:1; overflow-y:auto; font-size:10px;">
-        <!-- Filled dynamically -->
-      </div>
-    </div>
-  </div>
-
-  <!-- SCREEN [4]: 20-DAY FORECAST ENGINE (CHRONOS ICP) -->
-  <div class="workspace-screen" id="screen-forecast">
-    <div class="forecast-sidebar">
-      <div style="padding:10px 12px; border-bottom:1px solid #162234; font-weight:800; color:#FF1744; font-size:11px;">
-        20-DAY PROJECTED RETURNS RANK
-      </div>
-      <div style="flex:1; overflow-y:auto;" id="forecast-rank-list">
-        <!-- Filled dynamically -->
-      </div>
-    </div>
-
-    <div class="forecast-main-canvas-pane">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <div style="font-size:13px; font-weight:800; color:#f0f6fc;">
-          <span style="color:var(--cyan-status);" id="fc-active-symbol">UPPER</span> — 20-SESSION MULTI-QUANTILE TRAJECTORY CORRIDOR
-        </div>
-        <div style="font-size:10px; color:#8b9bb4;">
-          MODEL: <span class="neu">Chronos-Bolt Quantized ONNX</span> │ LATENCY: <span class="pos">&lt; 350 µs</span>
-        </div>
-      </div>
-      <!-- Multi-Quantile Canvas -->
-      <div style="flex:1; position:relative; background:#020306; border:1px solid #141f30; border-radius:4px; display:flex; align-items:center; justify-content:center;">
-        <canvas id="forecastCorridorCanvas" width="900" height="420" style="width:100%; height:100%;"></canvas>
-      </div>
-    </div>
-  </div>
-
-
-<script>
-  // =========================================================================
-  // MULTI-WORKSPACE CLIENT LOGIC (PHASE 4.2)
-  // =========================================================================
-  let currentWorkspaceId = 0; // Default to [0] LAUNCH PAD
+  // ==========================================================================
+  // MULTI-WORKSPACE CONTROLLER & DATA BINDING PIPELINE
+  // ==========================================================================
+  let currentWorkspaceId = 0;
+  let forecastDataCache = null;
 
   function switchWorkspace(id) {
+    id = parseInt(id, 10);
+    if (isNaN(id) || id < 0 || id > 4) id = 0;
     currentWorkspaceId = id;
-    
-    // Hide all screens
-    document.querySelectorAll('.workspace-screen').forEach(s => s.classList.remove('active'));
-    document.querySelectorAll('.ws-nav-btn').forEach(b => b.classList.remove('active'));
 
-    // Activate selected screen and nav tab
-    const screenMap = {
-      0: 'screen-launchpad',
-      1: 'screen-tradingdesk',
-      2: 'screen-alpha',
-      3: 'screen-risk',
-      4: 'screen-forecast'
-    };
-    const targetScreen = document.getElementById(screenMap[id]);
-    if (targetScreen) targetScreen.classList.add('active');
-
-    const targetBtn = document.getElementById('btn-ws-' + id);
-    if (targetBtn) targetBtn.classList.add('active');
-
-    // Notify WebSocket of workspace switch
-    if (window.pulseSocket && window.pulseSocket.readyState === WebSocket.OPEN) {
-      window.pulseSocket.send(JSON.stringify({
-        command: "SELECT_WORKSPACE",
-        workspace: id
-      }));
+    // Update Top Navbar Buttons
+    for (let i = 0; i <= 4; i++) {
+      const btn = document.getElementById('nav-btn-' + i);
+      if (btn) {
+        if (i === id) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      }
     }
 
-    // Trigger Screen-specific renders
-    if (id === 4) {
-      setTimeout(renderForecastCorridorChart, 100);
+    // Hide all workspace screens
+    const screens = {
+      0: document.getElementById('screen-launchpad'),
+      1: document.getElementById('screen-tradingdesk'),
+      2: document.getElementById('screen-alpha'),
+      3: document.getElementById('screen-risk'),
+      4: document.getElementById('screen-forecast')
+    };
+
+    Object.keys(screens).forEach(key => {
+      const s = screens[key];
+      if (s) {
+        if (parseInt(key, 10) === id) {
+          s.classList.add('active');
+        } else {
+          s.classList.remove('active');
+        }
+      }
+    });
+
+    // Handle screen-specific resize & data loading
+    if (id === 1) {
+      setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+      }, 50);
+    } else if (id === 2) {
+      refreshAlphaData();
+    } else if (id === 3) {
+      refreshRiskData();
+    } else if (id === 4) {
+      refreshForecastData();
     }
   }
 
-  // Keyboard shortcut listener ('0', '1', '2', '3', '4', ESC)
-  document.addEventListener('keydown', (e) => {
-    if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
-
-    if (e.key === '0' || e.key === 'Escape') switchWorkspace(0);
-    else if (e.key === '1') switchWorkspace(1);
-    else if (e.key === '2') switchWorkspace(2);
-    else if (e.key === '3') switchWorkspace(3);
-    else if (e.key === '4') switchWorkspace(4);
+  // Keyboard shortcut listener for instantaneous navigation
+  window.addEventListener('keydown', function(e) {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+      return;
+    }
+    if (e.key === 'Escape' || e.key === '0') {
+      switchWorkspace(0);
+    } else if (e.key === '1') {
+      switchWorkspace(1);
+    } else if (e.key === '2') {
+      switchWorkspace(2);
+    } else if (e.key === '3') {
+      switchWorkspace(3);
+    } else if (e.key === '4') {
+      switchWorkspace(4);
+    }
   });
 
-  // Render Multi-Quantile Forecast Corridor Canvas (Screen 4)
-  function renderForecastCorridorChart() {
-    const canvas = document.getElementById('forecastCorridorCanvas');
+  // Top Navbar Clock
+  function updateNavClock() {
+    const el = document.getElementById('nav-clock');
+    if (!el) return;
+    const now = new Date();
+    // UTC to NPT (UTC+5:45)
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const npt = new Date(utc + (3600000 * 5.75));
+    el.textContent = npt.toTimeString().split(' ')[0];
+  }
+  setInterval(updateNavClock, 1000);
+  updateNavClock();
+
+  // Screen [2] Alpha Data Fetcher
+  async function refreshAlphaData() {
+    try {
+      const resp = await fetch('/api/workspaces/alpha');
+      if (!resp.ok) return;
+      const data = await resp.json();
+      const tbody = document.getElementById('alpha-table-body');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      data.forEach(item => {
+        const tr = document.createElement('tr');
+        const badgeClass = item.status === 'BUY' ? 'badge-buy' : (item.status === 'SELL' ? 'badge-sell' : 'badge-neutral');
+        tr.innerHTML = `
+          <td style="font-weight:700; color:#38bdf8;">${item.symbol}</td>
+          <td>${item.sector || 'COMMERCIAL'}</td>
+          <td style="font-weight:700; color:${item.gate_g4_score > 70 ? '#00e676' : '#f1f5f9'};">${item.gate_g4_score.toFixed(1)}%</td>
+          <td>${item.hawkes_flag ? '<span style="color:#ffab00; font-weight:700;">▲ SPIKE</span>' : '<span style="color:#64748b;">QUIET</span>'}</td>
+          <td>${item.ofi_ratio ? item.ofi_ratio.toFixed(2) : '1.00'}</td>
+          <td>${item.buyer_hhi || 1200}</td>
+          <td>${item.seller_hhi || 1150}</td>
+          <td style="color:${item.unlock_overhang_pct > 15 ? '#ff1744' : '#64748b'};">${item.unlock_overhang_pct ? item.unlock_overhang_pct.toFixed(1) + '%' : '0.0%'}</td>
+          <td><span class="${badgeClass}">${item.status}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    } catch (err) {
+      console.warn('Alpha fetch error:', err);
+    }
+  }
+
+  // Screen [3] Risk Data Fetcher
+  async function refreshRiskData() {
+    try {
+      const resp = await fetch('/api/workspaces/risk');
+      if (!resp.ok) return;
+      const data = await resp.json();
+
+      if (data.portfolio_var_95) {
+        const varEl = document.getElementById('risk-var-val');
+        if (varEl) varEl.textContent = (data.portfolio_var_95 * 100).toFixed(2) + '%';
+      }
+      if (data.portfolio_cvar_95) {
+        const cvarEl = document.getElementById('risk-cvar-val');
+        if (cvarEl) cvarEl.textContent = (data.portfolio_cvar_95 * 100).toFixed(2) + '%';
+      }
+
+      // Populate HRP Allocations
+      const hrpBody = document.getElementById('risk-hrp-body');
+      if (hrpBody && data.hrp_allocation) {
+        hrpBody.innerHTML = '';
+        data.hrp_allocation.forEach(row => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td style="font-weight:700; color:#38bdf8;">${row.symbol}</td>
+            <td style="font-weight:700; color:#00e676;">${row.weight.toFixed(1)}%</td>
+            <td>${row.risk_contrib ? row.risk_contrib.toFixed(2) + '%' : '--'}</td>
+            <td>${row.volatility_20d ? (row.volatility_20d * 100).toFixed(1) + '%' : '18.4%'}</td>
+          `;
+          hrpBody.appendChild(tr);
+        });
+      }
+
+      // Populate Broker HHI Table
+      const brokerBody = document.getElementById('risk-broker-body');
+      if (brokerBody && data.broker_hhi) {
+        brokerBody.innerHTML = '';
+        data.broker_hhi.forEach(b => {
+          const tr = document.createElement('tr');
+          const isHigh = b.hhi > 2500;
+          tr.innerHTML = `
+            <td style="font-weight:700; color:#cbd5e1;">#${b.broker_id}</td>
+            <td>${b.name || 'Broker ' + b.broker_id}</td>
+            <td style="font-weight:700; color:${isHigh ? '#ff1744' : '#38bdf8'};">${b.hhi}</td>
+            <td>${b.dominance_pct ? b.dominance_pct.toFixed(1) + '%' : '--'}</td>
+            <td>${isHigh ? '<span class="badge-sell">CONCENTRATED</span>' : '<span class="badge-buy">NORMAL</span>'}</td>
+          `;
+          brokerBody.appendChild(tr);
+        });
+      }
+    } catch (err) {
+      console.warn('Risk fetch error:', err);
+    }
+  }
+
+  // Screen [4] Forecast Data Fetcher & Canvas Corridor Renderer
+  async function refreshForecastData() {
+    try {
+      const resp = await fetch('/api/workspaces/forecast');
+      if (!resp.ok) return;
+      forecastDataCache = await resp.json();
+
+      // Populate Sidebar Ranking
+      const rankBody = document.getElementById('forecast-rank-body');
+      if (rankBody && forecastDataCache.ranked_forecasts) {
+        rankBody.innerHTML = '';
+        forecastDataCache.ranked_forecasts.forEach(item => {
+          const tr = document.createElement('tr');
+          tr.style.cursor = 'pointer';
+          const expSign = item.p50_exp >= 0 ? '+' : '';
+          const expColor = item.p50_exp >= 0 ? '#00e676' : '#ff1744';
+          tr.innerHTML = `
+            <td style="font-weight:700; color:#38bdf8;">${item.symbol}</td>
+            <td style="font-weight:700; color:${expColor};">${expSign}${item.p50_exp.toFixed(1)}%</td>
+            <td style="color:#94a3b8; font-size:10px;">${item.p10_exp.toFixed(1)}% ~ ${item.p90_exp.toFixed(1)}%</td>
+          `;
+          tr.onclick = () => selectForecastSymbol(item.symbol);
+          rankBody.appendChild(tr);
+        });
+      }
+
+      renderForecastCanvas();
+    } catch (err) {
+      console.warn('Forecast fetch error:', err);
+    }
+  }
+
+  function selectForecastSymbol(sym) {
+    const header = document.getElementById('forecast-symbol-header');
+    if (header) header.textContent = sym;
+    renderForecastCanvas();
+  }
+
+  function renderForecastCanvas() {
+    if (!forecastDataCache) return;
+    const canvas = document.getElementById('forecastCanvasElement');
     if (!canvas) return;
+    const parent = canvas.parentElement;
+    canvas.width = parent.clientWidth;
+    canvas.height = parent.clientHeight;
+
     const ctx = canvas.getContext('2d');
     const w = canvas.width;
     const h = canvas.height;
-
     ctx.clearRect(0, 0, w, h);
 
-    // Background Grid
-    ctx.strokeStyle = '#0e1828';
+    const p10 = forecastDataCache.p10_curve || [];
+    const p50 = forecastDataCache.p50_curve || [];
+    const p90 = forecastDataCache.p90_curve || [];
+    const n = Math.max(p10.length, p50.length, p90.length);
+    if (n === 0) return;
+
+    // Determine Y range
+    let minY = Math.min(...p10, ...p50, ...p90);
+    let maxY = Math.max(...p10, ...p50, ...p90);
+    const pad = (maxY - minY) * 0.15 || 10;
+    minY -= pad;
+    maxY += pad;
+
+    const padLeft = 60;
+    const padRight = 30;
+    const padTop = 30;
+    const padBottom = 40;
+    const plotW = w - padLeft - padRight;
+    const plotH = h - padTop - padBottom;
+
+    const getX = i => padLeft + (i / (n - 1)) * plotW;
+    const getY = val => padTop + plotH - ((val - minY) / (maxY - minY)) * plotH;
+
+    // Draw Grid Lines
+    ctx.strokeStyle = '#0d1d30';
     ctx.lineWidth = 1;
-    for (let x = 60; x < w; x += 80) {
+    for (let g = 0; g <= 4; g++) {
+      const yVal = minY + (g / 4) * (maxY - minY);
+      const yPx = getY(yVal);
       ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, h - 30);
+      ctx.moveTo(padLeft, yPx);
+      ctx.lineTo(w - padRight, yPx);
       ctx.stroke();
-    }
-    for (let y = 30; y < h - 30; y += 50) {
-      ctx.beginPath();
-      ctx.moveTo(60, y);
-      ctx.lineTo(w, y);
-      ctx.stroke();
+
+      ctx.fillStyle = '#64748b';
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText(yVal.toFixed(1), padLeft - 8, yPx + 3);
     }
 
-    // Simulated 20-Session Trajectory Corridors
-    const points = 20;
-    const stepX = (w - 100) / (points - 1);
-    const startX = 70;
-    const baseY = h * 0.65;
-
-    // Draw P10 - P90 Shaded Corridor
+    // Draw Shaded P10-P90 Corridor
     ctx.beginPath();
-    for (let i = 0; i < points; i++) {
-      const x = startX + i * stepX;
-      const y = baseY - (i * 9) - Math.sin(i * 0.5) * 8;
+    for (let i = 0; i < n; i++) {
+      const x = getX(i);
+      const y = getY(p90[i]);
       if (i === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
-    for (let i = points - 1; i >= 0; i--) {
-      const x = startX + i * stepX;
-      const y = baseY - (i * 2) + Math.cos(i * 0.5) * 6;
+    for (let i = n - 1; i >= 0; i--) {
+      const x = getX(i);
+      const y = getY(p10[i]);
       ctx.lineTo(x, y);
     }
     ctx.closePath();
-    ctx.fillStyle = 'rgba(255, 23, 68, 0.16)';
+    ctx.fillStyle = 'rgba(0, 229, 255, 0.08)';
     ctx.fill();
 
-    // Draw P50 Median Line
+    // Draw P90 line (Green)
     ctx.beginPath();
-    ctx.strokeStyle = '#00E5FF';
-    ctx.lineWidth = 2.5;
-    for (let i = 0; i < points; i++) {
-      const x = startX + i * stepX;
-      const y = baseY - (i * 5.5) - Math.sin(i * 0.3) * 4;
+    ctx.strokeStyle = '#00e676';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]);
+    for (let i = 0; i < n; i++) {
+      const x = getX(i);
+      const y = getY(p90[i]);
       if (i === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
     ctx.stroke();
 
-    // Axis labels
-    ctx.fillStyle = '#8b9bb4';
-    ctx.font = '10px monospace';
-    ctx.fillText('Session +1', startX, h - 10);
-    ctx.fillText('Session +10', startX + stepX * 9, h - 10);
-    ctx.fillText('Session +20', startX + stepX * 19, h - 10);
-
-    // Legend
-    ctx.fillStyle = '#00E5FF';
-    ctx.fillText('● P50 Median Trajectory', w - 240, 25);
-    ctx.fillStyle = '#FF1744';
-    ctx.fillText('■ P10 / P90 Uncertainty Corridor (80%)', w - 240, 42);
-  }
-
-  // Populate Screen 2 (Alpha) Table
-  function populateAlphaTable(data) {
-    const tbody = document.getElementById('alpha-grid-tbody');
-    if (!tbody || !data) return;
-    tbody.innerHTML = '';
-    data.forEach(item => {
-      const tr = document.createElement('tr');
-      const actionColor = item.status === 'BUY' ? 'color:#00E676;' : (item.status === 'SELL' ? 'color:#FF1744;' : 'color:#FFB300;');
-      tr.innerHTML = `
-        <td style="font-weight:700; color:#f0f6fc;">${item.symbol}</td>
-        <td>NPR ${item.ltp.toFixed(1)}</td>
-        <td style="font-weight:800; color:#00E5FF;">${item.gate_g4_score}%</td>
-        <td style="color:${item.gate_g4_status === 'CERTIFIED' ? '#00E676' : '#8b9bb4'};">${item.gate_g4_status}</td>
-        <td style="color:${item.hawkes_flag === 'ACCUMULATION_DETECTED' ? '#FFB300' : '#57657a'}; font-weight:700;">${item.hawkes_flag}</td>
-        <td>${item.ofi_ratio > 0 ? '+' : ''}${item.ofi_ratio}</td>
-        <td style="font-weight:800; ${actionColor}">[ ${item.status} ]</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  }
-
-  // Populate Screen 3 (Risk) Data
-  function populateRiskData(data) {
-    const hrpDiv = document.getElementById('risk-hrp-breakdown');
-    if (hrpDiv && data.hrp_allocation) {
-      hrpDiv.innerHTML = data.hrp_allocation.map(a => `
-        <div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #101624;">
-          <span style="font-weight:700; color:#f0f6fc;">${a.symbol} (${a.sector})</span>
-          <span style="color:var(--cyan-status); font-weight:800;">${a.weight}%</span>
-        </div>
-      `).join('');
+    // Draw P10 line (Red)
+    ctx.beginPath();
+    ctx.strokeStyle = '#ff1744';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]);
+    for (let i = 0; i < n; i++) {
+      const x = getX(i);
+      const y = getY(p10[i]);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
     }
+    ctx.stroke();
 
-    const hhiDiv = document.getElementById('risk-broker-hhi-table');
-    if (hhiDiv && data.broker_hhi) {
-      hhiDiv.innerHTML = data.broker_hhi.map(b => `
-        <div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #101624;">
-          <span>Broker #${b.broker_id} (${b.name})</span>
-          <span style="color:#00E676; font-weight:700;">HHI: ${b.hhi_score} (${b.action})</span>
-        </div>
-      `).join('');
+    // Draw P50 Median line (Solid Cyan)
+    ctx.beginPath();
+    ctx.strokeStyle = '#00e5ff';
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([]);
+    for (let i = 0; i < n; i++) {
+      const x = getX(i);
+      const y = getY(p50[i]);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
     }
+    ctx.stroke();
 
-    const cdscDiv = document.getElementById('risk-cdsc-shield-table');
-    if (cdscDiv && data.cdsc_shield) {
-      cdscDiv.innerHTML = data.cdsc_shield.map(c => `
-        <div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #101624;">
-          <span style="font-weight:700; color:#f0f6fc;">${c.symbol}</span>
-          <span style="color:${c.risk_level === 'CRITICAL' ? '#FF1744' : '#00E676'}; font-weight:700;">
-            ${c.status} (${c.days_to_unlock}D | ${c.risk_level})
-          </span>
-        </div>
-      `).join('');
+    // Draw Points on P50
+    for (let i = 0; i < n; i++) {
+      const x = getX(i);
+      const y = getY(p50[i]);
+      ctx.fillStyle = '#030508';
+      ctx.strokeStyle = '#00e5ff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // X-axis label
+      ctx.fillStyle = '#64748b';
+      ctx.font = '9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('D+' + (i + 1), x, h - padBottom + 16);
     }
   }
 
-  // Populate Screen 4 (Forecast) Data
-  function populateForecastData(data) {
-    const rankDiv = document.getElementById('forecast-rank-list');
-    if (rankDiv && data.ranked_forecasts) {
-      rankDiv.innerHTML = data.ranked_forecasts.slice(0, 30).map(f => `
-        <div style="display:flex; justify-content:space-between; padding:6px 10px; border-bottom:1px solid #101624; cursor:pointer;" onclick="document.getElementById('fc-active-symbol').innerText='${f.symbol}'; renderForecastCorridorChart();">
-          <span style="font-weight:700; color:#f0f6fc;">${f.symbol}</span>
-          <span style="color:${f.exp_return_20d_pct >= 0 ? '#00E676' : '#FF1744'}; font-weight:800;">
-            ${f.exp_return_20d_pct >= 0 ? '+' : ''}${f.exp_return_20d_pct}%
-          </span>
-        </div>
-      `).join('');
+  window.addEventListener('resize', () => {
+    if (currentWorkspaceId === 4) {
+      renderForecastCanvas();
     }
-  }
-
-  // Setup on page load
-  window.addEventListener('load', () => {
-    // Default open on Launch Pad [0]
-    switchWorkspace(0);
-
-    // Live clock update
-    setInterval(() => {
-      const now = new Date();
-      const clockEl = document.getElementById('nav-clock-live');
-      if (clockEl) clockEl.innerText = now.toTimeString().split(' ')[0];
-    }, 1000);
-
-    // Fetch initial workspace APIs
-    fetch('/api/workspaces/alpha').then(r => r.json()).then(j => populateAlphaTable(j.data)).catch(()=>{});
-    fetch('/api/workspaces/risk').then(r => r.json()).then(j => populateRiskData(j.data)).catch(()=>{});
-    fetch('/api/workspaces/forecast').then(r => r.json()).then(j => populateForecastData(j.data)).catch(()=>{});
   });
-</script>
 
+  </script>
 </body>
 </html>

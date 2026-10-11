@@ -1,0 +1,3227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NEPSE PULSE TERMINAL | QUANTITATIVE DESK</title>
+  <script src="assets/lightweight-charts.standalone.production.js"></script>
+  <script src="assets/echarts.min.js"></script>
+  <style>
+    /* ========================================================================= */
+    /* 1. RIGID DESKTOP FOUNDATION: ZERO SCROLL, FIXED VIEWPORT, MONOSPACE       */
+    /* ========================================================================= */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      position: fixed;
+      top: 0;
+      left: 0;
+      background-color: #030508;
+      color: #c9d1d9;
+      font-family: 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
+      font-size: 11px;
+      line-height: 1.25;
+      font-variant-numeric: tabular-nums;
+      cursor: crosshair;
+    }
+
+    /* ========================================================================= */
+    /* 2. STARK QUANT PALETTE & MICRO-UTILITIES                                 */
+    /* ========================================================================= */
+    :root {
+      --bg-black: #020306;
+      --bg-panel: #070a10;
+      --bg-subpanel: #0c1018;
+      --border-dark: #151c28;
+      --border-highlight: #222d40;
+      --green-advance: #00E676;
+      --green-bg: rgba(0, 230, 118, 0.12);
+      --red-decline: #FF1744;
+      --red-bg: rgba(255, 23, 68, 0.12);
+      --cyan-status: #00E5FF;
+      --amber-warn: #FFB300;
+      --text-muted: #57657a;
+      --text-bright: #f0f6fc;
+    }
+
+    .pos { color: var(--green-advance); }
+    .neg { color: var(--red-decline); }
+    .neu { color: var(--cyan-status); }
+    .muted { color: var(--text-muted); }
+    .bold { font-weight: 700; }
+
+    /* Flash transitions for real-time tick updates */
+    .flash-up {
+      background-color: rgba(0, 230, 118, 0.35) !important;
+      transition: background-color 0.4s ease-out;
+    }
+    .flash-down {
+      background-color: rgba(255, 23, 68, 0.35) !important;
+      transition: background-color 0.4s ease-out;
+    }
+
+    /* ========================================================================= */
+    /* 3. TERMINAL SHELL GRID: 4-ROW (TAPE, MACRO, ANALYTICAL, TELEMETRY)      */
+    /* ========================================================================= */
+    #terminal-root {
+      display: grid;
+      grid-template-rows: 28px 28px 1fr 130px;
+      width: 100vw;
+      height: 100vh;
+      border: 1px solid var(--border-dark);
+      background-color: var(--bg-black);
+    }
+
+    /* ------------------------------------------------------------------------- */
+    /* BUCKET 1: GLOBAL HIGH-FREQUENCY TICKER TAPE                               */
+    /* ------------------------------------------------------------------------- */
+    #tape-container {
+      grid-row: 1;
+      display: flex;
+      align-items: center;
+      background-color: #05070c;
+      border-bottom: 1px solid var(--border-dark);
+      overflow: hidden;
+      white-space: nowrap;
+      position: relative;
+    }
+
+    #tape-badge {
+      flex-shrink: 0;
+      background-color: #0e1422;
+      color: var(--cyan-status);
+      font-weight: 800;
+      font-size: 10px;
+      padding: 0 10px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      border-right: 1px solid var(--border-highlight);
+      letter-spacing: 1px;
+      z-index: 2;
+    }
+
+    #tape-stream {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding-left: 12px;
+      will-change: transform;
+    }
+
+    .tape-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 6px;
+      border-radius: 2px;
+      background-color: #080c14;
+    }
+
+    .session-pill {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 10px;
+      height: 100%;
+      font-size: 9.5px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      border-right: 1px solid var(--border-highlight);
+      z-index: 2;
+    }
+    .session-pill.closed {
+      background-color: rgba(255, 179, 0, 0.12);
+      color: #ffb300;
+    }
+    .session-pill.live {
+      background-color: rgba(0, 230, 118, 0.14);
+      color: var(--green-advance);
+    }
+    .pill-dot {
+      font-size: 8px;
+    }
+    .session-pill.live .pill-dot {
+      animation: pulse-dot 0.8s infinite alternate;
+    }
+    @keyframes pulse-dot {
+      from { opacity: 0.3; }
+      to { opacity: 1.0; }
+    }
+    .pill-sub {
+      color: #8b949e;
+      font-size: 9px;
+      font-weight: 500;
+    }
+    .btn-sim-toggle {
+      flex-shrink: 0;
+      background-color: #0e1422;
+      border: 1px solid #21262d;
+      color: #8b949e;
+      padding: 2px 8px;
+      font-size: 9px;
+      font-family: inherit;
+      border-radius: 2px;
+      cursor: pointer;
+      margin: 0 6px;
+      transition: all 0.2s;
+    }
+    .btn-sim-toggle:hover {
+      border-color: var(--cyan-status);
+      color: #f0f6fc;
+    }
+    .btn-sim-toggle.active {
+      background-color: rgba(0, 229, 255, 0.2);
+      border-color: var(--cyan-status);
+      color: var(--cyan-status);
+      font-weight: 700;
+    }
+    .tape-closed-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      background-color: rgba(255, 179, 0, 0.15);
+      border: 1px solid rgba(255, 179, 0, 0.3);
+      color: #ffb300;
+      font-size: 9.5px;
+      font-weight: 700;
+      border-radius: 2px;
+    }
+
+    /* ------------------------------------------------------------------------- */
+    /* BUCKET 1.5: NEPSE SOVEREIGN MARKET MACRO SUMMARY RIBBON                   */
+    /* ------------------------------------------------------------------------- */
+    #macro-ribbon {
+      grid-row: 2;
+      display: flex;
+      align-items: center;
+      background-color: #04070d;
+      border-bottom: 1px solid var(--border-dark);
+      overflow-x: auto;
+      overflow-y: hidden;
+      white-space: nowrap;
+      padding: 0 10px;
+      gap: 14px;
+      font-size: 9.5px;
+      scrollbar-width: none;
+    }
+    #macro-ribbon::-webkit-scrollbar { display: none; }
+    .macro-cell {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .macro-label {
+      color: var(--text-muted);
+      font-size: 8px;
+      letter-spacing: 0.6px;
+      font-weight: 700;
+    }
+    .macro-val {
+      font-weight: 800;
+      color: #f0f6fc;
+      font-size: 10px;
+    }
+    .macro-badge {
+      font-size: 8.5px;
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+    .macro-badge.pos {
+      background: rgba(0, 230, 118, 0.15);
+      color: var(--green-advance);
+    }
+    .macro-badge.neg {
+      background: rgba(255, 23, 68, 0.15);
+      color: var(--red-decline);
+    }
+    .macro-sep {
+      width: 1px;
+      height: 14px;
+      background-color: #141c2c;
+      flex-shrink: 0;
+    }
+    .breadth-ratio-container {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .breadth-bar {
+      width: 44px;
+      height: 5px;
+      background-color: rgba(255, 23, 68, 0.5);
+      border-radius: 2px;
+      overflow: hidden;
+      display: inline-block;
+    }
+    .breadth-fill-adv {
+      height: 100%;
+      background-color: var(--green-advance);
+      width: 51.6%;
+    }
+
+    /* ------------------------------------------------------------------------- */
+    /* BUCKET 2: 3-COLUMN ANALYTICAL DOCK GRID                                   */
+    /* ------------------------------------------------------------------------- */
+    #analytical-dock {
+      grid-row: 3;
+      display: grid;
+      grid-template-columns: 330px 1fr 370px;
+      gap: 2px;
+      background-color: var(--border-dark);
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .dock-pane {
+      background-color: var(--bg-panel);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .pane-header {
+      height: 24px;
+      background-color: #090d16;
+      border-bottom: 1px solid var(--border-dark);
+      padding: 0 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #8b949e;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+    }
+
+    .pane-header span.highlight {
+      color: var(--cyan-status);
+    }
+
+    /* COLUMN 1: LEVEL 2 MARKET DEPTH (ORDER BOOK) */
+    #order-book-pane {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .book-summary {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      padding: 6px 8px;
+      background-color: #05080e;
+      border-bottom: 1px solid var(--border-dark);
+      font-size: 10px;
+    }
+
+    .book-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .book-table th {
+      padding: 4px 6px;
+      font-size: 9px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-dark);
+      background-color: #060910;
+      text-align: right;
+    }
+    .book-table th:first-child { text-align: left; }
+
+    .book-table td {
+      padding: 3px 6px;
+      font-size: 10.5px;
+      text-align: right;
+      position: relative;
+      height: 20px;
+    }
+    .book-table td:first-child { text-align: left; }
+
+    .depth-bar-bid {
+      position: absolute;
+      top: 1px;
+      bottom: 1px;
+      right: 0;
+      background-color: rgba(0, 230, 118, 0.14);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .depth-bar-ask {
+      position: absolute;
+      top: 1px;
+      bottom: 1px;
+      left: 0;
+      background-color: rgba(255, 23, 68, 0.14);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .book-table td span {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* COLUMN 2: HEADLESS GRAPHICS INJECTION PANE */
+    #chart-pane {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      position: relative;
+      background-color: #020306;
+    }
+
+    #chart-toolbar {
+      min-height: 28px;
+      height: auto;
+      background-color: #070b12;
+      border-bottom: 1px solid var(--border-dark);
+      padding: 3px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .toolbar-buttons {
+      display: flex;
+      gap: 3px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .toolbar-metrics {
+      font-size: 9.5px;
+      color: var(--text-muted);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      white-space: nowrap;
+      margin-left: auto;
+    }
+
+    .btn-toggle {
+      background-color: #0e1422;
+      border: 1px solid var(--border-highlight);
+      color: #8b949e;
+      padding: 2px 6px;
+      font-size: 9px;
+      font-family: inherit;
+      border-radius: 2px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .btn-toggle:hover {
+      border-color: var(--cyan-status);
+      color: #f0f6fc;
+    }
+    .btn-toggle.active {
+      background-color: rgba(0, 229, 255, 0.18);
+      border-color: var(--cyan-status);
+      color: var(--cyan-status);
+      font-weight: 700;
+    }
+
+
+    #chart-asset-subbar {
+      display: flex;
+      align-items: center;
+      background-color: #04070d;
+      border-bottom: 1px solid var(--border-dark);
+      padding: 3px 8px;
+      gap: 8px;
+      font-size: 9.5px;
+      white-space: nowrap;
+      overflow-x: auto;
+      flex-shrink: 0;
+      scrollbar-width: none;
+    }
+    #chart-asset-subbar::-webkit-scrollbar { display: none; }
+    .subbar-chip {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+    .subbar-tag {
+      color: var(--text-muted);
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+    }
+    .subbar-sep {
+      width: 1px;
+      height: 12px;
+      background-color: #141c2c;
+      flex-shrink: 0;
+    }
+
+    #interactive-chart-container {
+      flex: 1 1 0px;
+      width: 100%;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+      background-color: #020306;
+      min-height: 0;
+    }
+
+    #tv-chart-view, #echarts-view {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    #headless-chart-frame {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      object-fit: fill;
+      display: none;
+      image-rendering: pixelated;
+    }
+
+    /* COLUMN 3: REAL-TIME UNIVERSE WATCHLIST */
+    #watchlist-pane {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+      background-color: var(--bg-panel);
+    }
+
+    .watchlist-filter-bar {
+      padding: 5px 8px;
+      background-color: #05080e;
+      border-bottom: 1px solid var(--border-dark);
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    #watchlist-search {
+      flex: 1;
+      background-color: #0b101c;
+      border: 1px solid #1c2638;
+      border-radius: 3px;
+      padding: 4px 8px;
+      font-family: inherit;
+      font-size: 10px;
+      color: #f0f6fc;
+      outline: none;
+      transition: all 0.15s ease;
+    }
+    #watchlist-search:focus {
+      border-color: var(--cyan-status);
+      background-color: #0e1628;
+      box-shadow: 0 0 8px rgba(0, 229, 255, 0.22);
+    }
+
+    .watchlist-subbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 3px 6px;
+      background-color: #060910;
+      border-bottom: 1px solid var(--border-dark);
+      font-size: 8.5px;
+      flex-shrink: 0;
+    }
+    .watchlist-view-toggles, .watchlist-expand-toggles {
+      display: flex;
+      gap: 3px;
+    }
+    .ctrl-btn {
+      background-color: #0c121e;
+      border: 1px solid #1c2638;
+      border-radius: 2px;
+      color: #8b949e;
+      font-size: 8.5px;
+      font-family: inherit;
+      padding: 2px 5px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .ctrl-btn:hover {
+      border-color: var(--cyan-status);
+      color: #f0f6fc;
+    }
+    .ctrl-btn.active {
+      background-color: rgba(0, 229, 255, 0.18);
+      border-color: var(--cyan-status);
+      color: var(--cyan-status);
+      font-weight: 700;
+    }
+
+    .sector-pills {
+      display: flex;
+      gap: 3px;
+      padding: 3px 6px;
+      background-color: #060910;
+      border-bottom: 1px solid var(--border-dark);
+      overflow-x: auto;
+      white-space: nowrap;
+      flex-shrink: 0;
+      scrollbar-width: none;
+    }
+    .sector-pills::-webkit-scrollbar {
+      display: none;
+    }
+
+    .sec-pill {
+      background-color: #090e18;
+      border: 1px solid #192336;
+      border-radius: 2px;
+      color: #8b949e;
+      font-size: 8.5px;
+      font-family: inherit;
+      padding: 2px 5px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .sec-pill:hover {
+      border-color: var(--cyan-status);
+      color: #f0f6fc;
+    }
+    .sec-pill.active {
+      background-color: rgba(0, 229, 255, 0.18);
+      border-color: var(--cyan-status);
+      color: var(--cyan-status);
+      font-weight: 700;
+    }
+
+    .watchlist-table-container {
+      flex: 1 1 0px;
+      min-height: 0;
+      max-height: 100%;
+      overflow-y: scroll !important;
+      overflow-x: hidden;
+      position: relative;
+      scrollbar-width: thin;
+      scrollbar-color: #24334a #04070d;
+    }
+
+    .watchlist-table-container::-webkit-scrollbar {
+      width: 6px;
+    }
+    .watchlist-table-container::-webkit-scrollbar-track {
+      background: #04070d;
+    }
+    .watchlist-table-container::-webkit-scrollbar-thumb {
+      background: #24334a;
+      border-radius: 3px;
+    }
+    .watchlist-table-container::-webkit-scrollbar-thumb:hover {
+      background: var(--cyan-status);
+    }
+
+    .watchlist-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .watchlist-table th {
+      padding: 4px 6px;
+      font-size: 9px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-dark);
+      background-color: #060910;
+      text-align: right;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      cursor: pointer;
+      user-select: none;
+    }
+    .watchlist-table th:hover {
+      color: var(--cyan-status);
+    }
+    .watchlist-table th:first-child { text-align: left; }
+
+    /* Sector Classification Header Bar */
+    .sec-group-header {
+      background: linear-gradient(90deg, #090e18 0%, #05080e 100%);
+      cursor: pointer;
+      user-select: none;
+      border-top: 1px solid #141d2e;
+      border-bottom: 1px solid #141d2e;
+      position: sticky;
+      top: 22px;
+      z-index: 5;
+    }
+    .sec-group-header:hover {
+      background: linear-gradient(90deg, #0f1728 0%, #080d16 100%);
+    }
+    .sec-group-bar {
+      display: flex;
+      align-items: center;
+      padding: 3px 6px;
+      font-size: 9px;
+      font-weight: 700;
+      gap: 6px;
+    }
+    .sec-chevron {
+      color: var(--cyan-status);
+      font-size: 8px;
+      display: inline-block;
+      width: 10px;
+      text-align: center;
+      transition: transform 0.15s ease;
+    }
+    .sec-chevron.collapsed {
+      transform: rotate(-90deg);
+    }
+    .sec-group-name {
+      color: #f0f6fc;
+      letter-spacing: 0.5px;
+      flex: 1;
+      text-align: left;
+    }
+    .sec-group-count {
+      font-size: 8px;
+      padding: 1px 4px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 2px;
+      color: #8b949e;
+    }
+    .sec-group-stat {
+      font-size: 8.5px;
+      font-weight: 800;
+      margin-left: 4px;
+    }
+
+    .watchlist-table tr {
+      border-bottom: 1px solid #0d121c;
+      height: 23px;
+      cursor: pointer;
+      transition: background-color 0.1s ease;
+    }
+    .watchlist-table tr:hover {
+      background-color: #0f1627;
+    }
+    .watchlist-table tr.active-scrip {
+      background-color: rgba(0, 229, 255, 0.12) !important;
+      border-left: 3px solid var(--cyan-status);
+    }
+
+    .row-sym-cell {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .row-sec-tag {
+      font-size: 7.5px;
+      padding: 0.5px 3px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.05);
+      color: #8b949e;
+      letter-spacing: 0.3px;
+    }
+
+    .chg-badge {
+      display: inline-block;
+      padding: 1px 4px;
+      border-radius: 2px;
+      font-weight: 700;
+      font-size: 9.5px;
+    }
+    .chg-badge.pos {
+      background: rgba(0, 230, 118, 0.15);
+      color: var(--green-advance);
+    }
+    .chg-badge.neg {
+      background: rgba(255, 23, 68, 0.15);
+      color: var(--red-decline);
+    }
+
+    .watchlist-table td {
+      padding: 2px 6px;
+      text-align: right;
+      font-size: 10.5px;
+      white-space: nowrap;
+    }
+    .watchlist-table td:first-child { text-align: left; font-weight: 700; }
+
+    /* FORENSIC VALUATION & GOVERNANCE CARD (PANE 1) */
+    .forensic-card {
+      background-color: #05080e;
+      border-top: 1px solid var(--border-dark);
+      padding: 5px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .forensic-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 8.5px;
+      font-weight: 700;
+      color: #8b949e;
+      letter-spacing: 0.5px;
+    }
+    .forensic-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3px;
+    }
+    .f-item {
+      background: #080d16;
+      border: 1px solid #141c2c;
+      border-radius: 2px;
+      padding: 2px 5px;
+      display: flex;
+      flex-direction: column;
+    }
+    .f-lbl {
+      font-size: 7px;
+      color: var(--text-muted);
+      letter-spacing: 0.3px;
+    }
+    .f-val {
+      font-size: 9.5px;
+      font-weight: 700;
+      color: #f0f6fc;
+      margin-top: 1px;
+    }
+    .lockin-status-bar {
+      background: rgba(255, 179, 0, 0.08);
+      border: 1px solid rgba(255, 179, 0, 0.25);
+      border-radius: 2px;
+      padding: 3px 5px;
+      font-size: 8px;
+    }
+    .lockin-line {
+      display: flex;
+      justify-content: space-between;
+      color: #ffb300;
+      font-weight: 700;
+    }
+    .lockin-overhang {
+      color: #c9d1d9;
+      margin-top: 1px;
+      font-size: 8px;
+    }
+    .centaur-governance-box {
+      background: #05080e;
+      border: 1px solid #141d2e;
+      border-radius: 2px;
+      padding: 4px 6px;
+      margin-top: 3px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .centaur-gov-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: #8b949e;
+      border-bottom: 1px solid #101624;
+      padding-bottom: 2px;
+    }
+    .centaur-badge {
+      font-size: 7.5px;
+      font-weight: 800;
+      padding: 1px 4px;
+      border-radius: 2px;
+      background: rgba(0, 230, 118, 0.15);
+      color: var(--green-advance);
+    }
+    .centaur-gov-body {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 8.5px;
+    }
+    .gov-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .centaur-gov-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      margin-top: 2px;
+    }
+    .centaur-qty-row {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .c-qty-btn {
+      flex: 1;
+      background: #0a101c;
+      border: 1px solid #1c2638;
+      color: #8b949e;
+      font-size: 8px;
+      font-family: inherit;
+      padding: 2px 3px;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all 0.15s;
+    }
+    .c-qty-btn:hover, .c-qty-btn.active {
+      border-color: var(--cyan-status);
+      color: var(--cyan-status);
+      font-weight: 700;
+    }
+    .btn-centaur-dispatch {
+      width: 100%;
+      background: linear-gradient(180deg, #0e1e32 0%, #08101c 100%);
+      border: 1px solid var(--cyan-status);
+      color: var(--cyan-status);
+      font-family: inherit;
+      font-weight: 800;
+      font-size: 8.5px;
+      padding: 4px;
+      border-radius: 2px;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+    .btn-centaur-dispatch:hover {
+      background: rgba(0, 229, 255, 0.22);
+      box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+    }
+    /* CENTAUR STAGING BLOTTER & FORENSIC DESK TABS */
+    .centaur-tabs {
+      display: flex;
+      gap: 3px;
+      margin-top: 2px;
+      margin-bottom: 2px;
+    }
+    .centaur-tab-btn {
+      flex: 1;
+      background: #090e18;
+      border: 1px solid #192336;
+      color: #7d8b9f;
+      font-size: 7.5px;
+      font-family: inherit;
+      padding: 2px;
+      cursor: pointer;
+      border-radius: 2px;
+      font-weight: 700;
+      transition: all 0.15s ease;
+    }
+    .centaur-tab-btn:hover, .centaur-tab-btn.active {
+      border-color: var(--cyan-status);
+      color: var(--cyan-status);
+      background: rgba(0, 229, 255, 0.1);
+    }
+    .blotter-side-toggle {
+      display: flex;
+      gap: 3px;
+      margin-top: 2px;
+    }
+    .side-btn {
+      flex: 1;
+      padding: 3px;
+      font-family: inherit;
+      font-weight: 800;
+      font-size: 8px;
+      border-radius: 2px;
+      border: 1px solid #1f2b3f;
+      background: #0a111e;
+      color: #7d8b9f;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .side-btn.buy.active {
+      background: rgba(0, 230, 118, 0.2);
+      border-color: var(--green-advance);
+      color: var(--green-advance);
+    }
+    .side-btn.sell.active {
+      background: rgba(255, 23, 68, 0.2);
+      border-color: var(--red-decline);
+      color: var(--red-decline);
+    }
+    .blotter-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      margin-top: 2px;
+    }
+    .blotter-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .blotter-label {
+      font-size: 7px;
+      color: var(--text-muted);
+    }
+    .blotter-field {
+      background: #080d17;
+      border: 1px solid #1c2738;
+      color: #f0f6fc;
+      font-family: inherit;
+      font-size: 8.5px;
+      padding: 2px 4px;
+      border-radius: 2px;
+      outline: none;
+    }
+    .blotter-field:focus {
+      border-color: var(--cyan-status);
+    }
+    .friction-breakdown-card {
+      background: #03050a;
+      border: 1px solid #0f1826;
+      border-radius: 2px;
+      padding: 3px 5px;
+      font-size: 7.5px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5px;
+      margin-top: 2px;
+    }
+    .friction-row {
+      display: flex;
+      justify-content: space-between;
+      color: #8b949e;
+    }
+    .slippage-guard-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 2px 4px;
+      border-radius: 2px;
+      font-size: 7.5px;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+    .slippage-pass {
+      background: rgba(0, 230, 118, 0.12);
+      border: 1px solid rgba(0, 230, 118, 0.3);
+      color: var(--green-advance);
+    }
+    .slippage-warn {
+      background: rgba(255, 179, 0, 0.12);
+      border: 1px solid rgba(255, 179, 0, 0.3);
+      color: var(--amber-warn);
+    }
+    .slippage-reject {
+      background: rgba(255, 23, 68, 0.15);
+      border: 1px solid rgba(255, 23, 68, 0.35);
+      color: var(--red-decline);
+    }
+    .ttl-progress-container {
+      width: 100%;
+      height: 3px;
+      background: #0b121e;
+      border-radius: 1px;
+      overflow: hidden;
+      margin-top: 2px;
+    }
+    .ttl-progress-fill {
+      height: 100%;
+      background: var(--cyan-status);
+      width: 100%;
+      transition: width 1s linear;
+    }
+    .btn-stage-ticket {
+      width: 100%;
+      background: #0d1624;
+      border: 1px solid #23334c;
+      color: #9cb1ce;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 8px;
+      padding: 3px;
+      border-radius: 2px;
+      cursor: pointer;
+      margin-top: 2px;
+      transition: all 0.15s ease;
+    }
+    .btn-stage-ticket:hover {
+      border-color: var(--cyan-status);
+      color: #f0f6fc;
+      background: rgba(0, 229, 255, 0.08);
+    }
+    .sweet-spot-chip {
+      background: rgba(255, 215, 0, 0.08);
+      border: 1px solid rgba(255, 215, 0, 0.3);
+      border-radius: 2px;
+      padding: 1px 5px;
+    }
+    .cdsc-lockup-pill {
+      font-size: 7px;
+      padding: 1px 3px;
+      border-radius: 2px;
+      font-weight: 700;
+    }
+    .cdsc-lockup-pill.locked {
+      background: rgba(255, 23, 68, 0.18);
+      border: 1px solid rgba(255, 23, 68, 0.4);
+      color: var(--red-decline);
+    }
+    .cdsc-lockup-pill.settled {
+      background: rgba(0, 230, 118, 0.18);
+      border: 1px solid rgba(0, 230, 118, 0.4);
+      color: var(--green-advance);
+    }
+    .brain-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3px;
+      font-size: 7.5px;
+      padding: 2px;
+    }
+    .brain-item {
+      background: #03060a;
+      border: 1px solid #111a28;
+      border-radius: 2px;
+      padding: 2px 4px;
+    }
+    .audit-mini-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 7.5px;
+    }
+    .audit-mini-table th, .audit-mini-table td {
+      padding: 2px 3px;
+      text-align: left;
+      border-bottom: 1px solid #101624;
+    }
+
+
+    /* ------------------------------------------------------------------------- */
+    /* BUCKET 3: QUARANTINED SYSTEM DIAGNOSTICS & TELEMETRY LOG                 */
+    /* ------------------------------------------------------------------------- */
+    #telemetry-dock {
+      grid-row: 4;
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 2px;
+      background-color: var(--border-dark);
+      border-top: 1px solid var(--border-dark);
+      overflow: hidden;
+    }
+
+    #telemetry-metrics-pane {
+      background-color: var(--bg-panel);
+      padding: 8px 12px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .metric-card {
+      background-color: #05080e;
+      border: 1px solid var(--border-dark);
+      padding: 5px 8px;
+      border-radius: 2px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .metric-label {
+      font-size: 9px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .metric-value {
+      font-size: 13px;
+      font-weight: 800;
+      margin-top: 2px;
+    }
+
+    #diagnostic-console-pane {
+      background-color: #04060a;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #console-stream {
+      flex: 1;
+      padding: 6px 10px;
+      overflow-y: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      gap: 2px;
+      font-size: 10px;
+    }
+
+    .log-line {
+      display: flex;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .log-ts { color: var(--text-muted); }
+    .log-tag { color: var(--cyan-status); font-weight: 700; }
+    .log-msg { color: #d0d7de; }
+    .log-warn { color: var(--amber-warn); }
+    .log-err { color: var(--red-decline); }
+  </style>
+</head>
+<body>
+
+  <!-- ======================================================================= -->
+  <!-- MAIN RIGID TERMINAL ROOT                                                -->
+  <!-- ======================================================================= -->
+  <div id="terminal-root">
+
+    <!-- --------------------------------------------------------------------- -->
+    <!-- BUCKET 1: HORIZONTAL TICKER TAPE                                      -->
+    <!-- --------------------------------------------------------------------- -->
+    <header id="tape-container">
+      <div id="tape-badge">⚡ NEPSE TICK TAPE</div>
+      <div id="market-session-pill" class="session-pill closed">
+        <span class="pill-dot">●</span>
+        <span id="market-session-badge">MARKET CLOSED</span>
+        <span id="market-clock-npt" class="pill-sub">POST-CLOSE SETTLED</span>
+      </div>
+      <button id="sim-replay-btn" class="btn-sim-toggle" title="Toggle Simulated Replay for Off-Hours Inspection">SIMULATION REPLAY: OFF</button>
+      <div id="tape-stream">
+        <!-- Real-time dynamically injected nodes with strict FIFO culling -->
+      </div>
+    </header>
+
+    <!-- --------------------------------------------------------------------- -->
+    <!-- BUCKET 1.5: NEPSE SOVEREIGN MARKET MACRO SUMMARY RIBBON               -->
+    <!-- --------------------------------------------------------------------- -->
+    <div id="macro-ribbon">
+      <div class="macro-cell">
+        <span class="macro-label">NEPSE INDEX</span>
+        <span class="macro-val bold pos" id="macro-nepse-idx">2,684.52</span>
+        <span class="macro-badge pos" id="macro-nepse-chg">+18.42 (+0.69%)</span>
+      </div>
+      <div class="macro-sep"></div>
+      <div class="macro-cell">
+        <span class="macro-label">TURNOVER</span>
+        <span class="macro-val" id="macro-turnover">NPR 3.92 Arba</span>
+      </div>
+      <div class="macro-sep"></div>
+      <div class="macro-cell">
+        <span class="macro-label">VOLUME</span>
+        <span class="macro-val" id="macro-volume">11.20M Kitta</span>
+      </div>
+      <div class="macro-sep"></div>
+      <div class="macro-cell">
+        <span class="macro-label">BREADTH</span>
+        <div class="breadth-ratio-container">
+          <span class="pos bold" id="macro-adv">171 ▲</span>
+          <div class="breadth-bar"><div class="breadth-fill-adv" id="breadth-bar-fill" style="width: 51.6%;"></div></div>
+          <span class="neg bold" id="macro-dec">160 ▼</span>
+          <span class="muted" id="macro-unch">22 ▬</span>
+        </div>
+      </div>
+      <div class="macro-sep"></div>
+      <div class="macro-cell">
+        <span class="macro-label">SENSITIVE</span>
+        <span class="macro-val pos" id="macro-sensitive">472.10 (+0.61%)</span>
+      </div>
+      <div class="macro-sep"></div>
+      <div class="macro-cell">
+        <span class="macro-label">CIRCUITS</span>
+        <span class="macro-val neu" id="macro-circuits">2 UPPER (+10%)</span>
+      </div>
+    </div>
+
+    <!-- --------------------------------------------------------------------- -->
+    <!-- BUCKET 2: 3-COLUMN ANALYTICAL VIEW                                    -->
+    <!-- --------------------------------------------------------------------- -->
+    <main id="analytical-dock">
+
+      <!-- PANE 1: LEVEL 2 MARKET DEPTH & FORENSIC PROFILE -->
+      <section class="dock-pane" id="order-book-pane">
+        <div class="pane-header">
+          <span>LEVEL 2 ORDER BOOK</span>
+          <span class="highlight" id="book-active-symbol">SAHAS</span>
+        </div>
+
+        <div class="book-summary">
+          <div>
+            <span class="muted">BID VOL: </span>
+            <span class="pos bold" id="total-bid-vol">184,200</span>
+          </div>
+          <div style="text-align: right;">
+            <span class="muted">ASK VOL: </span>
+            <span class="neg bold" id="total-ask-vol">86,500</span>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background-color: var(--border-dark); flex: 1;">
+          <!-- Bids Side -->
+          <div style="background-color: var(--bg-panel); overflow: hidden;">
+            <table class="book-table">
+              <thead>
+                <tr>
+                  <th style="width: 25%;">ORD</th>
+                  <th style="width: 35%;">QTY</th>
+                  <th style="width: 40%; color: var(--green-advance);">BID</th>
+                </tr>
+              </thead>
+              <tbody id="bids-tbody">
+                <!-- 5-Deep Bids Rows -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Asks Side -->
+          <div style="background-color: var(--bg-panel); overflow: hidden;">
+            <table class="book-table">
+              <thead>
+                <tr>
+                  <th style="width: 40%; text-align: left; color: var(--red-decline);">ASK</th>
+                  <th style="width: 35%;">QTY</th>
+                  <th style="width: 25%;">ORD</th>
+                </tr>
+              </thead>
+              <tbody id="asks-tbody">
+                <!-- 5-Deep Asks Rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="padding: 4px 8px; background-color: #05080e; border-top: 1px solid var(--border-dark); font-size: 9.5px; display: flex; justify-content: space-between;">
+          <span class="muted">OFI: <span class="pos bold" id="book-ofi">0.0 (SETTLED)</span></span>
+          <span class="muted">SPREAD: <span class="bold" id="book-spread">1.0 NPR (0.14%)</span></span>
+        </div>
+        <div style="padding: 3px 8px; background-color: #04060b; border-top: 1px solid #101624; font-size: 9px; display: flex; justify-content: space-between; color: var(--text-muted);">
+          <span>RANGE: <span id="book-range" class="bold text-bright">668.0 — 691.9</span></span>
+          <span>PREV: <span id="book-prev" class="bold text-bright">688.0</span></span>
+        </div>
+
+        <!-- MODULE 4 FORENSIC VALUATION & GOVERNANCE CARD -->
+        <div class="forensic-card" id="forensic-pane">
+          <div class="forensic-title">
+            <span>FORENSIC PROFILE & GOVERNANCE</span>
+            <span class="highlight" id="card-sector-tag">HYDROPOWER</span>
+          </div>
+          <div class="forensic-grid">
+            <div class="f-item">
+              <span class="f-lbl">52W HIGH/LOW</span>
+              <span class="f-val" id="f-52w">377.5 — 789.4</span>
+            </div>
+            <div class="f-item">
+              <span class="f-lbl">P/E (TTM)</span>
+              <span class="f-val" id="f-pe">19.2x</span>
+            </div>
+            <div class="f-item">
+              <span class="f-lbl">EST. EPS</span>
+              <span class="f-val pos" id="f-eps">NPR 35.9</span>
+            </div>
+            <div class="f-item">
+              <span class="f-lbl">MKT CAP</span>
+              <span class="f-val" id="f-mktcap">NPR 1,480 Cr</span>
+            </div>
+          </div>
+          <div class="lockin-status-bar" id="lockin-banner">
+            <div class="lockin-line">
+              <span id="lockin-cat-tag">LOCAL LOCK-IN</span>
+              <span id="lockin-expiry-text">EXPIRY: 2026-11-14 (37D)</span>
+            </div>
+            <div class="lockin-overhang" id="lockin-overhang-text">OVERHANG: 279.6x ADV30 ⚑ CRITICAL</div>
+          </div>
+          <div class="centaur-governance-box" id="centaur-governance-desk">
+            <div class="centaur-gov-header">
+              <span>CENTAUR GOVERNANCE & STAGING BLOTTER</span>
+              <div style="display: flex; gap: 3px; align-items: center;">
+                <span class="cdsc-lockup-pill settled" id="centaur-settlement-pill">CDSC T+2: SETTLED</span>
+                <span class="centaur-badge" id="centaur-gate-pill">SEBON GATE PASS</span>
+              </div>
+            </div>
+
+            <!-- Tab Buttons -->
+            <div class="centaur-tabs">
+              <button class="centaur-tab-btn active" id="tab-btn-blotter" onclick="switchCentaurTab('blotter')">STAGING BLOTTER</button>
+              <button class="centaur-tab-btn" id="tab-btn-brain" onclick="switchCentaurTab('brain')">SYMBOL BRAIN</button>
+              <button class="centaur-tab-btn" id="tab-btn-audit" onclick="switchCentaurTab('audit')">AUDIT LEDGER</button>
+            </div>
+
+            <!-- TAB 1: STAGING BLOTTER -->
+            <div id="centaur-tab-blotter">
+              <!-- Side Selector -->
+              <div class="blotter-side-toggle">
+                <button class="side-btn buy active" id="btn-side-buy" onclick="setCentaurSide('BUY')">BUY (LONG)</button>
+                <button class="side-btn sell" id="btn-side-sell" onclick="setCentaurSide('SELL')">SELL (LIQUIDATE)</button>
+              </div>
+
+              <!-- Lots and Limit Price Inputs -->
+              <div class="blotter-inputs">
+                <div class="blotter-input-group">
+                  <span class="blotter-label">QUANTITY (10 KITTA LOTS):</span>
+                  <input type="number" id="blotter-qty-input" class="blotter-field" value="10" step="10" min="10" oninput="onBlotterInputChange()" />
+                </div>
+                <div class="blotter-input-group">
+                  <span class="blotter-label">LIMIT PRICE (NPR):</span>
+                  <input type="number" id="blotter-px-input" class="blotter-field" value="690.0" step="0.5" oninput="onBlotterInputChange()" />
+                </div>
+              </div>
+
+              <!-- Quick Lot Buttons -->
+              <div class="centaur-qty-row" style="margin-top: 2px;">
+                <button class="c-qty-btn active" data-qty="10" onclick="setCentaurQty(10)">10 K</button>
+                <button class="c-qty-btn" data-qty="50" onclick="setCentaurQty(50)">50 K</button>
+                <button class="c-qty-btn" data-qty="100" onclick="setCentaurQty(100)">100 K</button>
+                <button class="c-qty-btn" data-qty="500" onclick="setCentaurQty(500)">500 K</button>
+              </div>
+
+              <!-- Live Friction Breakdown Matrix -->
+              <div class="friction-breakdown-card" id="friction-card">
+                <div class="friction-row">
+                  <span>GROSS TURNOVER:</span>
+                  <span class="bold text-bright" id="fric-turnover">NPR 6,900.00</span>
+                </div>
+                <div class="friction-row">
+                  <span>BROKER COMM (<span id="fric-comm-rate">0.36%</span>):</span>
+                  <span id="fric-comm">NPR 24.84</span>
+                </div>
+                <div class="friction-row">
+                  <span>SEBON LEVY (0.015%) + DP:</span>
+                  <span id="fric-sebon-dp">NPR 1.04 + 25.00</span>
+                </div>
+                <div class="friction-row">
+                  <span>CGT PREVIEW (<span id="fric-cgt-bracket">N/A BUY</span>):</span>
+                  <span id="fric-cgt">NPR 0.00</span>
+                </div>
+                <div class="friction-row" style="border-top: 1px solid #141f30; padding-top: 1px; color: var(--cyan-status); font-weight: 700;">
+                  <span>NET SETTLEMENT COST:</span>
+                  <span id="fric-net-total">NPR 6,950.88</span>
+                </div>
+              </div>
+
+              <!-- Live Slippage Guard Meter -->
+              <div class="slippage-guard-bar slippage-pass" id="slippage-guard-meter">
+                <span>SLIPPAGE GUARD (±0.5% CAP):</span>
+                <span id="slippage-drift-text">±0.00% [PASS]</span>
+              </div>
+
+              <!-- 45-Second TTL Bar & Countdown -->
+              <div style="display: flex; justify-content: space-between; font-size: 7.5px; color: var(--text-muted); margin-top: 2px;">
+                <span>STAGED TTL: <span class="neu bold" id="ttl-countdown-text">45s</span></span>
+                <span id="ttl-seal-ref">SEAL: READY</span>
+              </div>
+              <div class="ttl-progress-container">
+                <div class="ttl-progress-fill" id="ttl-progress-bar"></div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="centaur-gov-actions">
+                <button class="btn-stage-ticket" id="btn-stage-order" onclick="stageCentaurTicket()">
+                  <span>⚡ 1. STAGE ORDER TICKET & SEAL HASH</span>
+                </button>
+                <button class="btn-centaur-dispatch" id="btn-dispatch-centaur" onclick="dispatchCentaurOrder()">
+                  <span>✔ 2. APPROVE & CONFIRM (OPERATOR SIGN-OFF)</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- TAB 2: SYMBOL BRAIN MESH -->
+            <div id="centaur-tab-brain" style="display: none;">
+              <div class="brain-grid">
+                <div class="brain-item">
+                  <div class="f-lbl">TICK / LOT MODULUS</div>
+                  <div class="f-val neu" id="brain-modulus">10 KITTA (0.10 TICK)</div>
+                </div>
+                <div class="brain-item">
+                  <div class="f-lbl">CIRCUIT BOUNDS</div>
+                  <div class="f-val" id="brain-circuit">±15.0% BYLAWS 2082</div>
+                </div>
+                <div class="brain-item">
+                  <div class="f-lbl">ADV 20D / 5% CAP</div>
+                  <div class="f-val pos" id="brain-adv-cap">37,047 / 1,852 K</div>
+                </div>
+                <div class="brain-item">
+                  <div class="f-lbl">PROMOTER LOCK-IN</div>
+                  <div class="f-val neg" id="brain-lockin-exp">2026-11-14 (37D)</div>
+                </div>
+                <div class="brain-item">
+                  <div class="f-lbl">OVERHANG RATIO</div>
+                  <div class="f-val neg" id="brain-overhang">279.6x ADV30</div>
+                </div>
+                <div class="brain-item">
+                  <div class="f-lbl">BAYESIAN HITS / MISSES</div>
+                  <div class="f-val neu" id="brain-alpha-beta">α: 31 | β: 13</div>
+                </div>
+                <div class="brain-item">
+                  <div class="f-lbl">CONVICTION PRIOR (μ)</div>
+                  <div class="f-val pos" id="brain-conviction">70.5% (HIGH CONV)</div>
+                </div>
+                <div class="brain-item">
+                  <div class="f-lbl">HISTORICAL 20D RMSE</div>
+                  <div class="f-val" id="brain-rmse">10.82 NPR</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 3: AUDIT LEDGER -->
+            <div id="centaur-tab-audit" style="display: none; max-height: 140px; overflow-y: auto;">
+              <table class="audit-mini-table">
+                <thead>
+                  <tr>
+                    <th>TICKET</th>
+                    <th>SIDE</th>
+                    <th>QTY</th>
+                    <th>PRICE</th>
+                    <th>STATUS</th>
+                  </tr>
+                </thead>
+                <tbody id="centaur-audit-tbody">
+                  <!-- Dynamically populated from SQLite -->
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      <!-- PANE 2: HEADLESS GRAPHICS RENDERING INJECTION -->
+      <section class="dock-pane" id="chart-pane">
+        <div class="pane-header">
+          <span>HEADLESS GRAPHICS PIPELINE (ZERO-DOM CANVAS)</span>
+          <span class="highlight" id="chart-active-meta">SAHAS • CANDLESTICK + MULTI-EMA + GANN + MACD/RSI/KDJ</span>
+        </div>
+
+        <div id="chart-toolbar">
+          <div class="toolbar-buttons">
+            <button class="btn-toggle active" data-mode="CANDLE" data-label="CANDLESTICK + MULTI-EMA + GANN + MACD/RSI/KDJ">CANDLE + EMA</button>
+            <button class="btn-toggle" data-mode="BOLLINGER" data-label="BOLLINGER BANDS (20, 2σ) + TTM VOLATILITY SQUEEZE">BOLLINGER</button>
+            <button class="btn-toggle" data-mode="VPVR" data-label="VOLUME PROFILE (VPVR) • POINT OF CONTROL (POC)">VPVR PROFILE</button>
+            <button class="btn-toggle" data-mode="ICP" data-label="5D CHRONOS CONFORMAL FORECAST CONE (80% ICP)">CHRONOS ICP</button>
+            <button class="btn-toggle" data-mode="SPREAD" data-label="BLOOMBERG MULTI-ASSET NORMALIZED RETURN SPREAD">NORMALIZED SPREAD</button>
+            <button class="btn-toggle" data-mode="TREEMAP" data-label="NEPSE SECTOR MARKET CAPITALIZATION TREEMAP">SECTOR TREEMAP</button>
+            <button class="btn-toggle" data-mode="ORDERFLOW" data-label="ORDER FLOW MICROSTRUCTURE • CVD + DEPTH WALL">ORDER FLOW / CVD</button>
+            <button class="btn-toggle" data-mode="MONTE_CARLO" data-label="100-PATH MONTE CARLO STOCHASTIC SIMULATION">MONTE CARLO</button>
+          </div>
+          <div class="toolbar-metrics">
+            <span>FRAME: <span class="bold neu" id="hud-frame-id">#0001</span></span>
+            <span>RENDER: <span class="bold pos" id="hud-render-time">0.0ms</span></span>
+          </div>
+        </div>
+
+        <!-- Rigid Asset Subbar (Fixes UI Overlap Anomaly) -->
+        <div id="chart-asset-subbar">
+          <div class="subbar-chip"><span class="subbar-tag">ASSET:</span> <span class="bold neu" id="overlay-symbol">SAHAS</span> <span class="row-sec-tag" id="overlay-sector">HYDROPOWER</span></div>
+          <div class="subbar-sep"></div>
+          <div class="subbar-chip"><span class="subbar-tag">LTP:</span> <span class="bold" id="overlay-ltp">690.0</span> <span class="pos bold" id="overlay-chg">+0.29%</span></div>
+          <div class="subbar-sep"></div>
+          <div class="subbar-chip"><span class="subbar-tag">RANGE:</span> <span class="muted" id="overlay-range">668.0 — 691.9</span></div>
+          <div class="subbar-sep"></div>
+          <div class="subbar-chip"><span class="subbar-tag">P10/P90:</span> <span class="muted" id="overlay-band">662.4 — 717.6</span></div>
+          <div class="subbar-sep"></div>
+          <div class="subbar-chip"><span class="subbar-tag">CIRCUIT:</span> <span class="muted">±15.0% CLIP</span></div>
+          <div class="subbar-sep"></div>
+          <div class="subbar-chip sweet-spot-chip">
+            <span class="subbar-tag" style="color: #FFD700; font-weight: 800;">★ SWEET SPOT:</span>
+            <span class="bold" id="overlay-sweet-spot" style="color: #FFD700;">CALCULATING...</span>
+            <span class="pos bold" id="overlay-sweet-spot-gain" style="margin-left: 2px;"></span>
+            <span class="neu" id="overlay-sweet-spot-conf" style="margin-left: 2px; font-size: 8px;"></span>
+          </div>
+          <div class="subbar-sep"></div>
+          <div class="subbar-chip" style="margin-left: auto;"><span class="subbar-tag">ENGINE:</span> <span class="pos bold" id="engine-render-mode">INTERACTIVE CANVAS / WebGL</span></div>
+
+        </div>
+
+        <div id="interactive-chart-container">
+          <!-- TradingView Lightweight Charts (Mode 1: CANDLE, Mode 3: VPVR, Mode 7: ORDERFLOW) -->
+          <div id="tv-chart-view"></div>
+          <!-- Apache ECharts (Mode 2: BOLLINGER, Mode 4: ICP, Mode 5: SPREAD, Mode 6: TREEMAP, Mode 8: MONTE_CARLO) -->
+          <div id="echarts-view" style="display: none;"></div>
+          <!-- Fallback image frame -->
+          <img id="headless-chart-frame" alt="Backend In-Memory Analytical Render" src="assets/chart_1_candlestick.png" style="display: none;" />
+        </div>
+      </section>
+
+      <!-- PANE 3: REAL-TIME WATCHLIST & SCREENER (ALL 353+ SECURITIES) -->
+      <section class="dock-pane" id="watchlist-pane">
+        <div class="pane-header">
+          <span>ACTIVE MARKET UNIVERSE</span>
+          <span class="highlight" id="watchlist-count">353 SECURITIES</span>
+        </div>
+
+        <div class="watchlist-filter-bar">
+          <input type="text" id="watchlist-search" placeholder="🔍 SEARCH SYMBOL OR SECTOR (e.g. NABIL, HYDRO)..." autocomplete="off" spellcheck="false" />
+        </div>
+
+        <div class="watchlist-subbar">
+          <div class="watchlist-view-toggles">
+            <button id="view-classified-btn" class="ctrl-btn active" title="Group into Sector Classifications">CLASSIFIED VIEW</button>
+            <button id="view-flat-btn" class="ctrl-btn" title="Rank All Securities">FLAT RANK</button>
+          </div>
+          <div class="watchlist-expand-toggles">
+            <button id="expand-all-btn" class="ctrl-btn" title="Expand All Sectors">▾ EXPAND</button>
+            <button id="collapse-all-btn" class="ctrl-btn" title="Collapse All Sectors">▸ COLLAPSE</button>
+          </div>
+        </div>
+
+        <div class="sector-pills" id="sector-filters">
+          <button class="sec-pill active" data-sector="ALL">ALL (353)</button>
+          <button class="sec-pill" data-sector="COMMERCIAL BANKS">BANKS</button>
+          <button class="sec-pill" data-sector="HYDROPOWER">HYDRO</button>
+          <button class="sec-pill" data-sector="MICROFINANCE">MICRO</button>
+          <button class="sec-pill" data-sector="LIFE INSURANCE">LIFE INS</button>
+          <button class="sec-pill" data-sector="NON-LIFE INSURANCE">NON-LIFE</button>
+          <button class="sec-pill" data-sector="MANUFACTURING">MANUF</button>
+          <button class="sec-pill" data-sector="HOTELS & TOURISM">HOTELS</button>
+          <button class="sec-pill" data-sector="INVESTMENT">INVEST</button>
+          <button class="sec-pill" data-sector="FINANCE">FINANCE</button>
+          <button class="sec-pill" data-sector="DEVELOPMENT BANKS">DEV BANK</button>
+          <button class="sec-pill" data-sector="MUTUAL FUNDS">MUTUAL</button>
+          <button class="sec-pill" data-sector="DEBENTURES">DEBENTURE</button>
+        </div>
+
+        <div class="watchlist-table-container">
+          <table class="watchlist-table">
+            <thead>
+              <tr>
+                <th style="width: 33%;" data-col="symbol" id="th-sym">SYM <span class="sort-icon"></span></th>
+                <th style="width: 21%;" data-col="ltp" id="th-ltp">LTP <span class="sort-icon"></span></th>
+                <th style="width: 22%;" data-col="chg" id="th-chg">CHG% <span class="sort-icon"></span></th>
+                <th style="width: 24%;" data-col="vol" id="th-vol">VOL <span class="sort-icon">▾</span></th>
+              </tr>
+            </thead>
+            <tbody id="watchlist-tbody">
+              <!-- Dynamically populated rows -->
+            </tbody>
+          </table>
+        </div>
+
+        <div style="padding: 4px 8px; background-color: #05080e; border-top: 1px solid var(--border-dark); font-size: 9.5px; display: flex; justify-content: space-between; color: var(--text-muted);">
+          <span id="filtered-count-status">SHOWING 353 / 353</span>
+          <span id="sort-status">SORT: VOL DESC</span>
+        </div>
+      </section>
+
+
+    </main>
+
+    <!-- --------------------------------------------------------------------- -->
+    <!-- BUCKET 3: SYSTEM TELEMETRY & CONNECTION DIAGNOSTICS                   -->
+    <!-- --------------------------------------------------------------------- -->
+    <footer id="telemetry-dock">
+
+      <!-- TELEMETRY METRIC CARDS -->
+      <div id="telemetry-metrics-pane">
+        <div class="metric-card">
+          <div class="metric-label">Socket Link Status</div>
+          <div class="metric-value neu" id="metric-ws-status">INITIALIZING</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Round-Trip Latency</div>
+          <div class="metric-value pos" id="metric-latency">0.00 ms</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Seqlock Memory Seq</div>
+          <div class="metric-value" id="metric-seqlock-seq">#0</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">DOM Render Loop FPS</div>
+          <div class="metric-value pos" id="metric-fps">60.0 FPS</div>
+        </div>
+      </div>
+
+      <!-- QUARANTINED DIAGNOSTIC CONSOLE STREAM -->
+      <div id="diagnostic-console-pane">
+        <div class="pane-header">
+          <span>SYSTEM DIAGNOSTIC & EVENT TELEMETRY</span>
+          <span class="muted">STRICT FIFO NODE CULLING (MAX 40)</span>
+        </div>
+        <div id="console-stream">
+          <!-- High-frequency log rows -->
+        </div>
+      </div>
+
+    </footer>
+
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- 4. ZERO-DEPENDENCY VANILLA JAVASCRIPT DISPATCHER PIPELINE               -->
+  <!-- ======================================================================= -->
+  <script>
+    (function () {
+      'use strict';
+
+      // -----------------------------------------------------------------------
+      // CONFIGURATION & MEMORY LIMITS
+      // -----------------------------------------------------------------------
+      const CONFIG = {
+        WS_URL: `ws://${window.location.host || '127.0.0.1:8088'}/ws/pulse`,
+        MAX_TAPE_NODES: 25,     // Strict DOM culling for horizontal tape
+        MAX_CONSOLE_NODES: 35,  // Strict DOM culling for diagnostic stream
+        DEFAULT_SYMBOL: 'SAHAS'
+      };
+
+      // State Registry
+      let activeSymbol = CONFIG.DEFAULT_SYMBOL;
+      let activeChartMode = 'CANDLE';
+      let activeTimeframe = '5D';
+      let ws = null;
+      let pingStartTime = 0;
+      let frameCounter = 0;
+      let lastFpsTime = performance.now();
+      let framesRendered = 0;
+
+      // Market Session Guardian State (Strict Real-Time)
+      let marketSession = {
+        is_live: false,
+        status: 'CLOSED',
+        badge: 'MARKET CLOSED',
+        detail: 'Post-close session',
+        clock_str: '--:--:--',
+        simulation_mode: false
+      };
+
+      // Cached DOM Elements
+      const DOM = {
+        tapeStream: document.getElementById('tape-stream'),
+        consoleStream: document.getElementById('console-stream'),
+        headlessChartFrame: document.getElementById('headless-chart-frame'),
+        hudFrameId: document.getElementById('hud-frame-id'),
+        hudRenderTime: document.getElementById('hud-render-time'),
+        bookActiveSymbol: document.getElementById('book-active-symbol'),
+        totalBidVol: document.getElementById('total-bid-vol'),
+        totalAskVol: document.getElementById('total-ask-vol'),
+        bidsTbody: document.getElementById('bids-tbody'),
+        asksTbody: document.getElementById('asks-tbody'),
+        bookOfi: document.getElementById('book-ofi'),
+        bookSpread: document.getElementById('book-spread'),
+        watchlistTbody: document.getElementById('watchlist-tbody'),
+        metricWsStatus: document.getElementById('metric-ws-status'),
+        metricLatency: document.getElementById('metric-latency'),
+        metricSeqlockSeq: document.getElementById('metric-seqlock-seq'),
+        metricFps: document.getElementById('metric-fps'),
+        overlaySymbol: document.getElementById('overlay-symbol'),
+        overlayLtp: document.getElementById('overlay-ltp'),
+        overlayChg: document.getElementById('overlay-chg'),
+        overlayBand: document.getElementById('overlay-band')
+      };
+
+      // Watchlist Cache for zero-allocation diff updates
+      const watchlistRowMap = new Map();
+
+      // -----------------------------------------------------------------------
+      // DOM GARBAGE COLLECTION & NODE CULLING HELPERS
+      // -----------------------------------------------------------------------
+      function appendWithCulling(parent, newElement, maxLimit) {
+        parent.appendChild(newElement);
+        while (parent.children.length > maxLimit) {
+          parent.removeChild(parent.firstElementChild);
+        }
+      }
+
+      function logEvent(tag, message, level = 'info') {
+        const line = document.createElement('div');
+        line.className = 'log-line';
+        
+        const now = new Date();
+        const timeStr = now.toTimeString().split(' ')[0] + '.' + String(now.getMilliseconds()).padStart(3, '0');
+        
+        const cssClass = level === 'warn' ? 'log-warn' : (level === 'err' ? 'log-err' : 'log-msg');
+        line.innerHTML = `
+          <span class="log-ts">[${timeStr}]</span>
+          <span class="log-tag">${tag}</span>
+          <span class="${cssClass}">${message}</span>
+        `;
+        appendWithCulling(DOM.consoleStream, line, CONFIG.MAX_CONSOLE_NODES);
+      }
+
+      // -----------------------------------------------------------------------
+      // COMPONENT 1: TICKER TAPE DISPATCHER (STRICT REAL-TIME)
+      // -----------------------------------------------------------------------
+      function dispatchTapeTick(tick) {
+        // Strictly ignore fake ticks if market is closed and simulation is off
+        if (!marketSession.is_live && !marketSession.simulation_mode) {
+          return;
+        }
+
+        const item = document.createElement('div');
+        item.className = 'tape-item';
+        const isUp = tick.chg >= 0;
+        const colorClass = isUp ? 'pos' : 'neg';
+        const arrow = isUp ? '▲' : '▼';
+        const sign = isUp ? '+' : '';
+
+        item.innerHTML = `
+          <span class="bold">${tick.symbol}</span>
+          <span>${tick.ltp.toFixed(1)}</span>
+          <span class="${colorClass}">${arrow}${sign}${tick.chg.toFixed(1)}%</span>
+        `;
+
+        appendWithCulling(DOM.tapeStream, item, CONFIG.MAX_TAPE_NODES);
+      }
+
+      function renderSettledTape(list) {
+        DOM.tapeStream.innerHTML = '';
+        const badge = document.createElement('div');
+        badge.className = 'tape-closed-badge';
+        badge.textContent = '● SETTLED CLOSING PRICES (NO LIVE TICKS)';
+        DOM.tapeStream.appendChild(badge);
+
+        list.forEach(item => {
+          const itemEl = document.createElement('div');
+          itemEl.className = 'tape-item';
+          const isUp = item.chg >= 0;
+          const colorClass = isUp ? 'pos' : 'neg';
+          const sign = isUp ? '+' : '';
+          itemEl.innerHTML = `
+            <span class="bold">${item.symbol}</span>
+            <span>${item.ltp.toFixed(1)}</span>
+            <span class="${colorClass}">${sign}${item.chg.toFixed(2)}%</span>
+          `;
+          DOM.tapeStream.appendChild(itemEl);
+        });
+      }
+
+      function updateMarketStatus(data) {
+        marketSession = data;
+        const pill = document.getElementById('market-session-pill');
+        const badgeText = document.getElementById('market-session-badge');
+        const clockText = document.getElementById('market-clock-npt');
+        const simBtn = document.getElementById('sim-replay-btn');
+
+        if (pill && badgeText && clockText) {
+          if (data.is_live || data.simulation_mode) {
+            pill.className = 'session-pill live';
+            badgeText.textContent = data.simulation_mode ? 'SIMULATION ACTIVE' : 'MARKET LIVE';
+            clockText.textContent = `${data.clock_str} NPT`;
+          } else {
+            pill.className = 'session-pill closed';
+            badgeText.textContent = data.status === 'WEEKEND' ? 'MARKET CLOSED (WEEKEND)' : 'MARKET CLOSED';
+            clockText.textContent = `${data.clock_str} NPT • FROZEN`;
+          }
+        }
+
+        if (simBtn) {
+          simBtn.textContent = data.simulation_mode ? 'SIMULATION REPLAY: ON' : 'SIMULATION REPLAY: OFF';
+          if (data.simulation_mode) simBtn.classList.add('active');
+          else simBtn.classList.remove('active');
+        }
+      }
+
+      // -----------------------------------------------------------------------
+      // COMPONENT 2: LEVEL 2 ORDER BOOK & FORENSIC PROFILE DISPATCHER
+      // -----------------------------------------------------------------------
+      function dispatchOrderBook(depth) {
+        if (depth.symbol !== activeSymbol) return;
+
+        DOM.totalBidVol.textContent = depth.total_bid_vol.toLocaleString();
+        DOM.totalAskVol.textContent = depth.total_ask_vol.toLocaleString();
+        DOM.bookOfi.textContent = depth.ofi;
+        DOM.bookSpread.textContent = `${depth.spread.toFixed(1)} NPR (${depth.spread_pct.toFixed(2)}%)`;
+
+        const bookRange = document.getElementById('book-range');
+        if (bookRange && depth.low !== undefined && depth.high !== undefined) {
+          bookRange.textContent = `${depth.low.toFixed(1)} — ${depth.high.toFixed(1)}`;
+        }
+        const bookPrev = document.getElementById('book-prev');
+        if (bookPrev && depth.prev !== undefined) {
+          bookPrev.textContent = `${depth.prev.toFixed(1)}`;
+        }
+
+        // Update Forensic Profile Elements
+        const f52w = document.getElementById('f-52w');
+        if (f52w && depth.l52 !== undefined && depth.h52 !== undefined) {
+          f52w.textContent = `${depth.l52.toFixed(1)} — ${depth.h52.toFixed(1)}`;
+        }
+        const fPe = document.getElementById('f-pe');
+        if (fPe && depth.pe !== undefined) fPe.textContent = `${depth.pe.toFixed(1)}x`;
+        const fEps = document.getElementById('f-eps');
+        if (fEps && depth.eps !== undefined) fEps.textContent = `NPR ${depth.eps.toFixed(1)}`;
+        const fMktcap = document.getElementById('f-mktcap');
+        if (fMktcap && depth.mkt_cap_cr !== undefined) fMktcap.textContent = `NPR ${depth.mkt_cap_cr.toLocaleString()} Cr`;
+        const fSec = document.getElementById('card-sector-tag');
+        if (fSec && depth.sector) fSec.textContent = depth.sector;
+
+        if (depth.lockin) {
+          const lCat = document.getElementById('lockin-cat-tag');
+          if (lCat) lCat.textContent = `${depth.lockin.category} LOCK-IN`;
+          const lExp = document.getElementById('lockin-expiry-text');
+          if (lExp) lExp.textContent = `EXPIRY: ${depth.lockin.expiry_date}`;
+          const lOver = document.getElementById('lockin-overhang-text');
+          if (lOver) {
+            const ratio = depth.lockin.overhang_ratio || 0.0;
+            const flag = ratio > 10 ? '⚑ CRITICAL' : (ratio > 0 ? '⚠ MONITOR' : 'CLEARED');
+            lOver.textContent = `OVERHANG: ${ratio.toFixed(1)}x ADV30 ${flag}`;
+          }
+        }
+
+        const maxVol = Math.max(
+          ...depth.bids.map(b => b.qty),
+          ...depth.asks.map(a => a.qty),
+          1
+        );
+
+        // Render Bids (Order, Qty, Bid Price)
+        let bidsHtml = '';
+        depth.bids.forEach(b => {
+          const widthPct = Math.min(100, Math.round((b.qty / maxVol) * 100));
+          bidsHtml += `
+            <tr>
+              <td><span class="muted">${b.orders}</span></td>
+              <td><span>${b.qty.toLocaleString()}</span></td>
+              <td class="pos bold">
+                <span>${b.price.toFixed(1)}</span>
+                <div class="depth-bar-bid" style="width: ${widthPct}%;"></div>
+              </td>
+            </tr>
+          `;
+        });
+        DOM.bidsTbody.innerHTML = bidsHtml;
+
+        // Render Asks (Ask Price, Qty, Order)
+        let asksHtml = '';
+        depth.asks.forEach(a => {
+          const widthPct = Math.min(100, Math.round((a.qty / maxVol) * 100));
+          asksHtml += `
+            <tr>
+              <td class="neg bold">
+                <span>${a.price.toFixed(1)}</span>
+                <div class="depth-bar-ask" style="width: ${widthPct}%;"></div>
+              </td>
+              <td><span>${a.qty.toLocaleString()}</span></td>
+              <td><span class="muted">${a.orders}</span></td>
+            </tr>
+          `;
+        });
+        DOM.asksTbody.innerHTML = asksHtml;
+
+        if(typeof refreshAuditLedger === 'function') refreshAuditLedger();
+      }
+
+      // -----------------------------------------------------------------------
+      // CENTAUR GOVERNANCE & SOVEREIGN ORDER DISPATCH DESK
+      // -----------------------------------------------------------------------
+      let centaurOrderQty = 10;
+      let centaurSide = 'BUY';
+      let stagedTicket = null;
+      let ttlTimer = null;
+      let ttlSecondsRemaining = 45;
+      let activeSweetSpot = null;
+      let sweetSpotPriceLine = null;
+      let stopLossPriceLine = null;
+
+      window.switchCentaurTab = function(tabName) {
+        const tabs = ['blotter', 'brain', 'audit'];
+        tabs.forEach(t => {
+          const content = document.getElementById(`centaur-tab-${t}`);
+          const btn = document.getElementById(`tab-btn-${t}`);
+          if (content) content.style.display = (t === tabName) ? 'block' : 'none';
+          if (btn) btn.classList.toggle('active', t === tabName);
+        });
+        if (tabName === 'audit') {
+          refreshAuditLedger();
+        }
+      };
+
+      window.setCentaurSide = function(side) {
+        centaurSide = side;
+        const buyBtn = document.getElementById('btn-side-buy');
+        const sellBtn = document.getElementById('btn-side-sell');
+        if (buyBtn) buyBtn.classList.toggle('active', side === 'BUY');
+        if (sellBtn) sellBtn.classList.toggle('active', side === 'SELL');
+        updateFrictionCalculator();
+      };
+
+      window.setCentaurQty = function(q) {
+        centaurOrderQty = q;
+        const qtyInput = document.getElementById('blotter-qty-input');
+        if (qtyInput) qtyInput.value = q;
+        document.querySelectorAll('.c-qty-btn').forEach(b => {
+          b.classList.toggle('active', parseInt(b.dataset.qty) === q);
+        });
+        updateFrictionCalculator();
+      };
+
+      window.onBlotterInputChange = function() {
+        const qtyInput = document.getElementById('blotter-qty-input');
+        if (qtyInput) {
+          centaurOrderQty = parseInt(qtyInput.value) || 10;
+          document.querySelectorAll('.c-qty-btn').forEach(b => {
+            b.classList.toggle('active', parseInt(b.dataset.qty) === centaurOrderQty);
+          });
+        }
+        updateFrictionCalculator();
+      };
+
+      window.updateFrictionCalculator = function() {
+        const qtyInput = document.getElementById('blotter-qty-input');
+        const pxInput = document.getElementById('blotter-px-input');
+        const qty = qtyInput ? (parseInt(qtyInput.value) || 10) : 10;
+        const meta = masterWatchlist.find(i => i.symbol === activeSymbol);
+        const ltp = meta ? meta.ltp : 500.0;
+        const px = pxInput ? (parseFloat(pxInput.value) || ltp) : ltp;
+
+        const gross = qty * px;
+        // SEBON May 2024 Tiered Commission
+        let rate = 0.0036;
+        if (gross > 10000000) rate = 0.0024;
+        else if (gross > 2000000) rate = 0.0027;
+        else if (gross > 500000) rate = 0.0031;
+        else if (gross > 50000) rate = 0.0033;
+        else rate = 0.0036;
+
+        let comm = Math.max(10.0, gross * rate);
+        const sebon = gross * 0.00015;
+        const dp = 25.0;
+        const cgt = (centaurSide === 'SELL') ? 0.0 : 0.0;
+        const netCost = (centaurSide === 'BUY') ? (gross + comm + sebon + dp) : (gross - comm - sebon - dp);
+
+        const elTurnover = document.getElementById('fric-turnover');
+        if (elTurnover) elTurnover.textContent = `NPR ${gross.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        const elCommRate = document.getElementById('fric-comm-rate');
+        if (elCommRate) elCommRate.textContent = `${(rate * 100).toFixed(2)}%`;
+        const elComm = document.getElementById('fric-comm');
+        if (elComm) elComm.textContent = `NPR ${comm.toFixed(2)}`;
+        const elSebonDp = document.getElementById('fric-sebon-dp');
+        if (elSebonDp) elSebonDp.textContent = `NPR ${sebon.toFixed(2)} + 25.00`;
+        const elCgtBracket = document.getElementById('fric-cgt-bracket');
+        if (elCgtBracket) elCgtBracket.textContent = centaurSide === 'BUY' ? 'N/A BUY' : '7.5% SHORT';
+        const elCgt = document.getElementById('fric-cgt');
+        if (elCgt) elCgt.textContent = `NPR ${cgt.toFixed(2)}`;
+        const elNet = document.getElementById('fric-net-total');
+        if (elNet) elNet.textContent = `NPR ${netCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+        // Live Slippage Guard Meter vs LTP
+        const driftPct = ltp > 0 ? ((px - ltp) / ltp) * 100 : 0;
+        const absDrift = Math.abs(driftPct);
+        const meter = document.getElementById('slippage-guard-meter');
+        const driftText = document.getElementById('slippage-drift-text');
+        if (meter && driftText) {
+          if (absDrift <= 0.5) {
+            meter.className = 'slippage-guard-bar slippage-pass';
+            driftText.textContent = `${driftPct >= 0 ? '+' : ''}${driftPct.toFixed(2)}% [PASS ±0.5%]`;
+          } else {
+            meter.className = 'slippage-guard-bar slippage-fail';
+            driftText.textContent = `${driftPct >= 0 ? '+' : ''}${driftPct.toFixed(2)}% [EXCEEDS ±0.5%]`;
+          }
+        }
+      };
+
+      window.stageCentaurTicket = async function() {
+        const qtyInput = document.getElementById('blotter-qty-input');
+        const pxInput = document.getElementById('blotter-px-input');
+        const qty = qtyInput ? (parseInt(qtyInput.value) || 10) : 10;
+        const meta = masterWatchlist.find(i => i.symbol === activeSymbol);
+        const ltp = meta ? meta.ltp : 500.0;
+        const px = pxInput ? (parseFloat(pxInput.value) || ltp) : ltp;
+
+        if (qty <= 0 || qty % 10 !== 0) {
+          logEvent('CENTAUR_REJECT', `Order quantity (${qty}) must be a multiple of 10 kitta.`, 'err');
+          return;
+        }
+
+        try {
+          const res = await fetch('/api/centaur/stage_order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              symbol: activeSymbol,
+              quantity: qty,
+              limit_price: px,
+              side: centaurSide
+            })
+          });
+          const data = await res.json();
+          if (data.status === 'STAGED') {
+            stagedTicket = data;
+            const sealRef = document.getElementById('ttl-seal-ref');
+            if (sealRef) sealRef.textContent = `SEAL: #${(data.sha256_seal || '').slice(0, 8)}...`;
+
+            // Reset 45-Second TTL Progress Countdown
+            if (ttlTimer) clearInterval(ttlTimer);
+            ttlSecondsRemaining = 45;
+            const ttlText = document.getElementById('ttl-countdown-text');
+            const ttlBar = document.getElementById('ttl-progress-bar');
+            if (ttlText) ttlText.textContent = '45s';
+            if (ttlBar) ttlBar.style.width = '100%';
+
+            ttlTimer = setInterval(() => {
+              ttlSecondsRemaining--;
+              const pct = Math.max(0, (ttlSecondsRemaining / 45) * 100);
+              if (ttlBar) ttlBar.style.width = `${pct}%`;
+              if (ttlText) ttlText.textContent = `${ttlSecondsRemaining}s`;
+
+              if (ttlSecondsRemaining <= 0) {
+                clearInterval(ttlTimer);
+                stagedTicket = null;
+                if (ttlText) ttlText.textContent = 'EXPIRED';
+                if (sealRef) sealRef.textContent = 'SEAL: EXPIRED';
+                logEvent('CENTAUR', 'Staged Ticket TTL Expired (45s). Re-stage required.', 'warn');
+              }
+            }, 1000);
+
+            logEvent('CENTAUR', `Ticket Staged: ${activeSymbol} x ${qty} kitta @ NPR ${px} [${data.ticket_id}]`, 'pos');
+          } else {
+            logEvent('CENTAUR_REJECT', `Staging Blocked: ${data.reason}`, 'err');
+          }
+        } catch (e) {
+          logEvent('CENTAUR_ERR', `API Staging failed: ${e.message}`, 'err');
+        }
+      };
+
+      window.dispatchCentaurOrder = async function() {
+        const qtyInput = document.getElementById('blotter-qty-input');
+        const pxInput = document.getElementById('blotter-px-input');
+        const qty = qtyInput ? (parseInt(qtyInput.value) || 10) : 10;
+        const meta = masterWatchlist.find(i => i.symbol === activeSymbol);
+        const ltp = meta ? meta.ltp : 500.0;
+        const px = pxInput ? (parseFloat(pxInput.value) || ltp) : ltp;
+
+        const driftPct = ltp > 0 ? ((px - ltp) / ltp) * 100 : 0;
+        if (Math.abs(driftPct) > 0.5) {
+          logEvent('CENTAUR_REJECT', `Order Blocked: Slippage drift (${driftPct >= 0 ? '+' : ''}${driftPct.toFixed(2)}%) violates ±0.5% cap.`, 'err');
+          return;
+        }
+
+        const btn = document.getElementById('btn-dispatch-centaur');
+        if (btn) btn.disabled = true;
+
+        try {
+          const res = await fetch('/api/centaur/confirm_order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              symbol: activeSymbol,
+              quantity: qty,
+              limit_price: px,
+              side: centaurSide,
+              staged_price: stagedTicket ? stagedTicket.limit_price : px,
+              ticket_id: stagedTicket ? stagedTicket.ticket_id : undefined
+            })
+          });
+          const data = await res.json();
+          if (data.status === 'CONFIRMED') {
+            if (ttlTimer) clearInterval(ttlTimer);
+            stagedTicket = null;
+            const ttlBar = document.getElementById('ttl-progress-bar');
+            const ttlText = document.getElementById('ttl-countdown-text');
+            const sealRef = document.getElementById('ttl-seal-ref');
+            if (ttlBar) ttlBar.style.width = '0%';
+            if (ttlText) ttlText.textContent = 'COMMITTED';
+            if (sealRef) sealRef.textContent = 'SEAL: COMMITTED';
+
+            logEvent('CENTAUR', `ORDER AUDITED: ${activeSymbol} x ${data.board_lot_quantity} kitta @ NPR ${data.limit_price} (Ticket: ${data.ticket_id})`, 'pos');
+            const refEl = document.getElementById('centaur-last-ref');
+            if (refEl) refEl.textContent = `${data.ticket_id}`;
+            refreshAuditLedger();
+          } else {
+            logEvent('CENTAUR_REJECT', `Order Blocked: ${data.reason || 'Circuit/Lot check failed'}`, 'err');
+          }
+        } catch (e) {
+          logEvent('CENTAUR_ERR', `API communication failure: ${e.message}`, 'err');
+        } finally {
+          if (btn) btn.disabled = false;
+        }
+      };
+
+      async function refreshAuditLedger() {
+        try {
+          const res = await fetch('/api/centaur/audit_ledger');
+          if (res.ok) {
+            const data = await res.json();
+            if (data.tickets && data.tickets.length > 0) {
+              const latest = data.tickets[0];
+              const refEl = document.getElementById('centaur-last-ref');
+              if (refEl) refEl.textContent = `${latest.ticket_id} (${latest.action})`;
+
+              const tbody = document.getElementById('centaur-audit-tbody');
+              if (tbody) {
+                tbody.innerHTML = data.tickets.slice(0, 15).map(t => `
+                  <tr>
+                    <td class="bold font-mono text-cyan" style="font-size: 7.5px;">${t.ticket_id}</td>
+                    <td class="${t.action === 'BUY' ? 'pos' : 'neg'} bold">${t.action}</td>
+                    <td>${t.quantity}</td>
+                    <td>${Number(t.limit_price).toFixed(1)}</td>
+                    <td><span class="centaur-badge" style="font-size: 7px; padding: 1px 3px;">${t.status}</span></td>
+                  </tr>
+                `).join('');
+              }
+            }
+          }
+        } catch (e) {}
+      }
+
+      window.updateSymbolBrainUI = function(brain) {
+        if (!brain) return;
+        const expEl = document.getElementById('brain-lockin-exp');
+        if (expEl) expEl.textContent = brain.lockin_expiry || '2026-11-14 (37D)';
+        const ovEl = document.getElementById('brain-overhang');
+        if (ovEl) ovEl.textContent = `${brain.overhang_ratio ? brain.overhang_ratio.toFixed(1) : '279.6'}x ADV30`;
+        const abEl = document.getElementById('brain-alpha-beta');
+        if (abEl) abEl.textContent = `α: ${brain.alpha_hits || 31} | β: ${brain.beta_misses || 13}`;
+        const convEl = document.getElementById('brain-conviction');
+        if (convEl) {
+          const pct = ((brain.conviction_prior || 0.705) * 100).toFixed(1);
+          convEl.textContent = `${pct}% (${brain.conviction_tier || 'HIGH CONV'})`;
+        }
+        const rmseEl = document.getElementById('brain-rmse');
+        if (rmseEl) rmseEl.textContent = `${brain.historical_rmse ? brain.historical_rmse.toFixed(2) : '10.82'} NPR`;
+      };
+
+      window.updateSettlementPill = function(settlement) {
+        if (!settlement) return;
+        const pill = document.getElementById('centaur-settlement-pill');
+        if (!pill) return;
+        if (settlement.phase_id === 1) {
+          pill.textContent = 'CDSC T+2: IN TRANSIT';
+          pill.className = 'cdsc-lockup-pill transit';
+        } else if (settlement.phase_id === 2) {
+          pill.textContent = 'CDSC T+2: LOCKUP';
+          pill.className = 'cdsc-lockup-pill lockup';
+        } else {
+          pill.textContent = 'CDSC T+2: SETTLED';
+          pill.className = 'cdsc-lockup-pill settled';
+        }
+      };
+
+      window.dispatchSweetSpot = function(ss) {
+        if (!ss) return;
+        activeSweetSpot = ss;
+        const ssEl = document.getElementById('overlay-sweet-spot');
+        if (ssEl) ssEl.textContent = `★ ${ss.session_label || 'T+' + ss.t_star} @ NPR ${Number(ss.target_price).toFixed(1)}`;
+        const gainEl = document.getElementById('overlay-sweet-spot-gain');
+        if (gainEl) gainEl.textContent = `+${Number(ss.gain_pct).toFixed(1)}% (+NPR ${Number(ss.gain_npr).toFixed(1)})`;
+        const confEl = document.getElementById('overlay-sweet-spot-conf');
+        if (confEl) confEl.textContent = `[CONF: ${Number(ss.confidence_pct).toFixed(1)}% | R:R ${Number(ss.risk_reward_ratio || 2.1).toFixed(1)}]`;
+
+        // Update Staging Blotter Price input with live Sweet Spot recommendation if not manually focused
+        const pxInput = document.getElementById('blotter-px-input');
+        if (pxInput && document.activeElement !== pxInput) {
+          const currentMeta = masterWatchlist.find(i => i.symbol === activeSymbol);
+          if (currentMeta) {
+            pxInput.value = currentMeta.ltp.toFixed(1);
+          }
+          updateFrictionCalculator();
+        }
+
+        // Draw Interactive Price Lines on TradingView Candlestick series
+        if (tvCandleSeries && typeof tvCandleSeries.createPriceLine === 'function') {
+          if (sweetSpotPriceLine) {
+            try { tvCandleSeries.removePriceLine(sweetSpotPriceLine); } catch (e) {}
+            sweetSpotPriceLine = null;
+          }
+          if (stopLossPriceLine) {
+            try { tvCandleSeries.removePriceLine(stopLossPriceLine); } catch (e) {}
+            stopLossPriceLine = null;
+          }
+
+          if (ss.target_price) {
+            sweetSpotPriceLine = tvCandleSeries.createPriceLine({
+              price: Number(ss.target_price),
+              color: '#FFD700',
+              lineWidth: 2,
+              lineStyle: 2, // Dashed
+              axisLabelVisible: true,
+              title: `★ SWEET SPOT (${ss.session_label || 'T+' + ss.t_star})`
+            });
+          }
+          if (ss.dynamic_stop_loss) {
+            stopLossPriceLine = tvCandleSeries.createPriceLine({
+              price: Number(ss.dynamic_stop_loss),
+              color: '#FF1744',
+              lineWidth: 1.5,
+              lineStyle: 1, // Dotted
+              axisLabelVisible: true,
+              title: 'STOP LOSS'
+            });
+          }
+        }
+      };
+
+      // -----------------------------------------------------------------------
+      // COMPONENT 2.5: NEPSE MARKET MACRO DISPATCHER
+      // -----------------------------------------------------------------------
+      function dispatchMarketMacro(macro) {
+        const idxEl = document.getElementById('macro-nepse-idx');
+        if (idxEl) idxEl.textContent = macro.nepse_index.toLocaleString(undefined, {minimumFractionDigits: 2});
+        
+        const chgEl = document.getElementById('macro-nepse-chg');
+        if (chgEl) {
+          chgEl.textContent = `${macro.index_chg >= 0 ? '+' : ''}${macro.index_chg.toFixed(2)} (${macro.index_chg_pct >= 0 ? '+' : ''}${macro.index_chg_pct.toFixed(2)}%)`;
+          chgEl.className = `macro-badge ${macro.index_chg >= 0 ? 'pos' : 'neg'}`;
+        }
+        
+        const toArba = (macro.total_turnover / 1e9).toFixed(2);
+        const toEl = document.getElementById('macro-turnover');
+        if (toEl) toEl.textContent = `NPR ${toArba} Arba`;
+        
+        const volM = (macro.total_volume / 1e6).toFixed(2);
+        const volEl = document.getElementById('macro-volume');
+        if (volEl) volEl.textContent = `${volM}M Kitta`;
+        
+        const advEl = document.getElementById('macro-adv');
+        if (advEl) advEl.textContent = `${macro.advances} ▲`;
+        const decEl = document.getElementById('macro-dec');
+        if (decEl) decEl.textContent = `${macro.declines} ▼`;
+        const unchEl = document.getElementById('macro-unch');
+        if (unchEl) unchEl.textContent = `${macro.unchanged} ▬`;
+        
+        const totalAct = macro.advances + macro.declines;
+        if (totalAct > 0) {
+          const advPct = Math.round((macro.advances / totalAct) * 100);
+          const fill = document.getElementById('breadth-bar-fill');
+          if (fill) fill.style.width = `${advPct}%`;
+        }
+        
+        const sens = document.getElementById('macro-sensitive');
+        if (sens) sens.textContent = `${macro.sensitive_index.toFixed(2)} (+${macro.sensitive_chg_pct.toFixed(2)}%)`;
+        
+        const circ = document.getElementById('macro-circuits');
+        if (circ) circ.textContent = `${macro.circuit_hits} UPPER (+10%)`;
+      }
+
+      // -----------------------------------------------------------------------
+      // COMPONENT 3: HEADLESS GRAPHICS INJECTION PIPELINE
+      // -----------------------------------------------------------------------
+      function dispatchHeadlessChart(frame) {
+        if (frame.img_base64 && frame.img_base64.length > 50) {
+          DOM.headlessChartFrame.src = frame.img_base64;
+        } else if (!DOM.headlessChartFrame.src || DOM.headlessChartFrame.src.endsWith('/')) {
+          DOM.headlessChartFrame.src = 'assets/chart_1_candlestick.png';
+        }
+        
+        DOM.hudFrameId.textContent = `#${String(frame.frame_id).padStart(4, '0')}`;
+        DOM.hudRenderTime.textContent = `${frame.render_ms.toFixed(1)}ms`;
+
+        // Update Overlay HUD
+        DOM.overlaySymbol.textContent = frame.symbol || activeSymbol;
+        DOM.overlayLtp.textContent = frame.ltp.toFixed(1);
+        DOM.overlayChg.textContent = `${frame.chg >= 0 ? '+' : ''}${frame.chg.toFixed(2)}%`;
+        DOM.overlayChg.className = frame.chg >= 0 ? 'pos bold' : 'neg bold';
+        if (frame.band) {
+          DOM.overlayBand.textContent = `${frame.band[0].toFixed(1)} — ${frame.band[1].toFixed(1)}`;
+        }
+
+        const overlaySector = document.getElementById('overlay-sector');
+        if (overlaySector && masterWatchlist.length > 0) {
+          const m = masterWatchlist.find(i => i.symbol === (frame.symbol || activeSymbol));
+          if (m && m.sector) overlaySector.textContent = m.sector;
+        }
+
+        const overlayRange = document.getElementById('overlay-range');
+        if (overlayRange && masterWatchlist.length > 0) {
+          const m = masterWatchlist.find(i => i.symbol === (frame.symbol || activeSymbol));
+          if (m && m.low !== undefined && m.high !== undefined) {
+            overlayRange.textContent = `${m.low.toFixed(1)} — ${m.high.toFixed(1)}`;
+          }
+        }
+      }
+
+      // -----------------------------------------------------------------------
+      // COMPONENT 4: MASTER WATCHLIST (353+ SECURITIES) WITH CLASSIFICATIONS & SORT
+      // -----------------------------------------------------------------------
+      let masterWatchlist = [];
+      let activeSectorFilter = 'ALL';
+      let searchQuery = '';
+      let sortColumn = 'vol';
+      let sortAsc = false;
+      let watchlistViewMode = 'CLASSIFIED'; // 'CLASSIFIED' or 'FLAT'
+      let collapsedSectors = {};
+
+      const SECTOR_META = [
+        { name: 'COMMERCIAL BANKS', icon: '🏦' },
+        { name: 'HYDROPOWER', icon: '⚡' },
+        { name: 'MICROFINANCE', icon: '🌱' },
+        { name: 'LIFE INSURANCE', icon: '🛡️' },
+        { name: 'NON-LIFE INSURANCE', icon: '☂️' },
+        { name: 'MANUFACTURING', icon: '🏭' },
+        { name: 'HOTELS & TOURISM', icon: '🏨' },
+        { name: 'INVESTMENT', icon: '🏛️' },
+        { name: 'FINANCE', icon: '📈' },
+        { name: 'DEVELOPMENT BANKS', icon: '🏗️' },
+        { name: 'MUTUAL FUNDS', icon: '📊' },
+        { name: 'DEBENTURES', icon: '📜' },
+        { name: 'TELECOM & TRADING', icon: '🌐' }
+      ];
+
+      window.toggleSectorCollapse = function(secName) {
+        collapsedSectors[secName] = !collapsedSectors[secName];
+        renderWatchlistTable();
+      };
+
+      function renderWatchlistTable() {
+        if (!masterWatchlist || masterWatchlist.length === 0) return;
+
+        let filtered = masterWatchlist.filter(item => {
+          // Sector Filter
+          if (activeSectorFilter !== 'ALL') {
+            const sec = (item.sector || 'EQUITY').toUpperCase();
+            if (!sec.includes(activeSectorFilter)) return false;
+          }
+          // Real-time Text Search Filter
+          if (searchQuery) {
+            const sym = (item.symbol || '').toUpperCase();
+            const sec = (item.sector || '').toUpperCase();
+            if (!sym.includes(searchQuery) && !sec.includes(searchQuery)) return false;
+          }
+          return true;
+        });
+
+        const sortFn = (a, b) => {
+          let valA = a[sortColumn];
+          let valB = b[sortColumn];
+          if (typeof valA === 'string') {
+            return sortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+          }
+          valA = Number(valA) || 0;
+          valB = Number(valB) || 0;
+          return sortAsc ? valA - valB : valB - valA;
+        };
+
+        const renderRowHtml = (item) => {
+          const isUp = item.chg >= 0;
+          const colorClass = isUp ? 'pos' : 'neg';
+          const sign = isUp ? '+' : '';
+          const isActive = item.symbol === activeSymbol;
+          const volStr = item.vol >= 1000000 ? (item.vol / 1000000).toFixed(1) + 'M' : (item.vol >= 1000 ? (item.vol / 1000).toFixed(0) + 'k' : item.vol);
+          const secShort = (item.sector || 'EQUITY').split(' ')[0].substring(0, 5);
+
+          return `
+            <tr id="wl-row-${item.symbol}" class="${isActive ? 'active-scrip' : ''}" data-symbol="${item.symbol}" onclick="selectSymbol('${item.symbol}')">
+              <td>
+                <div class="row-sym-cell">
+                  <span class="bold text-bright">${item.symbol}</span>
+                  <span class="row-sec-tag">${secShort}</span>
+                </div>
+              </td>
+              <td>${item.ltp.toFixed(1)}</td>
+              <td><span class="chg-badge ${colorClass}">${sign}${item.chg.toFixed(2)}%</span></td>
+              <td class="muted">${volStr}</td>
+            </tr>
+          `;
+        };
+
+        let html = '';
+
+        if (watchlistViewMode === 'CLASSIFIED' && !searchQuery) {
+          // CLASSIFIED VIEW: Organized into Collapsible Sector Banners
+          SECTOR_META.forEach(secDef => {
+            const secItems = filtered.filter(i => (i.sector || 'EQUITY').toUpperCase() === secDef.name);
+            if (secItems.length === 0) return;
+
+            secItems.sort(sortFn);
+            const isCollapsed = Boolean(collapsedSectors[secDef.name]);
+            const avgChg = secItems.reduce((acc, cur) => acc + (cur.chg || 0), 0) / secItems.length;
+
+            html += `
+              <tr class="sec-group-header" onclick="toggleSectorCollapse('${secDef.name}')">
+                <td colspan="4">
+                  <div class="sec-group-bar">
+                    <span class="sec-chevron ${isCollapsed ? 'collapsed' : ''}">${isCollapsed ? '▶' : '▼'}</span>
+                    <span class="sec-group-name">${secDef.icon} ${secDef.name}</span>
+                    <span class="sec-group-count">${secItems.length}</span>
+                    <span class="sec-group-stat ${avgChg >= 0 ? 'pos' : 'neg'}">${avgChg >= 0 ? '+' : ''}${avgChg.toFixed(2)}%</span>
+                  </div>
+                </td>
+              </tr>
+            `;
+
+            if (!isCollapsed) {
+              secItems.forEach(item => {
+                html += renderRowHtml(item);
+              });
+            }
+          });
+        } else {
+          // FLAT VIEW (or Active Search Filter): Global Ranking across universe
+          filtered.sort(sortFn);
+          filtered.forEach(item => {
+            html += renderRowHtml(item);
+          });
+        }
+
+        const scrollBox = document.querySelector('.watchlist-table-container');
+        const prevScrollY = scrollBox ? scrollBox.scrollTop : 0;
+        DOM.watchlistTbody.innerHTML = html;
+        if (scrollBox && prevScrollY > 0) {
+          scrollBox.scrollTop = prevScrollY;
+        }
+
+        // Telemetry counters
+        const countBadge = document.getElementById('watchlist-count');
+        if (countBadge) countBadge.textContent = `${masterWatchlist.length} SECURITIES`;
+
+        const filterStatus = document.getElementById('filtered-count-status');
+        if (filterStatus) filterStatus.textContent = `SHOWING ${filtered.length} / ${masterWatchlist.length} (${watchlistViewMode})`;
+
+        const sortStatus = document.getElementById('sort-status');
+        if (sortStatus) sortStatus.textContent = `SORT: ${sortColumn.toUpperCase()} ${sortAsc ? 'ASC' : 'DESC'}`;
+      }
+
+      function dispatchWatchlist(list) {
+        masterWatchlist = list;
+        renderWatchlistTable();
+      }
+
+      
+      // -----------------------------------------------------------------------
+      // COMPONENT 3.5: CLIENT-SIDE INTERACTIVE VISUALIZATION ENGINES (TV + EC)
+      // -----------------------------------------------------------------------
+      let tvChart = null;
+      let tvCandleSeries = null;
+      let tvEma20Series = null;
+      let tvEma50Series = null;
+      let tvVolumeSeries = null;
+      let ecChart = null;
+      let currentSeriesData = null;
+
+      function initClientCharts() {
+        const tvContainer = document.getElementById('tv-chart-view');
+        const ecContainer = document.getElementById('echarts-view');
+
+        // 1. TradingView Lightweight Charts
+        if (window.LightweightCharts && tvContainer) {
+          try {
+            tvChart = LightweightCharts.createChart(tvContainer, {
+              autoSize: true,
+              layout: {
+                background: { color: '#020306' },
+                textColor: '#c9d1d9',
+                fontFamily: "'JetBrains Mono', Consolas, monospace",
+                fontSize: 10,
+              },
+              grid: {
+                vertLines: { color: '#0d131f' },
+                horzLines: { color: '#0d131f' },
+              },
+              crosshair: {
+                mode: LightweightCharts.CrosshairMode.Normal,
+              },
+              rightPriceScale: {
+                borderColor: '#151c28',
+                scaleMargins: { top: 0.1, bottom: 0.2 },
+              },
+              timeScale: {
+                borderColor: '#151c28',
+                timeVisible: true,
+                secondsVisible: false,
+              },
+            });
+
+            tvCandleSeries = tvChart.addCandlestickSeries({
+              upColor: '#00E676',
+              downColor: '#FF1744',
+              borderVisible: false,
+              wickUpColor: '#00E676',
+              wickDownColor: '#FF1744',
+            });
+
+            tvEma20Series = tvChart.addLineSeries({
+              color: '#00E5FF',
+              lineWidth: 1.5,
+              title: 'EMA 20',
+            });
+
+            tvEma50Series = tvChart.addLineSeries({
+              color: '#FFB300',
+              lineWidth: 1.5,
+              title: 'EMA 50',
+            });
+
+            tvVolumeSeries = tvChart.addHistogramSeries({
+              color: '#26a69a',
+              priceFormat: { type: 'volume' },
+              priceScaleId: '',
+            });
+            tvVolumeSeries.priceScale().applyOptions({
+              scaleMargins: { top: 0.82, bottom: 0 },
+            });
+            logEvent('ENGINE', 'TradingView Lightweight Charts 4.1.3 Initialized', 'info');
+          } catch (e) {
+            console.error('TV chart init error:', e);
+          }
+        }
+
+        // 2. Apache ECharts
+        if (window.echarts && ecContainer) {
+          try {
+            ecChart = echarts.init(ecContainer, null, { renderer: 'canvas' });
+            logEvent('ENGINE', 'Apache ECharts 5.4.3 ZRender Engine Initialized', 'info');
+          } catch (e) {
+            console.error('ECharts init error:', e);
+          }
+        }
+
+        window.addEventListener('resize', () => {
+          if (tvChart && tvContainer) tvChart.resize(tvContainer.clientWidth, tvContainer.clientHeight);
+          if (ecChart) ecChart.resize();
+        });
+      }
+
+      async function loadAndRenderSeries(symbol, mode) {
+        const tvContainer = document.getElementById('tv-chart-view');
+        const ecContainer = document.getElementById('echarts-view');
+        const imgFrame = document.getElementById('headless-chart-frame');
+        const badge = document.getElementById('engine-render-mode');
+
+        try {
+          const t0 = performance.now();
+          const res = await fetch(`/api/charts/series/${symbol}`);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          currentSeriesData = data;
+          const dt = (performance.now() - t0).toFixed(1);
+          DOM.hudRenderTime.textContent = `${dt}ms`;
+
+          // Dispatch Sweet Spot Coordinate & State Machine
+          if (data.sweet_spot) {
+            dispatchSweetSpot(data.sweet_spot);
+          }
+          if (data.symbol_brain) {
+            updateSymbolBrainUI(data.symbol_brain);
+          }
+          if (data.settlement_state) {
+            updateSettlementPill(data.settlement_state);
+          }
+          // Default Staging Blotter Price input to current LTP if not focused
+          const pxInput = document.getElementById('blotter-px-input');
+          if (pxInput && document.activeElement !== pxInput) {
+            pxInput.value = Number(data.ltp).toFixed(1);
+            updateFrictionCalculator();
+          }
+
+          if (mode === 'CANDLE') {
+            if (tvContainer) tvContainer.style.display = 'block';
+            if (ecContainer) ecContainer.style.display = 'none';
+            if (imgFrame) imgFrame.style.display = 'none';
+            if (badge) badge.textContent = 'TRADINGVIEW CANVAS';
+
+            if (tvChart && data.candles && data.candles.length > 0) {
+              tvCandleSeries.setData(data.candles);
+              tvEma20Series.setData(data.ema20 || []);
+              tvEma50Series.setData(data.ema50 || []);
+              const volData = data.candles.map(c => ({
+                time: c.time,
+                value: c.volume,
+                color: c.close >= c.open ? 'rgba(0, 230, 118, 0.4)' : 'rgba(255, 23, 68, 0.4)'
+              }));
+              tvVolumeSeries.setData(volData);
+              tvChart.timeScale().fitContent();
+            }
+          } else {
+            if (tvContainer) tvContainer.style.display = 'none';
+            if (ecContainer) ecContainer.style.display = 'block';
+            if (imgFrame) imgFrame.style.display = 'none';
+            if (badge) badge.textContent = 'ECHARTS WebGL/ZRender';
+
+            if (ecChart) {
+              // ECharts must resize AFTER container is display:block and browser layout is computed
+              requestAnimationFrame(() => {
+                ecChart.resize();
+                renderEChartsMode(mode, data);
+              });
+            }
+          }
+        } catch (e) {
+          logEvent('CHART_ENGINE', `Render fallback to Base64: ${e.message}`, 'warn');
+          if (tvContainer) tvContainer.style.display = 'none';
+          if (ecContainer) ecContainer.style.display = 'none';
+          if (imgFrame) imgFrame.style.display = 'block';
+          if (badge) badge.textContent = 'HEADLESS Agg RASTER';
+        }
+      }
+
+      function renderEChartsMode(mode, data) {
+        if (!ecChart || !data) return;
+        ecChart.clear();
+
+        if (mode === 'BOLLINGER') {
+          const dates = data.bollinger.dates;
+          ecChart.setOption({
+            backgroundColor: '#020306',
+            tooltip: { trigger: 'axis', textStyle: { fontFamily: 'monospace', fontSize: 10 } },
+            legend: { textStyle: { color: '#8b949e', fontSize: 9 }, top: 4 },
+            grid: { top: 32, bottom: 25, left: 50, right: 30 },
+            xAxis: { type: 'category', data: dates, axisLine: { lineStyle: { color: '#151c28' } }, axisLabel: { color: '#8b949e', fontSize: 9 } },
+            yAxis: { type: 'value', scale: true, axisLine: { lineStyle: { color: '#151c28' } }, splitLine: { lineStyle: { color: '#0a0f18' } }, axisLabel: { color: '#8b949e', fontSize: 9 } },
+            series: [
+              { name: 'Upper Band (+2σ)', type: 'line', data: data.bollinger.upper, lineStyle: { color: '#00E5FF', width: 1.2 } },
+              { name: 'SMA 20 (Basis)', type: 'line', data: data.bollinger.middle, lineStyle: { color: '#FFB300', width: 1.5 } },
+              { name: 'Lower Band (-2σ)', type: 'line', data: data.bollinger.lower, lineStyle: { color: '#FF1744', width: 1.2 } },
+              { name: 'Close Price', type: 'line', data: data.candles.map(c => c.close), lineStyle: { color: '#00E676', width: 2 } }
+            ]
+          });
+        } else if (mode === 'ICP') {
+          const has20D = data.predicted_path && data.predicted_path.length > 0;
+          const fDates = has20D ? data.predicted_path.map(p => p.session) : data.chronos_icp.dates;
+          const p50 = has20D ? data.predicted_path.map(p => p.price) : data.chronos_icp.p50;
+          const p90 = has20D ? data.predicted_path.map(p => p.upper) : data.chronos_icp.p90;
+          const p10 = has20D ? data.predicted_path.map(p => p.lower) : data.chronos_icp.p10;
+          const ss = data.sweet_spot || {};
+
+          const markPointData = [];
+          if (ss.t_star && ss.target_price) {
+            markPointData.push({
+              name: 'Sweet Spot (t*, P*)',
+              coord: [ss.session_label || `T+${ss.t_star}`, Number(ss.target_price)],
+              value: `★ ${ss.session_label}: NPR ${Number(ss.target_price).toFixed(1)}`,
+              itemStyle: { color: '#FFD700', borderColor: '#FFFFFF', borderWidth: 1.5 }
+            });
+          }
+
+          const markLineData = [];
+          if (ss.dynamic_stop_loss) {
+            markLineData.push({
+              yAxis: Number(ss.dynamic_stop_loss),
+              lineStyle: { color: '#FF1744', type: 'dashed', width: 1.5 },
+              label: { formatter: `STOP LOSS: NPR ${Number(ss.dynamic_stop_loss).toFixed(1)}`, position: 'end', color: '#FF1744', fontSize: 9 }
+            });
+          }
+
+          ecChart.setOption({
+            backgroundColor: '#020306',
+            title: { text: `${data.symbol} 20-Day Predictive Corridor & Sweet Spot (t*, P*) Conformal Cone`, textStyle: { color: '#00E5FF', fontSize: 11, fontFamily: 'monospace' }, top: 5, left: 10 },
+            tooltip: { trigger: 'axis', textStyle: { fontFamily: 'monospace', fontSize: 10 } },
+            legend: { textStyle: { color: '#8b949e', fontSize: 9 }, top: 4, right: 10 },
+            grid: { top: 40, bottom: 25, left: 55, right: 30 },
+            xAxis: { type: 'category', data: fDates, axisLine: { lineStyle: { color: '#151c28' } }, axisLabel: { color: '#8b949e', fontSize: 9 } },
+            yAxis: { type: 'value', scale: true, axisLine: { lineStyle: { color: '#151c28' } }, splitLine: { lineStyle: { color: '#0a0f18' } }, axisLabel: { color: '#8b949e', fontSize: 9 } },
+            series: [
+              { name: 'P90 Upper Bound', type: 'line', data: p90, lineStyle: { color: '#00E5FF', width: 1.5, type: 'dashed' }, connectNulls: true },
+              { 
+                name: 'P50 Median Forecast', 
+                type: 'line', 
+                data: p50, 
+                lineStyle: { color: '#00E676', width: 2 },
+                markPoint: {
+                  symbol: 'pin',
+                  symbolSize: 42,
+                  label: { fontSize: 8, color: '#000', fontWeight: 'bold' },
+                  data: markPointData
+                },
+                markLine: {
+                  symbol: 'none',
+                  data: markLineData
+                }
+              },
+              { name: 'P10 Lower Bound', type: 'line', data: p10, lineStyle: { color: '#FF1744', width: 1.5, type: 'dashed' }, connectNulls: true }
+            ]
+          });
+        } else if (mode === 'TREEMAP') {
+          ecChart.setOption({
+            backgroundColor: '#020306',
+            title: { text: 'NEPSE Sector Market Capitalization Treemap (Interactive Drill-Down)', textStyle: { color: '#f0f6fc', fontSize: 11, fontFamily: 'monospace' }, top: 5, left: 10 },
+            tooltip: { formatter: '{b}: NPR {c} Arba' },
+            series: [{
+              type: 'treemap',
+              data: data.treemap,
+              leafDepth: 1,
+              top: 30,
+              bottom: 10,
+              left: 10,
+              right: 10,
+              breadcrumb: { itemStyle: { color: '#070b12', textStyle: { color: '#00E5FF' } } },
+              levels: [
+                { itemStyle: { borderColor: '#151c28', borderWidth: 2, gapWidth: 2 } },
+                { colorSaturation: [0.35, 0.5], itemStyle: { borderColorSaturation: 0.6, gapWidth: 1 } }
+              ]
+            }]
+          });
+        } else if (mode === 'MONTE_CARLO') {
+          ecChart.setOption({
+            backgroundColor: '#020306',
+            title: { text: `${data.symbol} 30-Day Monte Carlo Stochastic Fan (Representative Paths)`, textStyle: { color: '#00E5FF', fontSize: 11, fontFamily: 'monospace' }, top: 5, left: 10 },
+            tooltip: { trigger: 'axis' },
+            grid: { top: 40, bottom: 25, left: 55, right: 30 },
+            xAxis: { type: 'category', data: data.monte_carlo.dates, axisLine: { lineStyle: { color: '#151c28' } } },
+            yAxis: { type: 'value', scale: true, splitLine: { lineStyle: { color: '#0a0f18' } } },
+            series: data.monte_carlo.paths.map((p, idx) => ({
+              type: 'line',
+              data: p,
+              showSymbol: false,
+              lineStyle: { width: 0.8, opacity: 0.4, color: idx % 2 === 0 ? '#00E5FF' : '#00E676' }
+            }))
+          });
+        } else if (mode === 'SPREAD') {
+          const c = data.candles.map(x => x.close);
+          const base = c[0] || 1.0;
+          const pct = c.map(v => Number(((v / base - 1) * 100).toFixed(2)));
+          ecChart.setOption({
+            backgroundColor: '#020306',
+            title: { text: `${data.symbol} Normalized Relative Return Spread vs Baseline (0%)`, textStyle: { color: '#f0f6fc', fontSize: 11, fontFamily: 'monospace' }, top: 5, left: 10 },
+            tooltip: { trigger: 'axis', formatter: '{b}<br/>Relative Return: {c}%' },
+            grid: { top: 40, bottom: 25, left: 55, right: 30 },
+            xAxis: { type: 'category', data: data.candles.map(x => x.time), axisLine: { lineStyle: { color: '#151c28' } } },
+            yAxis: { type: 'value', scale: true, axisLabel: { formatter: '{value}%' }, splitLine: { lineStyle: { color: '#0a0f18' } } },
+            series: [{
+              name: data.symbol,
+              type: 'line',
+              data: pct,
+              lineStyle: { color: '#00E5FF', width: 2 },
+              areaStyle: { color: 'rgba(0, 229, 255, 0.08)' }
+            }]
+          });
+        } else if (mode === 'VPVR') {
+          const vpvr = data.vpvr || {};
+          const bins = vpvr.bins || [];
+          const vols = vpvr.volumes || [];
+          const poc = vpvr.poc_price || data.ltp;
+          const vah = vpvr.vah_price || (data.ltp * 1.05);
+          const val = vpvr.val_price || (data.ltp * 0.95);
+
+          const maxVol = vols.length > 0 ? Math.max(...vols) : 1;
+          const barData = bins.map((price, idx) => {
+            const v = vols[idx] || 0;
+            const isPoc = Math.abs(price - poc) < 0.01 || (idx === vols.indexOf(maxVol));
+            const inVA = price >= val && price <= vah;
+            return {
+              value: v,
+              itemStyle: {
+                color: isPoc ? '#FFD700' : (inVA ? '#00E5FF' : '#1e2d42'),
+                borderRadius: [0, 2, 2, 0]
+              }
+            };
+          });
+
+          ecChart.setOption({
+            backgroundColor: '#020306',
+            title: {
+              text: `${data.symbol} Visible Range Volume Profile (VPVR) • POC: NPR ${poc.toFixed(1)} | VAH: ${vah.toFixed(1)} | VAL: ${val.toFixed(1)}`,
+              textStyle: { color: '#00E5FF', fontSize: 11, fontFamily: 'monospace' },
+              top: 5,
+              left: 10
+            },
+            tooltip: {
+              trigger: 'axis',
+              axisPointer: { type: 'shadow' },
+              formatter: function(params) {
+                const p = params[0];
+                const price = bins[p.dataIndex];
+                const isPoc = Math.abs(price - poc) < 0.01;
+                return `Price Level: <b>NPR ${price}</b><br/>Volume: <b>${p.value ? p.value.toLocaleString() : 0}</b> ${isPoc ? '<span style="color:#FFD700">★ POC</span>' : ''}`;
+              }
+            },
+            grid: { top: 40, bottom: 25, left: 75, right: 30 },
+            xAxis: {
+              type: 'value',
+              name: 'Volume',
+              nameTextStyle: { color: '#8b949e', fontSize: 9 },
+              axisLine: { lineStyle: { color: '#151c28' } },
+              splitLine: { lineStyle: { color: '#0a0f18' } },
+              axisLabel: { color: '#8b949e', fontSize: 9 }
+            },
+            yAxis: {
+              type: 'category',
+              data: bins.map(b => `NPR ${b}`),
+              axisLine: { lineStyle: { color: '#151c28' } },
+              axisLabel: { color: '#8b949e', fontSize: 8 }
+            },
+            series: [{
+              name: 'Traded Volume',
+              type: 'bar',
+              data: barData,
+              markLine: {
+                symbol: 'none',
+                data: [
+                  {
+                    name: 'POC',
+                    yAxis: bins.indexOf(poc) >= 0 ? `NPR ${poc}` : undefined,
+                    lineStyle: { color: '#FFD700', width: 2, type: 'solid' },
+                    label: { formatter: `★ POC ${poc}`, color: '#FFD700', fontSize: 9, position: 'end' }
+                  }
+                ]
+              }
+            }]
+          });
+        } else if (mode === 'ORDERFLOW') {
+          const of = data.orderflow || {};
+          const ofDates = of.dates || [];
+          const cvd = of.cvd || [];
+          const delta = of.delta || [];
+          const lastCvd = of.last_cvd || (cvd[cvd.length - 1] || 0);
+          const isCvdPos = lastCvd >= 0;
+          const cvdColor = isCvdPos ? '#00E676' : '#FF1744';
+
+          ecChart.setOption({
+            backgroundColor: '#020306',
+            title: {
+              text: `${data.symbol} Order Flow Microstructure • Cumulative Volume Delta (CVD: ${lastCvd >= 0 ? '+' : ''}${lastCvd.toLocaleString()}) & Net Delta`,
+              textStyle: { color: cvdColor, fontSize: 11, fontFamily: 'monospace' },
+              top: 5,
+              left: 10
+            },
+            tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+            legend: { data: ['CVD (Cumulative)', 'Net Session Delta'], textStyle: { color: '#8b949e', fontSize: 9 }, top: 5, right: 10 },
+            grid: [
+              { top: 40, bottom: '38%', left: 55, right: 30 },
+              { top: '66%', bottom: 25, left: 55, right: 30 }
+            ],
+            xAxis: [
+              { type: 'category', data: ofDates, gridIndex: 0, axisLine: { lineStyle: { color: '#151c28' } }, axisLabel: { show: false } },
+              { type: 'category', data: ofDates, gridIndex: 1, axisLine: { lineStyle: { color: '#151c28' } }, axisLabel: { color: '#8b949e', fontSize: 8 } }
+            ],
+            yAxis: [
+              { type: 'value', scale: true, gridIndex: 0, splitLine: { lineStyle: { color: '#0a0f18' } }, axisLabel: { color: '#8b949e', fontSize: 9 } },
+              { type: 'value', gridIndex: 1, splitLine: { lineStyle: { color: '#0a0f18' } }, axisLabel: { color: '#8b949e', fontSize: 8 } }
+            ],
+            series: [
+              {
+                name: 'CVD (Cumulative)',
+                type: 'line',
+                data: cvd,
+                gridIndex: 0,
+                xAxisIndex: 0,
+                yAxisIndex: 0,
+                smooth: true,
+                lineStyle: { color: cvdColor, width: 2 },
+                areaStyle: {
+                  color: isCvdPos ? 'rgba(0, 230, 118, 0.12)' : 'rgba(255, 23, 68, 0.12)'
+                },
+                markLine: {
+                  symbol: 'none',
+                  data: [{ yAxis: 0, lineStyle: { color: '#30363d', width: 1, type: 'dashed' }, label: { formatter: '0 DELTA', fontSize: 8, color: '#8b949e' } }]
+                }
+              },
+              {
+                name: 'Net Session Delta',
+                type: 'bar',
+                data: delta.map(d => ({
+                  value: d,
+                  itemStyle: { color: d >= 0 ? 'rgba(0, 230, 118, 0.7)' : 'rgba(255, 23, 68, 0.7)' }
+                })),
+                gridIndex: 1,
+                xAxisIndex: 1,
+                yAxisIndex: 1
+              }
+            ]
+          });
+        }
+      }
+
+
+      window.selectSymbol = function(sym) {
+        if (!sym) return;
+        activeSymbol = sym;
+
+        // Visual active row update immediately in DOM without waiting
+        document.querySelectorAll('.watchlist-table tr.active-scrip').forEach(r => r.classList.remove('active-scrip'));
+        const activeRow = document.getElementById(`wl-row-${sym}`);
+        if (activeRow) activeRow.classList.add('active-scrip');
+
+        const cSymEl = document.getElementById('centaur-active-sym');
+        if (cSymEl) cSymEl.textContent = `${sym} (TOP-20)`;
+        if (DOM.bookActiveSymbol) DOM.bookActiveSymbol.textContent = sym;
+
+        const activeBtn = document.querySelector('.btn-toggle.active');
+        const label = activeBtn ? (activeBtn.dataset.label || activeChartMode) : activeChartMode;
+
+        const scripMeta = masterWatchlist.find(i => i.symbol === sym);
+        if (scripMeta) {
+          const metaEl = document.getElementById('chart-active-meta');
+          if (metaEl) metaEl.textContent = `${sym} • LTP: ${scripMeta.ltp.toFixed(1)} (${scripMeta.chg >= 0 ? '+' : ''}${scripMeta.chg.toFixed(2)}%) • ${scripMeta.sector}`;
+          if (DOM.overlaySymbol) DOM.overlaySymbol.textContent = sym;
+          if (DOM.overlayLtp) DOM.overlayLtp.textContent = scripMeta.ltp.toFixed(1);
+          if (DOM.overlayChg) {
+            DOM.overlayChg.textContent = `${scripMeta.chg >= 0 ? '+' : ''}${scripMeta.chg.toFixed(2)}%`;
+            DOM.overlayChg.className = scripMeta.chg >= 0 ? 'pos bold' : 'neg bold';
+          }
+          const overlaySector = document.getElementById('overlay-sector');
+          if (overlaySector) overlaySector.textContent = scripMeta.sector;
+          const overlayRange = document.getElementById('overlay-range');
+          if (overlayRange && scripMeta.low && scripMeta.high) {
+            overlayRange.textContent = `${scripMeta.low.toFixed(1)} — ${scripMeta.high.toFixed(1)}`;
+          }
+        } else {
+          const metaEl = document.getElementById('chart-active-meta');
+          if (metaEl) metaEl.textContent = `${sym} • ${label}`;
+          if (DOM.overlaySymbol) DOM.overlaySymbol.textContent = sym;
+        }
+
+        loadAndRenderSeries(sym, activeChartMode);
+        if (typeof refreshAuditLedger === 'function') refreshAuditLedger();
+
+        logEvent('DISPATCHER', `Switched Active Symbol: ${sym}`, 'info');
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ action: 'SUBSCRIBE', symbol: sym, mode: activeChartMode, timeframe: activeTimeframe }));
+        }
+      };
+      const selectSymbol = window.selectSymbol;
+
+
+      // -----------------------------------------------------------------------
+      // FPS & RENDER LOOP PROFILER
+      // -----------------------------------------------------------------------
+      function profileFps() {
+        framesRendered++;
+        const now = performance.now();
+        if (now - lastFpsTime >= 1000) {
+          const fps = (framesRendered * 1000) / (now - lastFpsTime);
+          DOM.metricFps.textContent = `${fps.toFixed(1)} FPS`;
+          framesRendered = 0;
+          lastFpsTime = now;
+        }
+        requestAnimationFrame(profileFps);
+      }
+      requestAnimationFrame(profileFps);
+
+      // -----------------------------------------------------------------------
+      // COMPONENT 5: PERSISTENT WEBSOCKET INGESTION PIPELINE
+      // -----------------------------------------------------------------------
+      function initSocket() {
+        DOM.metricWsStatus.textContent = 'CONNECTING...';
+        DOM.metricWsStatus.className = 'metric-value neu';
+        logEvent('SOCKET', `Establishing WebSocket connection to ${CONFIG.WS_URL}`, 'info');
+
+        try {
+          ws = new WebSocket(CONFIG.WS_URL);
+        } catch (e) {
+          logEvent('SOCKET', `WebSocket instantiation error: ${e.message}`, 'err');
+          scheduleReconnect();
+          return;
+        }
+
+        ws.onopen = function () {
+          DOM.metricWsStatus.textContent = 'ESTABLISHED (TCP)';
+          DOM.metricWsStatus.className = 'metric-value pos';
+          logEvent('SOCKET', 'Low-Latency Zero-Copy Data Pipe Online', 'info');
+
+          // Send subscription handshake
+          ws.send(JSON.stringify({ action: 'SUBSCRIBE', symbol: activeSymbol, timeframe: activeTimeframe }));
+
+          // Start Heartbeat Ping Loop
+          startPingLoop();
+        };
+
+        ws.onmessage = function (event) {
+          const now = performance.now();
+          if (pingStartTime > 0) {
+            const rtt = now - pingStartTime;
+            DOM.metricLatency.textContent = `${rtt.toFixed(2)} ms`;
+            pingStartTime = 0;
+          }
+
+          let payload;
+          try {
+            payload = JSON.parse(event.data);
+          } catch (err) {
+            logEvent('PARSE_ERR', 'Malformed JSON payload received', 'err');
+            return;
+          }
+
+          // ROUTING MATRIX
+          switch (payload.type) {
+            case 'TICK':
+              dispatchTapeTick(payload.data);
+              break;
+            case 'L2_DEPTH':
+              dispatchOrderBook(payload.data);
+              break;
+            case 'CHART_FRAME':
+              dispatchHeadlessChart(payload.data);
+              break;
+            case 'WATCHLIST':
+              dispatchWatchlist(payload.data);
+              break;
+            case 'MARKET_STATUS':
+              updateMarketStatus(payload.data);
+              break;
+            case 'SETTLED_TAPE':
+              renderSettledTape(payload.data);
+              break;
+            case 'TELEMETRY':
+              DOM.metricSeqlockSeq.textContent = `#${payload.data.seqlock_seq}`;
+              break;
+            case 'SWEET_SPOT':
+              dispatchSweetSpot(payload.data);
+              break;
+            case 'SYMBOL_BRAIN':
+              updateSymbolBrainUI(payload.data);
+              break;
+            case 'CENTAUR_CONFIRMED':
+              logEvent('CENTAUR', `Order Confirmed: ${payload.data.ticket_id} (${payload.data.action})`, 'pos');
+              refreshAuditLedger();
+              break;
+            case 'CENTAUR_REJECT':
+              logEvent('CENTAUR_REJECT', payload.data.reason || 'Centaur order rejected', 'err');
+              break;
+            case 'LOG':
+              logEvent(payload.data.tag, payload.data.message, payload.data.level);
+              break;
+            default:
+              break;
+          }
+        };
+
+        ws.onclose = function () {
+          DOM.metricWsStatus.textContent = 'DISCONNECTED';
+          DOM.metricWsStatus.className = 'metric-value neg';
+          logEvent('SOCKET', 'Connection severed. Re-engaging handshake...', 'warn');
+          scheduleReconnect();
+        };
+
+        ws.onerror = function (err) {
+          logEvent('SOCKET', 'Socket pipe error encountered', 'err');
+        };
+      }
+
+      function scheduleReconnect() {
+        setTimeout(initSocket, 2000);
+      }
+
+      function startPingLoop() {
+        setInterval(() => {
+          if (ws && ws.readyState === WebSocket.OPEN && pingStartTime === 0) {
+            pingStartTime = performance.now();
+            ws.send(JSON.stringify({ action: 'PING', client_ts: Date.now() }));
+          }
+        }, 2000);
+      }
+
+      // Simulation Replay Toggle Listener
+      const simBtn = document.getElementById('sim-replay-btn');
+      if (simBtn) {
+        simBtn.addEventListener('click', () => {
+          const nextState = !marketSession.simulation_mode;
+          logEvent('UI', `Simulation replay mode shifted to ${nextState ? 'ON' : 'OFF'}`, 'info');
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ action: 'TOGGLE_SIMULATION', enabled: nextState }));
+          }
+        });
+      }
+
+      // Watchlist Instant Search Input Listener
+      const searchInput = document.getElementById('watchlist-search');
+      if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+          searchQuery = e.target.value.trim().toUpperCase();
+          renderWatchlistTable();
+        });
+      }
+
+      // Watchlist Sector Filter Chips
+      document.querySelectorAll('.sec-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+          document.querySelectorAll('.sec-pill').forEach(p => p.classList.remove('active'));
+          pill.classList.add('active');
+          activeSectorFilter = pill.dataset.sector || 'ALL';
+          renderWatchlistTable();
+        });
+      });
+
+      // Watchlist Interactive Column Header Sorting
+      document.querySelectorAll('.watchlist-table th[data-col]').forEach(th => {
+        th.addEventListener('click', () => {
+          const col = th.dataset.col;
+          if (sortColumn === col) {
+            sortAsc = !sortAsc;
+          } else {
+            sortColumn = col;
+            sortAsc = (col === 'symbol'); // Default ascending for alphabet, descending for metrics
+          }
+          document.querySelectorAll('.watchlist-table th[data-col] .sort-icon').forEach(icon => icon.textContent = '');
+          const currentIcon = th.querySelector('.sort-icon');
+          if (currentIcon) {
+            currentIcon.textContent = sortAsc ? '▴' : '▾';
+          }
+          renderWatchlistTable();
+        });
+      });
+
+      // Watchlist View Mode Toggles (CLASSIFIED vs FLAT RANK)
+      const btnClassified = document.getElementById('view-classified-btn');
+      const btnFlat = document.getElementById('view-flat-btn');
+      if (btnClassified && btnFlat) {
+        btnClassified.addEventListener('click', () => {
+          watchlistViewMode = 'CLASSIFIED';
+          btnClassified.classList.add('active');
+          btnFlat.classList.remove('active');
+          logEvent('UI', 'Watchlist view: CLASSIFIED (Sector Mode)', 'info');
+          renderWatchlistTable();
+        });
+        btnFlat.addEventListener('click', () => {
+          watchlistViewMode = 'FLAT';
+          btnFlat.classList.add('active');
+          btnClassified.classList.remove('active');
+          logEvent('UI', 'Watchlist view: FLAT RANK (Global Ranking)', 'info');
+          renderWatchlistTable();
+        });
+      }
+
+      // Expand / Collapse All Sector Headers
+      const expandBtn = document.getElementById('expand-all-btn');
+      if (expandBtn) {
+        expandBtn.addEventListener('click', () => {
+          collapsedSectors = {};
+          renderWatchlistTable();
+        });
+      }
+      const collapseBtn = document.getElementById('collapse-all-btn');
+      if (collapseBtn) {
+        collapseBtn.addEventListener('click', () => {
+          SECTOR_META.forEach(s => { collapsedSectors[s.name] = true; });
+          renderWatchlistTable();
+        });
+      }
+
+      // Toolbar Chart Mode & Timeframe Toggles
+      document.querySelectorAll('.btn-toggle').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          document.querySelectorAll('.btn-toggle').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          activeChartMode = btn.dataset.mode || 'CANDLE';
+          const label = btn.dataset.label || activeChartMode;
+          document.getElementById('chart-active-meta').textContent = `${activeSymbol} • ${label}`;
+          logEvent('UI', `Chart mode shifted to ${activeChartMode}`, 'info');
+          loadAndRenderSeries(activeSymbol, activeChartMode);
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ action: 'SET_CHART_MODE', mode: activeChartMode, symbol: activeSymbol, timeframe: activeTimeframe }));
+          }
+        });
+      });
+
+      // Watchlist Event Delegation (Ensures row clicks trigger symbol selection immediately)
+      if (DOM.watchlistTbody) {
+        DOM.watchlistTbody.addEventListener('click', (e) => {
+          const row = e.target.closest('tr[data-symbol]');
+          if (row && row.dataset.symbol) {
+            window.selectSymbol(row.dataset.symbol);
+          }
+        });
+      }
+
+      // Initialize Terminal & Client Chart Engines
+      initClientCharts();
+      loadAndRenderSeries(activeSymbol, activeChartMode);
+      refreshAuditLedger();
+      initSocket();
+    })();
+  </script>
+</body>
+</html>
