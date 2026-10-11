@@ -719,6 +719,30 @@ async def get_centaur_audit_ledger():
     }
 
 
+# ------------------------------------------------------------------------------
+# MULTI-WORKSPACE API ENDPOINTS (PHASE 4.2)
+# ------------------------------------------------------------------------------
+@app.get("/api/workspaces/alpha")
+async def api_workspaces_alpha():
+    """Returns real-time quantitative ranking for Screen [2] Alpha Dashboard."""
+    from scripts.08_dashboard_ui.multi_workspace_terminal import get_alpha_dashboard_data
+    return {"status": "SUCCESS", "data": get_alpha_dashboard_data()}
+
+
+@app.get("/api/workspaces/risk")
+async def api_workspaces_risk():
+    """Returns Schur-RA-HRP allocation, VaR, HHI, and CDSC shields for Screen [3] Risk Monitor."""
+    from scripts.08_dashboard_ui.multi_workspace_terminal import get_risk_monitor_data
+    return {"status": "SUCCESS", "data": get_risk_monitor_data()}
+
+
+@app.get("/api/workspaces/forecast")
+async def api_workspaces_forecast():
+    """Returns 20-Day Chronos-Bolt uncertainty corridors for Screen [4] Forecast Engine."""
+    from scripts.08_dashboard_ui.multi_workspace_terminal import get_forecast_engine_data
+    return {"status": "SUCCESS", "data": get_forecast_engine_data()}
+
+
 @app.get("/api/charts/series/{symbol}")
 async def get_chart_series(symbol: str):
     """Returns raw numerical OHLCV arrays, EMAs, Bollinger Bands, and Chronos ICP quantiles."""
