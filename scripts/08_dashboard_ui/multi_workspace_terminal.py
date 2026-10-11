@@ -558,9 +558,10 @@ async def websocket_endpoint(websocket: WebSocket):
             # Push periodic full data hydration every 1,000 ms across Screens 2, 3, 4 + Session Clock
             if now_t - last_full_pulse >= 1.0:
                 last_full_pulse = now_t
-                await websocket.send_json({"type": "ALPHA_DATA", "data": get_alpha_dashboard_data()})
-                await websocket.send_json({"type": "RISK_DATA", "data": get_risk_monitor_data(active_symbol)})
-                await websocket.send_json({"type": "FORECAST_DATA", "data": get_forecast_engine_data(active_symbol)})
+                if is_active:
+                    await websocket.send_json({"type": "ALPHA_DATA", "data": get_alpha_dashboard_data()})
+                    await websocket.send_json({"type": "RISK_DATA", "data": get_risk_monitor_data(active_symbol)})
+                    await websocket.send_json({"type": "FORECAST_DATA", "data": get_forecast_engine_data(active_symbol)})
                 await websocket.send_json({
                     "type": "MARKET_STATUS",
                     "data": {
