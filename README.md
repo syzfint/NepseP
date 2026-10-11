@@ -160,23 +160,22 @@ All 5 core architectural subsystems adhere to audited fail-closed invariants:
 
 ## 📊 Key Performance Benchmarks
 
-```
-+-----------------------------------------------------------------------------------------+
-|                               STRATEGY COMPARATIVE TEARSHEET                            |
-+------------------------------------+------------------+------------------+--------------+
-| Strategy Metric                    | Baseline Naive   | Top-5 Naive      | Apex Hysteresis |
-+------------------------------------+------------------+------------------+--------------+
-| Holding Horizon                    | 1-Day Intraday   | 10-Day Trend     | 10-Day Trend |
-| Rebalancing Frequency              | Daily            | Every 5 Sessions | Adaptive 5d  |
-| Portfolio Universe Rule            | All predicted UP | Top 5 Scrips     | Top 5 / Top 15|
-| Average Turnover / Round           | 100.0%           | 100.0%           | 11.9% (-88%) |
-| Gross Cumulative Return            | Theoretical      | +1,521.15%       | +5,379.85%   |
-| Net Return (0.65% Friction Penalty)| -100.0% (Wiped)  | -61.34% (Drag)   | +3,438.94% 🚀|
-| Net Win / Loss Ratio               | 4.32%            | 44.35%           | 51.13%       |
-| Maximum Drawdown (MDD)             | -100.0%          | -98.64%          | -79.79%      |
-| Storage Read Latency (396k rows)   | 4.20s            | 3.85s            | < 92 ms      |
-+------------------------------------+------------------+------------------+--------------+
-```
+<div align="center">
+  <img src="pulse_terminal/assets/strategy_comparative_tearsheet.png" alt="Strategy Comparative Tearsheet • Hysteresis Compounding" width="100%" style="border-radius: 8px; border: 1px solid #1e293b; box-shadow: 0 8px 24px rgba(0,0,0,0.5);">
+  <p><i>Institutional Benchmark Audit Tearsheet • Compounding Net Alpha (+3,438.94%) vs Friction Drag (0.65% Round-Trip) Across 10-Year Backtest</i></p>
+</div>
+
+| Strategy Metric | Baseline Naive | Top-5 Naive | Apex Hysteresis |
+| :--- | :--- | :--- | :--- |
+| **Holding Horizon** | 1-Day Intraday | 10-Day Trend | **10-Day Trend Horizon** |
+| **Rebalancing Frequency** | Daily (100% Turnover) | Every 5 Sessions | **Adaptive 5d Trigger** |
+| **Portfolio Universe Rule** | All predicted UP | Top 5 Scrips | **Buy Top 5, Hold Top 15** |
+| **Average Turnover / Round** | 100.0% | 100.0% | **`11.9%` (Turnover Cut by 88.1%)** |
+| **Gross Cumulative Return** | Theoretical | $+1,521.15\%$ | **`+5,379.85%`** |
+| **Net Return (0.65% Friction)** | **`-100.0%`** *(Account Wiped)* | **`-61.34%`** *(Severe Drag)* | **`+3,438.94%`** 🚀 *(Net Compounded)* |
+| **Net Win / Loss Ratio** | 4.32% | 44.35% | **`51.13%` Positive Expectancy** |
+| **Maximum Drawdown (MDD)** | -100.0% | -98.64% | **`-79.79%` (Controlled Tail)** |
+| **Storage Read Latency (396k rows)** | 4.20 s | 3.85 s | **`< 92 ms` (DuckDB Zero-Copy)** |
 
 ---
 
