@@ -248,7 +248,14 @@ class DuckDBConnectionManager:
             conn = duckdb.connect(database=self._database, read_only=self._read_only)
         except Exception as e:
             # If access is blocked by another process holding a write lock, retry read-only
-            if not self._read_only and self._database != ":memory:":
+            err_str = str(e)
+            if "different configuration" in err_str:
+                logger.warning("DuckDB config mismatch (%s); falling back to default connection mode", e)
+                # Attempt connecting using whatever mode is already open, or use cursor from first pooled conn if available
+                other_mode = not self._read_only
+                conn = duckdb.connect(database=self._database, read_only=other_mode)
+                self._read_only = other_mode
+            elif not self._read_only and self._database != ":memory:":
                 logger.warning("Write connection failed (%s), falling back to read_only=True", e)
                 conn = duckdb.connect(database=self._database, read_only=True)
                 self._read_only = True
