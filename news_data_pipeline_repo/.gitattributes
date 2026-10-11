@@ -1,5 +1,0 @@
-*.html linguist-vendored
-tests/fixtures/*.html linguist-documentation
-scraped_data/**/*.html linguist-vendored
-tests/html_test_files/ linguist-vendored
-

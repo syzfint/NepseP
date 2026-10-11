@@ -1,1 +1,0 @@
-from .minio_service import upload_json_to_minio
