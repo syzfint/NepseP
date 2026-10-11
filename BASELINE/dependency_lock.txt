@@ -277,3 +277,5 @@ yarl==1.24.2
 zipp==4.1.0
 
 nepali_datetime==1.0.8.5
+
+wasmtime==49.0.0
