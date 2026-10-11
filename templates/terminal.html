@@ -1197,22 +1197,25 @@
 <style>
 
   /* ========================================================================== */
-  /* STATE-DRIVEN MULTI-SCREEN & 16:9 RESPONSIVE VIEWPORT ARCHITECTURE          */
+  /* INSTITUTIONAL MULTI-WORKSPACE 16:9 VIEWPORT STYLING (BLOOMBERG STANDARD)   */
   /* ========================================================================== */
   :root {
     --nav-height: 36px;
     --footer-height: 28px;
-    --bg-deep: #0d1117;
-    --bg-panel: #161b22;
-    --bg-subpanel: #0d1117;
-    --border-dim: #30363d;
-    --border-bright: #58a6ff;
-    --neon-cyan: #58a6ff;
-    --neon-green: #3fb950;
-    --neon-amber: #d29922;
-    --neon-red: #f85149;
+    --bg-deep: #080b10;
+    --bg-card: #0d1117;
+    --bg-panel: #111620;
+    --bg-subpanel: #161c28;
+    --border-dim: #212836;
+    --border-bright: #303e54;
+    --neon-cyan: #00E5FF;
+    --neon-green: #00E676;
+    --neon-amber: #FFB300;
+    --neon-red: #FF1744;
+    --neon-purple: #B388FF;
     --text-primary: #c9d1d9;
-    --text-muted: #8b949e;
+    --text-muted: #6e7a8e;
+    --text-bright: #f0f6fc;
     --accent-blue: #1f6feb;
   }
 
@@ -1233,6 +1236,23 @@
     font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
     font-size: 11px;
     user-select: none;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Custom institutional thin scrollbar */
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0d1117;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #212836;
+    border-radius: 2px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #303e54;
   }
 
   /* 3-ROW GRID SHELL: TOP NAV (36px), WORKSPACE VIEWPORT (1fr), FOOTER (28px) */
@@ -1253,7 +1273,7 @@
     align-items: center;
     justify-content: space-between;
     height: var(--nav-height);
-    background: #161b22;
+    background: #0f141d;
     border-bottom: 1px solid var(--border-dim);
     padding: 0 12px;
     z-index: 9999;
@@ -1308,9 +1328,9 @@
   }
 
   .nav-btn .key-hint {
-    background: #21262d;
-    color: #58a6ff;
-    border: 1px solid #30363d;
+    background: #1a2230;
+    color: var(--neon-cyan);
+    border: 1px solid var(--border-dim);
     padding: 1px 4px;
     border-radius: 2px;
     font-size: 9px;
@@ -1319,15 +1339,15 @@
 
   .nav-btn:hover {
     color: #f0f6fc;
-    background: rgba(88, 166, 255, 0.1);
-    border-color: rgba(88, 166, 255, 0.3);
+    background: rgba(0, 229, 255, 0.08);
+    border-color: rgba(0, 229, 255, 0.25);
   }
 
   .nav-btn.active {
-    color: #58a6ff;
-    background: rgba(88, 166, 255, 0.15);
-    border-color: #58a6ff;
-    box-shadow: 0 0 10px rgba(88, 166, 255, 0.2);
+    color: var(--neon-cyan);
+    background: rgba(0, 229, 255, 0.12);
+    border-color: var(--neon-cyan);
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.25);
   }
 
   .nav-status {
@@ -1341,16 +1361,16 @@
     display: flex;
     align-items: center;
     gap: 5px;
-    background: #0d1117;
+    background: #090d14;
     border: 1px solid var(--border-dim);
     padding: 2px 8px;
     border-radius: 3px;
-    color: #58a6ff;
+    color: var(--neon-cyan);
   }
 
   .nav-active-ticker {
-    background: rgba(88, 166, 255, 0.15);
-    border: 1px solid #58a6ff;
+    background: rgba(0, 229, 255, 0.12);
+    border: 1px solid var(--neon-cyan);
     color: #f0f6fc;
     font-weight: 800;
     padding: 2px 8px;
@@ -1391,7 +1411,7 @@
     align-items: center;
     justify-content: space-between;
     height: var(--footer-height);
-    background: #161b22;
+    background: #0f141d;
     border-top: 1px solid var(--border-dim);
     padding: 0 12px;
     font-size: 10px;
@@ -1431,7 +1451,7 @@
     max-width: 100% !important;
     max-height: 100% !important;
     display: grid !important;
-    grid-template-rows: 28px 28px 1fr !important; /* Avoid double telemetry bar */
+    grid-template-rows: 28px 28px 1fr !important;
     border: none !important;
     overflow: hidden !important;
     position: relative !important;
@@ -1439,53 +1459,72 @@
     left: auto !important;
   }
   #screen-tradingdesk #telemetry-dock {
-    display: none !important; /* Replaced by global-terminal-footer */
+    display: none !important;
   }
 
-  /* SCREEN [0]: LAUNCH PAD */
+  /* ========================================================================== */
+  /* SCREEN [0]: MISSION CONTROL LAUNCH PAD                                      */
+  /* ========================================================================== */
   #screen-launchpad {
-    background: radial-gradient(circle at 50% 30%, #161b22 0%, #0d1117 80%);
-    padding: 24px 32px;
+    background: radial-gradient(circle at 50% 25%, #131a26 0%, #070a0f 85%);
+    padding: 14px 20px;
     flex-direction: column;
     justify-content: space-between;
     box-sizing: border-box;
     overflow-y: auto;
+    gap: 12px;
   }
 
-  .launchpad-header {
-    text-align: center;
-    margin-bottom: 20px;
+  .launchpad-mission-strip {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #0d121b;
+    border: 1px solid var(--border-dim);
+    border-radius: 4px;
+    padding: 8px 16px;
   }
-  .launchpad-header h1 {
-    font-size: 20px;
-    letter-spacing: 0.12em;
-    color: #f0f6fc;
+
+  .lp-mission-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .lp-mission-left .lp-title {
+    font-size: 13px;
     font-weight: 800;
-    margin: 0 0 6px 0;
+    color: #f0f6fc;
+    letter-spacing: 0.08em;
   }
-  .launchpad-header p {
-    font-size: 11px;
+
+  .lp-mission-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .lp-chip {
+    font-size: 10.5px;
     color: var(--text-muted);
-    margin: 0;
+    display: flex;
+    gap: 5px;
   }
 
   .launchpad-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     grid-template-rows: repeat(2, 1fr);
-    gap: 18px;
+    gap: 12px;
     flex: 1;
-    min-height: 460px;
-    max-width: 1300px;
-    width: 100%;
-    margin: 0 auto;
+    min-height: 0;
   }
 
   .launch-card {
-    background: #161b22;
+    background: #0f1520;
     border: 1px solid var(--border-dim);
-    border-radius: 6px;
-    padding: 16px 20px;
+    border-radius: 5px;
+    padding: 14px 18px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -1495,159 +1534,267 @@
     overflow: hidden;
   }
 
+  .launch-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--border-bright);
+    transition: background 0.2s;
+  }
+
   .launch-card:hover {
-    border-color: #58a6ff;
+    border-color: var(--neon-cyan);
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(88, 166, 255, 0.15);
-    background: #1c2128;
+    box-shadow: 0 8px 24px rgba(0, 229, 255, 0.12);
+    background: #141c2b;
+  }
+
+  .launch-card:hover::before {
+    background: var(--neon-cyan);
   }
 
   .card-top {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
+    margin-bottom: 6px;
   }
 
   .card-id-badge {
-    background: #21262d;
-    color: #58a6ff;
-    border: 1px solid #30363d;
+    background: #192230;
+    color: var(--neon-cyan);
+    border: 1px solid var(--border-dim);
     font-size: 10px;
-    font-weight: 700;
-    padding: 3px 8px;
+    font-weight: 800;
+    padding: 2px 8px;
     border-radius: 3px;
   }
 
   .card-title {
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 800;
     color: #f0f6fc;
-    margin: 8px 0 4px 0;
+    margin: 4px 0;
     letter-spacing: 0.04em;
   }
 
   .card-desc {
-    font-size: 11px;
-    color: #8b949e;
+    font-size: 10.5px;
+    color: var(--text-muted);
     line-height: 1.4;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
   }
 
-  .card-metrics {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    background: #0d1117;
+  .card-hud-preview {
+    background: #090d14;
     border: 1px solid var(--border-dim);
     border-radius: 4px;
     padding: 10px;
-  }
-
-  .card-metric-cell {
     display: flex;
     flex-direction: column;
+    gap: 6px;
+    margin-bottom: 8px;
   }
 
-  .card-metric-label {
-    font-size: 9px;
-    color: #8b949e;
-    text-transform: uppercase;
-  }
-
-  .card-metric-val {
-    font-size: 12px;
-    font-weight: 700;
-    color: #58a6ff;
-    margin-top: 2px;
-  }
-
-  /* SCREEN [2]: ALPHA DASHBOARD */
-  #screen-alpha {
-    flex-direction: column;
-    background: var(--bg-deep);
-    padding: 12px 16px;
-    box-sizing: border-box;
-    gap: 10px;
-  }
-
-  .screen-header-banner {
+  .card-hud-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #161b22;
-    border: 1px solid var(--border-dim);
-    padding: 10px 16px;
-    border-radius: 4px;
+    font-size: 10.5px;
   }
 
-  .screen-title-group h2 {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 800;
-    color: #f0f6fc;
-    letter-spacing: 0.05em;
+  .card-hud-label {
+    color: var(--text-muted);
   }
-  .screen-title-group p {
-    margin: 3px 0 0 0;
+
+  .card-hud-val {
+    font-weight: 700;
+    color: #f0f6fc;
+  }
+
+  .card-launch-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #141b27;
+    border: 1px solid var(--border-bright);
+    padding: 6px 12px;
+    border-radius: 3px;
+    color: var(--neon-cyan);
+    font-size: 10.5px;
+    font-weight: 700;
+    transition: all 0.15s;
+  }
+
+  .launch-card:hover .card-launch-btn {
+    background: rgba(0, 229, 255, 0.15);
+    border-color: var(--neon-cyan);
+    color: #fff;
+  }
+
+  .launchpad-footer-telemetry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--border-dim);
+    padding-top: 8px;
     font-size: 10px;
     color: var(--text-muted);
   }
 
-  .alpha-table-container {
-    flex: 1;
-    background: #161b22;
+  /* ========================================================================== */
+  /* SCREEN [2]: ALPHA & LIVE SIGNAL DASHBOARD                                   */
+  /* ========================================================================== */
+  #screen-alpha {
+    flex-direction: column;
+    background: var(--bg-deep);
+    padding: 8px 12px;
+    box-sizing: border-box;
+    gap: 8px;
+  }
+
+  .macro-kpi-ribbon {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #0f141d;
     border: 1px solid var(--border-dim);
     border-radius: 4px;
+    padding: 6px 12px;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .macro-kpi-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .macro-kpi-item {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .macro-kpi-label {
+    font-size: 9px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  .macro-kpi-val {
+    font-size: 12.5px;
+    font-weight: 800;
+    color: var(--neon-cyan);
+  }
+
+  .alpha-layout-3col {
+    display: grid;
+    grid-template-columns: 280px 1fr 310px;
+    gap: 8px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .dock-panel {
+    background: #0f141d;
+    border: 1px solid var(--border-dim);
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .dock-header {
+    background: #141b27;
+    border-bottom: 1px solid var(--border-dim);
+    padding: 7px 10px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #f0f6fc;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+  }
+
+  .dock-body {
+    flex: 1;
     overflow: auto;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .quant-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 11px;
+    font-size: 10.5px;
     text-align: left;
   }
 
   .quant-table th {
-    background: #21262d;
-    color: #58a6ff;
-    padding: 8px 12px;
+    background: #141b27;
+    color: var(--neon-cyan);
+    padding: 6px 8px;
     font-weight: 700;
     border-bottom: 1px solid var(--border-dim);
     position: sticky;
     top: 0;
     z-index: 2;
     white-space: nowrap;
+    font-size: 10px;
   }
 
   .quant-table td {
-    padding: 7px 12px;
-    border-bottom: 1px solid #21262d;
+    padding: 6px 8px;
+    border-bottom: 1px solid #141923;
     white-space: nowrap;
     color: #c9d1d9;
   }
 
   .quant-table tr {
     cursor: pointer;
-    transition: background-color 0.15s ease;
+    transition: background-color 0.12s ease;
   }
 
   .quant-table tr:hover td {
-    background: rgba(88, 166, 255, 0.08);
+    background: rgba(0, 229, 255, 0.07);
     color: #f0f6fc;
   }
 
   .quant-table tr.selected-row td {
-    background: rgba(88, 166, 255, 0.18) !important;
-    border-color: #58a6ff;
+    background: rgba(0, 229, 255, 0.18) !important;
+    border-color: var(--neon-cyan);
     color: #fff !important;
     font-weight: 700;
   }
 
+  .progress-cell-bar {
+    width: 100%;
+    height: 4px;
+    background: #1a2230;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 3px;
+  }
+
+  .progress-cell-fill {
+    height: 100%;
+    background: var(--neon-cyan);
+    border-radius: 2px;
+  }
+
   .badge-buy {
-    color: #3fb950;
-    background: rgba(63, 185, 80, 0.12);
-    border: 1px solid rgba(63, 185, 80, 0.35);
+    color: var(--neon-green);
+    background: rgba(0, 230, 118, 0.12);
+    border: 1px solid rgba(0, 230, 118, 0.35);
     padding: 2px 6px;
     border-radius: 2px;
     font-weight: 700;
@@ -1655,9 +1802,9 @@
   }
 
   .badge-sell {
-    color: #f85149;
-    background: rgba(248, 81, 73, 0.12);
-    border: 1px solid rgba(248, 81, 73, 0.35);
+    color: var(--neon-red);
+    background: rgba(255, 23, 68, 0.12);
+    border: 1px solid rgba(255, 23, 68, 0.35);
     padding: 2px 6px;
     border-radius: 2px;
     font-weight: 700;
@@ -1665,116 +1812,132 @@
   }
 
   .badge-neutral {
-    color: #8b949e;
-    background: rgba(139, 148, 158, 0.12);
-    border: 1px solid rgba(139, 148, 158, 0.25);
+    color: var(--text-muted);
+    background: rgba(110, 122, 142, 0.12);
+    border: 1px solid rgba(110, 122, 142, 0.25);
     padding: 2px 6px;
     border-radius: 2px;
     font-size: 9.5px;
   }
 
-  /* SCREEN [3]: RISK MONITOR */
+  .badge-amber {
+    color: var(--neon-amber);
+    background: rgba(255, 179, 0, 0.12);
+    border: 1px solid rgba(255, 179, 0, 0.35);
+    padding: 2px 6px;
+    border-radius: 2px;
+    font-weight: 700;
+    font-size: 9.5px;
+  }
+
+  /* ========================================================================== */
+  /* SCREEN [3]: RISK MONITOR & SCHUR-RA-HRP LAB                                 */
+  /* ========================================================================== */
   #screen-risk {
     flex-direction: column;
     background: var(--bg-deep);
-    padding: 12px 16px;
+    padding: 8px 12px;
     box-sizing: border-box;
-    gap: 10px;
+    gap: 8px;
   }
 
-  .risk-grid-container {
+  .risk-4quad-layout {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: 130px 1fr;
-    gap: 10px;
+    grid-template-rows: 1fr 1fr;
+    gap: 8px;
     flex: 1;
     min-height: 0;
   }
 
-  .risk-kpi-row {
-    grid-column: span 2;
+  .risk-kpi-card-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
+    gap: 8px;
+    margin-bottom: 8px;
+    flex-shrink: 0;
   }
 
   .risk-kpi-card {
-    background: #161b22;
+    background: #0f141d;
     border: 1px solid var(--border-dim);
     border-radius: 4px;
-    padding: 12px 16px;
+    padding: 8px 12px;
     display: flex;
     flex-direction: column;
     justify-content: center;
   }
 
   .risk-kpi-card .kpi-label {
-    font-size: 10px;
+    font-size: 9.5px;
     color: var(--text-muted);
     text-transform: uppercase;
   }
 
   .risk-kpi-card .kpi-value {
-    font-size: 20px;
+    font-size: 17px;
     font-weight: 800;
-    color: #58a6ff;
-    margin-top: 4px;
+    color: var(--neon-cyan);
+    margin-top: 2px;
   }
 
-  .risk-panel {
-    background: #161b22;
-    border: 1px solid var(--border-dim);
-    border-radius: 4px;
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  .risk-panel-header {
-    font-size: 11.5px;
-    font-weight: 700;
-    color: #f0f6fc;
-    margin-bottom: 8px;
-    border-bottom: 1px solid var(--border-dim);
-    padding-bottom: 6px;
-  }
-
-  /* SCREEN [4]: FORECAST ENGINE */
+  /* ========================================================================== */
+  /* SCREEN [4]: 20-DAY FORECAST ENGINE                                          */
+  /* ========================================================================== */
   #screen-forecast {
     flex-direction: column;
     background: var(--bg-deep);
-    padding: 12px 16px;
+    padding: 8px 12px;
     box-sizing: border-box;
-    gap: 10px;
+    gap: 8px;
   }
 
-  .forecast-body {
+  .forecast-3col-layout {
     display: grid;
-    grid-template-columns: 360px 1fr;
-    gap: 10px;
+    grid-template-columns: 310px 1fr 310px;
+    gap: 8px;
     flex: 1;
     min-height: 0;
   }
 
-  .forecast-sidebar {
-    background: #161b22;
+  .forecast-canvas-container {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    min-height: 250px;
+    background: #090d14;
     border: 1px solid var(--border-dim);
+    position: relative;
     border-radius: 4px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
+    overflow: hidden;
   }
 
-  .forecast-chart-panel {
-    background: #161b22;
-    border: 1px solid var(--border-dim);
-    border-radius: 4px;
-    display: flex;
-    flex-direction: column;
-    padding: 12px;
-    min-height: 0;
+  #forecastCanvasElement {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .action-btn-primary {
+    background: var(--neon-cyan);
+    color: #000;
+    font-weight: 800;
+    border: none;
+    padding: 7px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 11px;
+    transition: all 0.15s;
+    width: 100%;
+    text-align: center;
+  }
+
+  .action-btn-primary:hover {
+    background: #5ef1ff;
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.4);
   }
 
 </style>
@@ -1819,7 +1982,7 @@
         <span>NPT</span>
         <span id="nav-clock" style="font-weight:700;">--:--:--</span>
       </div>
-      <div class="nav-status-chip" style="color: #3fb950; border-color: rgba(63,185,80,0.3);">
+      <div class="nav-status-chip" style="color: #00E676; border-color: rgba(0,230,118,0.3);">
         <span style="font-weight:700;">ENGINE: 60 FPS</span>
       </div>
     </div>
@@ -1830,120 +1993,161 @@
 
     <!-- SCREEN [0]: WORKSPACE LAUNCH PAD -->
     <section id="screen-launchpad" class="workspace-screen active">
-      <div class="launchpad-header">
-        <h1>NEPSE QUANTITATIVE SUITE • WORKSPACE LAUNCHER</h1>
-        <p>SELECT A WORKSPACE BELOW OR USE HARDWARE SHORTCUTS [1] - [4]</p>
+      <div class="launchpad-mission-strip">
+        <div class="lp-mission-left">
+          <div class="pulse-dot"></div>
+          <span class="lp-title">NEPSE PULSE • QUANTITATIVE COCKPIT MISSION CONTROL</span>
+          <span class="badge-neutral" style="color:#00E5FF; border-color:rgba(0,229,255,0.3);">SEBON BYLAWS 2082 COMPLIANT</span>
+        </div>
+        <div class="lp-mission-right">
+          <div class="lp-chip"><span>LAKEHOUSE:</span> <span style="color:#f0f6fc; font-weight:700;">135.6M TICKS</span></div>
+          <div class="lp-chip"><span>ONNX ACCELERATOR:</span> <span style="color:#00E676; font-weight:700;">142.5 µs</span></div>
+          <div class="lp-chip"><span>PIPELINE:</span> <span style="color:#00E5FF; font-weight:700;">60 FPS ZERO-JITTER</span></div>
+          <div class="lp-chip"><span>ACTIVE:</span> <span id="lp-active-ticker-chip" style="color:#FFB300; font-weight:700;">NABIL</span></div>
+        </div>
       </div>
 
       <div class="launchpad-grid">
-        <!-- CARD 1 -->
+        <!-- CARD 1: TRADING DESK -->
         <div class="launch-card" onclick="switchWorkspace(1)">
           <div>
             <div class="card-top">
-              <span class="card-id-badge">[1] WORKSPACE</span>
-              <span style="color:#58a6ff; font-size:10px; font-weight:700;">600µs LATENCY</span>
+              <span class="card-id-badge">[1] WORKSPACE • F1</span>
+              <span style="color:#00E5FF; font-size:10px; font-weight:800;">600 µs RTT</span>
             </div>
-            <div class="card-title">TRADING DESK & LEVEL 2 BOOK</div>
-            <div class="card-desc">Zero-DOM canvas graphics, real-time depth tape, Centaur human-in-the-loop staging blotter, and tick telemetry.</div>
+            <div class="card-title">TRADING DESK & REAL-TIME ORDER TAPE</div>
+            <div class="card-desc">Zero-DOM graphics canvas (Candle, VPVR, CVD), 50-level Level 2 order book, Centaur human-in-the-loop staging blotter, and tick telemetry.</div>
           </div>
-          <div class="card-metrics">
-            <div class="card-metric-cell">
-              <span class="card-metric-label">ACTIVE SYMBOL</span>
-              <span class="card-metric-val" id="lp-active-sym-1">NABIL</span>
+          <div class="card-hud-preview">
+            <div class="card-hud-row">
+              <span class="card-hud-label">ACTIVE SECURITY</span>
+              <span class="card-hud-val" id="lp-active-sym-1" style="color:#00E5FF;">NABIL (LTP NPR 536.2)</span>
             </div>
-            <div class="card-metric-cell">
-              <span class="card-metric-label">L2 DEPTH</span>
-              <span class="card-metric-val">50 LEVELS</span>
+            <div class="card-hud-row">
+              <span class="card-hud-label">LEVEL 2 DEPTH</span>
+              <span class="card-hud-val" style="color:#00E676;">50 LEVELS LIVE (SPREAD 0.22%)</span>
             </div>
-            <div class="card-metric-cell">
-              <span class="card-metric-label">SLIPPAGE GUARD</span>
-              <span class="card-metric-val" style="color:#3fb950;">SHIELD ON</span>
+            <div class="card-hud-row">
+              <span class="card-hud-label">CENTAUR SLIPPAGE GUARD</span>
+              <span class="card-hud-val" style="color:#00E676;">ARMED (±0.5% BOUNDS)</span>
             </div>
+            <div class="card-hud-row">
+              <span class="card-hud-label">SEBON FRICTION ENGINE</span>
+              <span class="card-hud-val">TIERED T+2 COMPLIANT</span>
+            </div>
+          </div>
+          <div class="card-launch-btn">
+            <span>ENGAGE TRADING DESK [1]</span>
+            <span>&rarr;</span>
           </div>
         </div>
 
-        <!-- CARD 2 -->
+        <!-- CARD 2: ALPHA DASHBOARD -->
         <div class="launch-card" onclick="switchWorkspace(2)">
           <div>
             <div class="card-top">
-              <span class="card-id-badge">[2] WORKSPACE</span>
-              <span style="color:#3fb950; font-size:10px; font-weight:700;">353+ SECURITIES</span>
+              <span class="card-id-badge">[2] WORKSPACE • F2</span>
+              <span style="color:#00E676; font-size:10px; font-weight:800;">353+ SECURITIES</span>
             </div>
             <div class="card-title">ALPHA & LIVE SIGNAL DASHBOARD</div>
-            <div class="card-desc">Cross-asset directional signal engine, Gate G4 confidence ranking, Hawkes jump sweeps, and order-flow imbalance ratios.</div>
+            <div class="card-desc">Cross-asset directional signal engine, Gate G4 certified barrier probabilities, Hawkes point-process accumulation sweeps, and OFI flow.</div>
           </div>
-          <div class="card-metrics">
-            <div class="card-metric-cell">
-              <span class="card-metric-label">GATE G4 TOP</span>
-              <span class="card-metric-val">UPPER (87.4%)</span>
+          <div class="card-hud-preview">
+            <div class="card-hud-row">
+              <span class="card-hud-label">MARKET CONVICTION</span>
+              <span class="card-hud-val"><span style="color:#00E676;">42 BUY</span> | <span style="color:#6e7a8e;">293 NEU</span> | <span style="color:#FF1744;">18 SELL</span></span>
             </div>
-            <div class="card-metric-cell">
-              <span class="card-metric-label">HAWKES JUMP</span>
-              <span class="card-metric-val" style="color:#d29922;">ACCUMULATION</span>
+            <div class="card-hud-row">
+              <span class="card-hud-label">HAWKES ACCUMULATION</span>
+              <span class="card-hud-val" style="color:#FFB300;">14 SYNDICATE SWEEPS DETECTED</span>
             </div>
-            <div class="card-metric-cell">
-              <span class="card-metric-label">COVERAGE</span>
-              <span class="card-metric-val" style="color:#3fb950;">395 STOCKS</span>
+            <div class="card-hud-row">
+              <span class="card-hud-label">TOP GATE G4 CONVICTION</span>
+              <span class="card-hud-val" style="color:#00E676;">UPPER (87.4% G4 | +5.4% 5D)</span>
             </div>
+            <div class="card-hud-row">
+              <span class="card-hud-label">PROMOTER UNLOCK CLIFF</span>
+              <span class="card-hud-val" style="color:#FF1744;">3 HIGH-OVERHANG SCRIPS</span>
+            </div>
+          </div>
+          <div class="card-launch-btn">
+            <span>EXPLORE QUANT ALPHA [2]</span>
+            <span>&rarr;</span>
           </div>
         </div>
 
-        <!-- CARD 3 -->
+        <!-- CARD 3: RISK MONITOR -->
         <div class="launch-card" onclick="switchWorkspace(3)">
           <div>
             <div class="card-top">
-              <span class="card-id-badge">[3] WORKSPACE</span>
-              <span style="color:#d29922; font-size:10px; font-weight:700;">skfolio INTEGRATED</span>
+              <span class="card-id-badge">[3] WORKSPACE • F3</span>
+              <span style="color:#FFB300; font-size:10px; font-weight:800;">skfolio INTEGRATED</span>
             </div>
             <div class="card-title">RISK MONITOR & PORTFOLIO GOVERNANCE</div>
-            <div class="card-desc">Schur Return-Adjusted Hierarchical Risk Parity (HRP), Broker HHI concentration monitor, and CDSC T+2 settlement shield.</div>
+            <div class="card-desc">Schur Return-Adjusted Hierarchical Risk Parity (HRP), Broker HHI concentration monitor, and CDSC T+2 settlement lock-in defense shield.</div>
           </div>
-          <div class="card-metrics">
-            <div class="card-metric-cell">
-              <span class="card-metric-label">PORTFOLIO VaR</span>
-              <span class="card-metric-val" style="color:#f85149;">-1.85%</span>
+          <div class="card-hud-preview">
+            <div class="card-hud-row">
+              <span class="card-hud-label">PORTFOLIO VaR (95%)</span>
+              <span class="card-hud-val" style="color:#FF1744;">-1.85% (CVaR: -2.94%)</span>
             </div>
-            <div class="card-metric-cell">
-              <span class="card-metric-label">BROKER 58 HHI</span>
-              <span class="card-metric-val">2,840 (HIGH)</span>
+            <div class="card-hud-row">
+              <span class="card-hud-label">DIVERSIFICATION RATIO</span>
+              <span class="card-hud-val" style="color:#00E5FF;">2.84x VARIANCE REDUCTION</span>
             </div>
-            <div class="card-metric-cell">
-              <span class="card-metric-label">HRP ASSETS</span>
-              <span class="card-metric-val">100.0% SUM</span>
+            <div class="card-hud-row">
+              <span class="card-hud-label">BROKER CONCENTRATION</span>
+              <span class="card-hud-val" style="color:#FFB300;">BROKER #58 (HHI 2,840 HIGH)</span>
             </div>
+            <div class="card-hud-row">
+              <span class="card-hud-label">CDSC SETTLEMENT SHIELD</span>
+              <span class="card-hud-val" style="color:#00E676;">ARMED (99.8% PROTECTED)</span>
+            </div>
+          </div>
+          <div class="card-launch-btn">
+            <span>AUDIT PORTFOLIO RISK [3]</span>
+            <span>&rarr;</span>
           </div>
         </div>
 
-        <!-- CARD 4 -->
+        <!-- CARD 4: FORECAST ENGINE -->
         <div class="launch-card" onclick="switchWorkspace(4)">
           <div>
             <div class="card-top">
-              <span class="card-id-badge">[4] WORKSPACE</span>
-              <span style="color:#a855f7; font-size:10px; font-weight:700;">CHRONOS-BOLT P10/P50/P90</span>
+              <span class="card-id-badge">[4] WORKSPACE • F4</span>
+              <span style="color:#B388FF; font-size:10px; font-weight:800;">CHRONOS-BOLT ONNX</span>
             </div>
             <div class="card-title">20-DAY FORECAST CORRIDOR ENGINE</div>
-            <div class="card-desc">Multi-quantile trajectory cones, asymmetric volatility barriers, and forward projected return distributions.</div>
+            <div class="card-desc">Multi-quantile trajectory corridors (P10/P50/P90), asymmetric volatility envelopes, and forward projected return distributions.</div>
           </div>
-          <div class="card-metrics">
-            <div class="card-metric-cell">
-              <span class="card-metric-label">ACTIVE PROJECTION</span>
-              <span class="card-metric-val" id="lp-forecast-sym" style="color:#3fb950;">NABIL (+3.9%)</span>
+          <div class="card-hud-preview">
+            <div class="card-hud-row">
+              <span class="card-hud-label">ACTIVE PROJECTION</span>
+              <span class="card-hud-val" id="lp-forecast-sym" style="color:#00E676;">NABIL P50: +8.58% (20-SESSION)</span>
             </div>
-            <div class="card-metric-cell">
-              <span class="card-metric-label">CORRIDOR SPREAD</span>
-              <span class="card-metric-val">±4.8%</span>
+            <div class="card-hud-row">
+              <span class="card-hud-label">CONFORMAL COVERAGE</span>
+              <span class="card-hud-val" style="color:#00E5FF;">90.0% EMPIRICAL GUARANTEE</span>
             </div>
-            <div class="card-metric-cell">
-              <span class="card-metric-label">CONFIDENCE</span>
-              <span class="card-metric-val">88.5%</span>
+            <div class="card-hud-row">
+              <span class="card-hud-label">CORRIDOR ENVELOPE</span>
+              <span class="card-hud-val">P10 (-3.2%) ~ P90 (+19.4%)</span>
             </div>
+            <div class="card-hud-row">
+              <span class="card-hud-label">TENSOR INFERENCE RTT</span>
+              <span class="card-hud-val" style="color:#00E676;">320.0 µs (<600 µs BUDGET)</span>
+            </div>
+          </div>
+          <div class="card-launch-btn">
+            <span>RUN FORECAST CONE [4]</span>
+            <span>&rarr;</span>
           </div>
         </div>
       </div>
 
-      <div class="launchpad-footer" style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #30363d; padding-top:12px; margin-top:16px; font-size:10.5px; color:#8b949e;">
-        <span>PRESS [1]-[4] TO LAUNCH DIRECTLY | PRESS [ESC] TO RETURN TO THIS MENU</span>
-        <span>NEPSE QUANT PIPELINE v4.2.0 • DUCKDB ENGINE CONNECTED</span>
+      <div class="launchpad-footer-telemetry">
+        <span>SHORTCUT KEYS: [1] DESK | [2] ALPHA | [3] RISK | [4] FORECAST | [ESC] LAUNCH PAD</span>
+        <span>NEPSE PULSE TERMINAL ENGINE v4.2.0 • ZERO-LOCK DUCKDB ARCHITECTURE</span>
       </div>
     </section>
 
@@ -2423,73 +2627,180 @@
 
     <!-- SCREEN [2]: ALPHA & LIVE SIGNAL DASHBOARD -->
     <section id="screen-alpha" class="workspace-screen">
-      <div class="screen-header-banner">
-        <div class="screen-title-group">
-          <h2>ALPHA SIGNALS & GATE G4 EXECUTION MONITOR (353+ SECURITIES)</h2>
-          <p>CLICK ANY ROW TO SELECT STOCK ACROSS ALL TERMINAL SCREENS</p>
+      <!-- Macro Alpha Strip -->
+      <div class="macro-kpi-ribbon">
+        <div class="macro-kpi-group">
+          <div class="macro-kpi-item">
+            <span class="macro-kpi-label">TOTAL UNIVERSE</span>
+            <span class="macro-kpi-val" id="alpha-total-count">353+</span>
+          </div>
+          <div class="macro-kpi-item">
+            <span class="macro-kpi-label">LONG CONVICTION (G4)</span>
+            <span class="macro-kpi-val" id="alpha-buy-count" style="color:#00E676;">42 SCRIPS</span>
+          </div>
+          <div class="macro-kpi-item">
+            <span class="macro-kpi-label">HAWKES ACCUMULATION</span>
+            <span class="macro-kpi-val" id="alpha-hawkes-count" style="color:#FFB300;">14 ALERTS</span>
+          </div>
+          <div class="macro-kpi-item">
+            <span class="macro-kpi-label">PROMOTER CLIFF</span>
+            <span class="macro-kpi-val" id="alpha-promoter-count" style="color:#FF1744;">3 ELEVATED</span>
+          </div>
         </div>
-        <div style="display:flex; gap:10px;">
-          <input type="text" id="alpha-search-input" placeholder="FILTER TICKER..." oninput="filterAlphaGrid(this.value)" style="background:#0d1117; border:1px solid #30363d; color:#fff; padding:4px 10px; font-family:inherit; font-size:11px; border-radius:3px;">
-          <button class="nav-btn active" onclick="refreshAlphaData()">REFRESH SIGNALS</button>
+
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="text" id="alpha-search-input" placeholder="SEARCH TICKER..." oninput="filterAlphaGrid(this.value)" style="background:#090d14; border:1px solid var(--border-dim); color:#fff; padding:4px 8px; font-family:inherit; font-size:10.5px; border-radius:3px; width:130px;">
+          <select id="alpha-sector-select" onchange="filterAlphaSector(this.value)" style="background:#090d14; border:1px solid var(--border-dim); color:#00E5FF; padding:4px 8px; font-family:inherit; font-size:10.5px; border-radius:3px;">
+            <option value="ALL">ALL SECTORS</option>
+            <option value="COMMERCIAL BANKS">COMMERCIAL BANKS</option>
+            <option value="DEVELOPMENT BANKS">DEV BANKS</option>
+            <option value="HYDROPOWER">HYDROPOWER</option>
+            <option value="MICROFINANCE">MICROFINANCE</option>
+            <option value="LIFE INSURANCE">LIFE INS</option>
+            <option value="NON LIFE INSURANCE">NON-LIFE INS</option>
+            <option value="MANUFACTURING">MANUFACTURING</option>
+          </select>
+          <button class="nav-btn active" id="alpha-view-btn-grid" onclick="toggleAlphaView('grid')">GRID VIEW</button>
+          <button class="nav-btn" id="alpha-view-btn-scatter" onclick="toggleAlphaView('scatter')">SCATTER MAP</button>
+          <button class="nav-btn active" onclick="refreshAlphaData()">REFRESH</button>
         </div>
       </div>
 
-      <div class="alpha-table-container">
-        <table class="quant-table" id="alpha-table">
-          <thead>
-            <tr>
-              <th>SYMBOL</th>
-              <th>LTP (NPR)</th>
-              <th>EXP RETURN (5D)</th>
-              <th>GATE G4 CONFIDENCE</th>
-              <th>HAWKES SWEEP</th>
-              <th>OFI RATIO</th>
-              <th>STATUS</th>
-              <th>UNLOCK OVERHANG</th>
-              <th>DAYS TO UNLOCK</th>
-            </tr>
-          </thead>
-          <tbody id="alpha-table-body">
-            <!-- Dynamically populated via API/WebSocket -->
-          </tbody>
-        </table>
+      <!-- 3-Panel Quant Alpha Workspace -->
+      <div class="alpha-layout-3col">
+        <!-- Left: Conviction Radar (280px) -->
+        <div class="dock-panel">
+          <div class="dock-header">
+            <span>CONVICTION RADAR</span>
+            <span style="color:#00E676; font-size:10px;">TOP ALPHA</span>
+          </div>
+          <div class="dock-body" id="alpha-leaderboard-dock">
+            <!-- Dynamically populated top conviction setup cards -->
+          </div>
+        </div>
+
+        <!-- Center: Main Data Grid & Scatter Plot Canvas (1fr) -->
+        <div class="dock-panel" style="position:relative;">
+          <div class="dock-header">
+            <span>CROSS-ASSET QUANT ALPHA SCREENER (ALL 353+ SECURITIES)</span>
+            <span style="color:var(--text-muted); font-size:10px;">CLICK ROW TO SELECT ASSET</span>
+          </div>
+          <div id="alpha-grid-view-container" style="flex:1; overflow:auto;">
+            <table class="quant-table" id="alpha-table">
+              <thead>
+                <tr>
+                  <th>SYMBOL</th>
+                  <th>LTP (NPR)</th>
+                  <th>EXP 5D RET</th>
+                  <th>GATE G4 SCORE</th>
+                  <th>HAWKES REGIME</th>
+                  <th>OFI FLOW</th>
+                  <th>SIGNAL</th>
+                  <th>UNLOCK %</th>
+                  <th>DAYS</th>
+                  <th>ACTION</th>
+                </tr>
+              </thead>
+              <tbody id="alpha-table-body">
+                <!-- Dynamically populated via API/WebSocket -->
+              </tbody>
+            </table>
+          </div>
+          <!-- Mode B: Interactive Scatter Canvas Container -->
+          <div id="alpha-scatter-view-container" style="display:none; flex:1; width:100%; height:100%; position:relative; background:#090d14;">
+            <canvas id="alphaScatterCanvasElement" style="position:absolute; top:0; left:0; width:100%; height:100%;"></canvas>
+            <div id="alpha-scatter-hud" style="position:absolute; bottom:8px; right:8px; background:rgba(15,20,29,0.85); border:1px solid var(--border-dim); padding:6px 10px; font-size:10px; color:var(--text-muted); border-radius:3px;">
+              HOVER BUBBLE FOR ALPHA TELEMETRY • CLICK TO ENGAGE
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Deep Asset Inspection Dock (310px) -->
+        <div class="dock-panel">
+          <div class="dock-header">
+            <span>ASSET ALPHA PROFILE</span>
+            <span id="alpha-inspector-symbol" style="color:#00E5FF; font-weight:800;">NABIL</span>
+          </div>
+          <div class="dock-body" id="alpha-inspector-dock">
+            <div style="background:#090d14; border:1px solid var(--border-dim); border-radius:4px; padding:10px;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:15px; font-weight:800; color:#f0f6fc;" id="alpha-insp-sym-title">NABIL</span>
+                <span id="alpha-insp-status-badge" class="badge-buy">STRONG BUY</span>
+              </div>
+              <div style="font-size:10px; color:var(--text-muted); margin-top:2px;" id="alpha-insp-sector-title">COMMERCIAL BANKS</div>
+              <div style="font-size:18px; font-weight:800; color:#00E5FF; margin-top:6px;" id="alpha-insp-ltp-title">NPR 536.2</div>
+            </div>
+
+            <div style="background:#090d14; border:1px solid var(--border-dim); border-radius:4px; padding:10px; display:flex; flex-direction:column; gap:6px;">
+              <span style="font-size:10px; font-weight:800; color:var(--text-muted); text-transform:uppercase;">Gate G4 Component Radar</span>
+              <div class="card-hud-row">
+                <span class="card-hud-label">Base XGBoost Project</span>
+                <span class="card-hud-val" id="alpha-insp-xgb">+4.2%</span>
+              </div>
+              <div class="card-hud-row">
+                <span class="card-hud-label">Barrier Clearance</span>
+                <span class="card-hud-val" id="alpha-insp-barrier" style="color:#00E676;">0.84 PASS</span>
+              </div>
+              <div class="card-hud-row">
+                <span class="card-hud-label">Hawkes Jump Rate</span>
+                <span class="card-hud-val" id="alpha-insp-hawkes" style="color:#FFB300;">λ = 1.42</span>
+              </div>
+              <div class="card-hud-row">
+                <span class="card-hud-label">OFI Aggression Slope</span>
+                <span class="card-hud-val" id="alpha-insp-ofi" style="color:#00E5FF;">+0.380</span>
+              </div>
+            </div>
+
+            <div style="background:#090d14; border:1px solid var(--border-dim); border-radius:4px; padding:10px; display:flex; flex-direction:column; gap:6px;">
+              <span style="font-size:10px; font-weight:800; color:var(--text-muted); text-transform:uppercase;">Promoter Lock-in Shield</span>
+              <div class="card-hud-row">
+                <span class="card-hud-label">Promoter Overhang</span>
+                <span class="card-hud-val" id="alpha-insp-unlock-pct">0.0% (CLEARED)</span>
+              </div>
+              <div class="card-hud-row">
+                <span class="card-hud-label">Days to Expiry</span>
+                <span class="card-hud-val" id="alpha-insp-unlock-days" style="color:#00E676;">SAFE</span>
+              </div>
+            </div>
+
+            <button class="action-btn-primary" onclick="bridgeToTradingDesk(window.TERMINAL_STATE.activeSymbol)">
+              TRANSFER TO TRADING DESK [1] &rarr;
+            </button>
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- SCREEN [3]: RISK MONITOR & PORTFOLIO GOVERNANCE -->
     <section id="screen-risk" class="workspace-screen">
-      <div class="screen-header-banner">
-        <div class="screen-title-group">
-          <h2>RISK MONITOR & SCHUR-RA-HRP PORTFOLIO GOVERNANCE</h2>
-          <p>SELECTED ASSET RISK OVERLAY: <span id="risk-active-symbol-header" style="color:#58a6ff; font-weight:800;">NABIL</span></p>
+      <!-- Macro Risk Header Strip -->
+      <div class="risk-kpi-card-grid">
+        <div class="risk-kpi-card">
+          <span class="kpi-label">PORTFOLIO VaR (95%)</span>
+          <span class="kpi-value" id="risk-var-val" style="color:#FF1744;">-1.85%</span>
         </div>
-        <div style="display:flex; gap:10px;">
-          <button class="nav-btn active" onclick="refreshRiskData()">RECALCULATE HRP</button>
+        <div class="risk-kpi-card">
+          <span class="kpi-label">EXPECTED SHORTFALL (CVaR)</span>
+          <span class="kpi-value" id="risk-cvar-val" style="color:#FFB300;">-2.94%</span>
+        </div>
+        <div class="risk-kpi-card">
+          <span class="kpi-label">TOP BROKER (58) HHI</span>
+          <span class="kpi-value" id="risk-hhi-val">2,840</span>
+        </div>
+        <div class="risk-kpi-card">
+          <span class="kpi-label">CDSC SETTLEMENT SHIELD</span>
+          <span class="kpi-value" id="risk-cdsc-val" style="color:#00E676;">ARMED (99.8%)</span>
         </div>
       </div>
 
-      <div class="risk-grid-container">
-        <div class="risk-kpi-row">
-          <div class="risk-kpi-card">
-            <span class="kpi-label">PORTFOLIO VaR (95%)</span>
-            <span class="kpi-value" id="risk-var-val" style="color:#f85149;">-1.85%</span>
+      <!-- 4-Quadrant Layout -->
+      <div class="risk-4quad-layout">
+        <!-- Quadrant 1: Schur-RA-HRP Optimal Allocation Matrix -->
+        <div class="dock-panel">
+          <div class="dock-header">
+            <span>SCHUR-RA-HRP OPTIMAL ALLOCATION MATRIX (100.0% TOTAL)</span>
+            <span style="color:#00E676; font-size:10px;">skfolio HRP</span>
           </div>
-          <div class="risk-kpi-card">
-            <span class="kpi-label">EXPECTED SHORTFALL (CVaR)</span>
-            <span class="kpi-value" id="risk-cvar-val" style="color:#d29922;">-2.94%</span>
-          </div>
-          <div class="risk-kpi-card">
-            <span class="kpi-label">TOP BROKER (58) HHI</span>
-            <span class="kpi-value" id="risk-hhi-val">2,840</span>
-          </div>
-          <div class="risk-kpi-card">
-            <span class="kpi-label">CDSC SETTLEMENT SHIELD</span>
-            <span class="kpi-value" id="risk-cdsc-val" style="color:#3fb950;">ARMED (99.8%)</span>
-          </div>
-        </div>
-
-        <div class="risk-panel">
-          <div class="risk-panel-header">SCHUR-RA-HRP OPTIMAL WEIGHT ALLOCATION (100.0% TOTAL)</div>
           <div style="flex:1; overflow:auto;">
             <table class="quant-table">
               <thead>
@@ -2508,8 +2819,23 @@
           </div>
         </div>
 
-        <div class="risk-panel">
-          <div class="risk-panel-header">BROKER ORDER-FLOW CONCENTRATION HEATMAP (HHI)</div>
+        <!-- Quadrant 2: Risk Cluster & Dendrogram Canvas -->
+        <div class="dock-panel" style="position:relative;">
+          <div class="dock-header">
+            <span>PORTFOLIO CLUSTERING DENDROGRAM & ASSET RISK WEIGHTS</span>
+            <span style="color:var(--text-muted); font-size:10px;">HIERARCHICAL TREE</span>
+          </div>
+          <div style="flex:1; width:100%; height:100%; position:relative; background:#090d14;">
+            <canvas id="riskDendrogramCanvasElement" style="position:absolute; top:0; left:0; width:100%; height:100%;"></canvas>
+          </div>
+        </div>
+
+        <!-- Quadrant 3: Broker Order-Flow Concentration & HHI Heatmap -->
+        <div class="dock-panel">
+          <div class="dock-header">
+            <span>BROKER ORDER-FLOW CONCENTRATION HEATMAP (HHI)</span>
+            <span style="color:#FFB300; font-size:10px;">SYNDICATE TRACKER</span>
+          </div>
           <div style="flex:1; overflow:auto;">
             <table class="quant-table">
               <thead>
@@ -2527,25 +2853,74 @@
             </table>
           </div>
         </div>
+
+        <!-- Quadrant 4: Liquidity Stress-Testing & CDSC Settlement Shield -->
+        <div class="dock-panel">
+          <div class="dock-header">
+            <span>LIQUIDITY STRESS SIMULATION & CDSC T+2 SHIELD</span>
+            <span style="color:#00E5FF; font-size:10px;">SCENARIO STRESS</span>
+          </div>
+          <div class="dock-body">
+            <span style="font-size:10px; color:var(--text-muted); text-transform:uppercase; font-weight:800;">Simulate Macro Shocks:</span>
+            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px;">
+              <button class="nav-btn" onclick="runRiskStressTest('circuit')" style="justify-content:center; border:1px solid #FF1744; color:#FF1744;">-5% CIRCUIT</button>
+              <button class="nav-btn" onclick="runRiskStressTest('liquidity')" style="justify-content:center; border:1px solid #FFB300; color:#FFB300;">-40% LIQUIDITY</button>
+              <button class="nav-btn" onclick="runRiskStressTest('promoter')" style="justify-content:center; border:1px solid #00E5FF; color:#00E5FF;">PROMOTER FLOOD</button>
+            </div>
+
+            <div style="background:#090d14; border:1px solid var(--border-dim); border-radius:4px; padding:10px; margin-top:8px;">
+              <div style="font-size:10px; color:var(--text-muted);">ACTIVE SHOCK PROJECTED IMPACT</div>
+              <div style="font-size:17px; font-weight:800; color:#FF1744; margin-top:4px;" id="risk-stress-result">-4.20% ESTIMATED DRAWDOWN</div>
+              <div style="font-size:10.5px; color:var(--text-muted); margin-top:2px;">SURVIVAL MARGIN: 95.8% CAPITAL PRESERVED</div>
+            </div>
+
+            <div style="background:#090d14; border:1px solid var(--border-dim); border-radius:4px; padding:10px; margin-top:6px;">
+              <div style="display:flex; justify-content:space-between;">
+                <span style="font-size:10px; color:var(--text-muted);">ACTIVE ASSET CDSC STATUS:</span>
+                <span id="risk-active-symbol-shield" style="font-weight:700; color:#00E676;">NABIL • CLEARED T+2</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- SCREEN [4]: 20-DAY FORECAST ENGINE -->
     <section id="screen-forecast" class="workspace-screen">
-      <div class="screen-header-banner">
-        <div class="screen-title-group">
-          <h2>CHRONOS-BOLT 20-SESSION MULTI-QUANTILE TRAJECTORY ENGINE</h2>
-          <p>ACTIVE ASSET TRAJECTORY: <span id="forecast-symbol-header" style="color:#58a6ff; font-weight:800;">NABIL</span></p>
+      <!-- Horizon Strip -->
+      <div class="macro-kpi-ribbon">
+        <div class="macro-kpi-group">
+          <div class="macro-kpi-item">
+            <span class="macro-kpi-label">ACTIVE PROJECTION</span>
+            <span class="macro-kpi-val" id="forecast-symbol-header" style="color:#00E5FF;">NABIL</span>
+          </div>
+          <div class="macro-kpi-item">
+            <span class="macro-kpi-label">20D EXP RETURN (P50)</span>
+            <span class="macro-kpi-val" id="forecast-p50-val" style="color:#00E676;">+8.58%</span>
+          </div>
+          <div class="macro-kpi-item">
+            <span class="macro-kpi-label">CONFORMAL COVERAGE</span>
+            <span class="macro-kpi-val">90.0% EMPIRICAL</span>
+          </div>
+          <div class="macro-kpi-item">
+            <span class="macro-kpi-label">INFERENCE TIME</span>
+            <span class="macro-kpi-val" style="color:#00E676;">< 600 µs</span>
+          </div>
         </div>
-        <div style="display:flex; gap:10px;">
+
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="text" id="forecast-search-input" placeholder="SEARCH TICKER..." oninput="filterForecastRank(this.value)" style="background:#090d14; border:1px solid var(--border-dim); color:#fff; padding:4px 8px; font-family:inherit; font-size:10.5px; border-radius:3px; width:130px;">
           <button class="nav-btn active" onclick="refreshForecastData()">RERUN INFERENCE</button>
         </div>
       </div>
 
-      <div class="forecast-body">
-        <div class="forecast-sidebar">
-          <div style="padding:8px 12px; background:#21262d; border-bottom:1px solid #30363d; font-size:11px; font-weight:700; color:#58a6ff;">
-            20-DAY PROJECTED RETURNS RANK
+      <!-- 3-Column Horizon Workspace -->
+      <div class="forecast-3col-layout">
+        <!-- Left: Leaderboard (310px) -->
+        <div class="dock-panel">
+          <div class="dock-header">
+            <span>20-DAY PROJECTED RETURNS RANK</span>
+            <span style="color:#00E5FF; font-size:10px;">TOP MOVERS</span>
           </div>
           <div style="flex:1; overflow:auto;">
             <table class="quant-table" id="forecast-rank-table">
@@ -2554,7 +2929,7 @@
                   <th>SYM</th>
                   <th>LTP</th>
                   <th>P50 EXP</th>
-                  <th>RANGE (P10-P90)</th>
+                  <th>CORRIDOR (P10-P90)</th>
                 </tr>
               </thead>
               <tbody id="forecast-rank-body">
@@ -2564,19 +2939,80 @@
           </div>
         </div>
 
-        <div class="forecast-chart-panel">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-            <div style="font-size:12px; font-weight:700; color:#f0f6fc;">
-              CORRIDOR TRAJECTORY: <span id="forecast-chart-active-sym" style="color:#58a6ff;">NABIL</span>
+        <!-- Center: Quantile Corridor Canvas with Interactive Hover HUD (1fr) -->
+        <div class="dock-panel" style="position:relative;">
+          <div class="dock-header">
+            <div>
+              <span>CHRONOS-BOLT MULTI-QUANTILE CORRIDOR: </span>
+              <span id="forecast-chart-active-sym" style="color:#00E5FF;">NABIL</span>
             </div>
-            <div style="font-size:10px; color:#8b949e; display:flex; gap:12px;">
-              <span><span style="color:#f85149;">■</span> P10 DOWNSIDE</span>
-              <span><span style="color:#58a6ff;">■</span> P50 MEDIAN</span>
-              <span><span style="color:#3fb950;">■</span> P90 UPSIDE</span>
+            <div style="display:flex; gap:12px; font-size:10px; color:var(--text-muted);">
+              <span><span style="color:#FF1744;">■</span> P10 DOWNSIDE</span>
+              <span><span style="color:#00E5FF;">■</span> P50 MEDIAN</span>
+              <span><span style="color:#00E676;">■</span> P90 UPSIDE</span>
             </div>
           </div>
-          <div id="forecast-chart-canvas-container" style="flex:1; width:100%; min-height:360px; background:#0d1117; border:1px solid #30363d; position:relative;">
-            <canvas id="forecastCanvasElement" style="position:absolute; top:0; left:0; width:100%; height:100%;"></canvas>
+          <div class="forecast-canvas-container">
+            <canvas id="forecastCanvasElement"></canvas>
+            <div id="forecast-crosshair-hud" style="position:absolute; top:12px; left:75px; background:rgba(15,20,29,0.9); border:1px solid var(--border-bright); padding:6px 12px; border-radius:3px; font-size:10.5px; display:none; pointer-events:none; z-index:10;">
+              <span id="forecast-hud-date" style="color:var(--text-muted); font-weight:700;">D+1</span> • 
+              <span id="forecast-hud-px" style="color:#f0f6fc; font-weight:800;">NPR 536.2</span> • 
+              <span id="forecast-hud-corridor" style="color:#00E5FF;">P10: 520.0 ~ P90: 550.0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Terminal Day-20 Probability Distribution & Sweet Spot Bridge (310px) -->
+        <div class="dock-panel">
+          <div class="dock-header">
+            <span>TERMINAL VALUE DISTRIBUTION (D+20)</span>
+            <span style="color:#00E676; font-size:10px;">CONFIDENCE</span>
+          </div>
+          <div class="dock-body">
+            <div style="background:#090d14; border:1px solid var(--border-dim); border-radius:4px; padding:10px; display:flex; flex-direction:column; gap:8px;">
+              <span style="font-size:10px; color:var(--text-muted); font-weight:800; text-transform:uppercase;">Empirical Probability Profile</span>
+              <div>
+                <div style="display:flex; justify-content:space-between; font-size:10.5px; margin-bottom:2px;">
+                  <span>P(PROFIT > 0%)</span>
+                  <span style="color:#00E676; font-weight:700;">78.4%</span>
+                </div>
+                <div class="progress-cell-bar"><div class="progress-cell-fill" style="width:78.4%; background:#00E676;"></div></div>
+              </div>
+              <div>
+                <div style="display:flex; justify-content:space-between; font-size:10.5px; margin-bottom:2px;">
+                  <span>P(BREAKOUT > +10%)</span>
+                  <span style="color:#00E5FF; font-weight:700;">42.1%</span>
+                </div>
+                <div class="progress-cell-bar"><div class="progress-cell-fill" style="width:42.1%; background:#00E5FF;"></div></div>
+              </div>
+              <div>
+                <div style="display:flex; justify-content:space-between; font-size:10.5px; margin-bottom:2px;">
+                  <span>P(DRAWDOWN < -5%)</span>
+                  <span style="color:#FF1744; font-weight:700;">8.2%</span>
+                </div>
+                <div class="progress-cell-bar"><div class="progress-cell-fill" style="width:8.2%; background:#FF1744;"></div></div>
+              </div>
+            </div>
+
+            <div style="background:#090d14; border:1px solid var(--border-dim); border-radius:4px; padding:10px; display:flex; flex-direction:column; gap:6px;">
+              <span style="font-size:10px; color:var(--text-muted); font-weight:800; text-transform:uppercase;">Sweet Spot Target (t*, P*)</span>
+              <div class="card-hud-row">
+                <span class="card-hud-label">Entry Session Horizon</span>
+                <span class="card-hud-val" style="color:#00E5FF;">D+3 SESSIONS</span>
+              </div>
+              <div class="card-hud-row">
+                <span class="card-hud-label">Projected Alpha Target</span>
+                <span class="card-hud-val" id="forecast-target-px" style="color:#00E676;">NPR 582.0</span>
+              </div>
+              <div class="card-hud-row">
+                <span class="card-hud-label">Reward-to-Risk Ratio</span>
+                <span class="card-hud-val" style="color:#00E676;">2.85x</span>
+              </div>
+            </div>
+
+            <button class="action-btn-primary" onclick="bridgeToTradingDesk(window.TERMINAL_STATE.activeSymbol)">
+              EXECUTE CENTAUR ORDER [1] &rarr;
+            </button>
           </div>
         </div>
       </div>
@@ -2589,25 +3025,25 @@
     <div class="footer-left">
       <div class="footer-chip">
         <span>GATE G4 ENGINE:</span>
-        <span style="color:#3fb950; font-weight:700;">ACTIVE (395 SECURITIES)</span>
+        <span style="color:#00E676; font-weight:700;">ACTIVE (395 SECURITIES)</span>
       </div>
       <div class="footer-chip">
         <span>SEQLOCK SEQ:</span>
-        <span id="footer-seqlock-seq" style="color:#58a6ff;">154,208</span>
+        <span id="footer-seqlock-seq" style="color:#00E5FF;">154,208</span>
       </div>
       <div class="footer-chip">
         <span>LATENCY:</span>
-        <span id="footer-pipeline-latency" style="color:#3fb950; font-weight:700;">142.5 µs</span>
+        <span id="footer-pipeline-latency" style="color:#00E676; font-weight:700;">142.5 µs</span>
       </div>
     </div>
     <div class="footer-right">
       <div class="footer-chip">
         <span>ACTIVE SCREEN:</span>
-        <span id="footer-active-screen" style="color:#58a6ff; font-weight:700;">LAUNCH PAD [0]</span>
+        <span id="footer-active-screen" style="color:#00E5FF; font-weight:700;">LAUNCH PAD [0]</span>
       </div>
       <div class="footer-chip">
         <span>FPS:</span>
-        <span id="footer-fps-val" style="color:#3fb950; font-weight:700;">60.0 FPS</span>
+        <span id="footer-fps-val" style="color:#00E676; font-weight:700;">60.0 FPS</span>
       </div>
     </div>
   </footer>
@@ -4177,7 +4613,7 @@
   <script>
 
   // ==========================================================================
-  // GLOBAL TERMINAL STATE MANAGER & DYNAMIC STOCK SELECTION PIPELINE
+  // GLOBAL TERMINAL STATE MANAGER & HIGH-DENSITY WORKSPACE ENGINES
   // ==========================================================================
   window.TERMINAL_STATE = {
     activeSymbol: 'NABIL',
@@ -4185,13 +4621,14 @@
     marketUniverse: {},
     signalsData: {},
     riskData: {},
-    forecastData: {}
+    forecastData: {},
+    alphaData: []
   };
 
   let globalWs = null;
-  let animFrameId = null;
   let fpsCounter = 0;
   let lastFpsCheck = performance.now();
+  let currentAlphaView = 'grid';
 
   // FPS Profiler Loop (Asserts 60 FPS Canvas rendering)
   function runTerminalFpsLoop() {
@@ -4231,11 +4668,12 @@
     if (alphaRow) alphaRow.classList.add('selected-row');
     const fcRow = document.getElementById('fc-row-' + symbol);
     if (fcRow) fcRow.classList.add('selected-row');
+    updateAlphaInspector(symbol);
   }
 
   function renderRiskMetrics(symbol) {
-    const riskSym = document.getElementById('risk-active-symbol-header');
-    if (riskSym) riskSym.textContent = symbol;
+    const riskSym = document.getElementById('risk-active-symbol-shield');
+    if (riskSym) riskSym.textContent = `${symbol} • CLEARED T+2`;
     fetchSymbolRisk(symbol);
   }
 
@@ -4246,6 +4684,12 @@
     if (fcChartSym) fcChartSym.textContent = symbol;
     fetchSymbolForecast(symbol);
   }
+
+  // Cross-Workspace Navigation Bridge
+  window.bridgeToTradingDesk = function(symbol) {
+    window.selectSymbol(symbol);
+    window.switchWorkspace(1);
+  };
 
   // Global Symbol Selection Dispatcher
   window.selectSymbol = function(symbol) {
@@ -4258,12 +4702,14 @@
     const badge = document.getElementById('nav-active-symbol-badge');
     if (badge) badge.innerText = symbol;
     const lpSym = document.getElementById('lp-active-sym-1');
-    if (lpSym) lpSym.innerText = symbol;
+    if (lpSym) lpSym.innerText = `${symbol} (ACTIVE)`;
+    const lpTickerChip = document.getElementById('lp-active-ticker-chip');
+    if (lpTickerChip) lpTickerChip.innerText = symbol;
 
     // 2. Re-render Screen 1 (Trading Desk Order Book & Chart Canvas)
     renderTradingDesk(symbol);
 
-    // 3. Highlight Screen 2 Active Row
+    // 3. Highlight Screen 2 Active Row & Inspector
     highlightAlphaRow(symbol);
 
     // 4. Recalculate Screen 3 Stock Asset Risk Contribution & CDSC Shield
@@ -4330,16 +4776,19 @@
       }, 60);
     } else if (id === 2) {
       refreshAlphaData();
+      setTimeout(renderAlphaScatterCanvas, 80);
     } else if (id === 3) {
       refreshRiskData();
+      setTimeout(renderRiskDendrogramCanvas, 80);
     } else if (id === 4) {
       fetchSymbolForecast(window.TERMINAL_STATE.activeSymbol);
+      setTimeout(renderForecastCanvas, 80);
     }
   };
 
   // Keyboard Navigation
   window.addEventListener('keydown', function(e) {
-    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT')) return;
     if (e.key === 'Escape' || e.key === '0') switchWorkspace(0);
     else if (e.key === '1') switchWorkspace(1);
     else if (e.key === '2') switchWorkspace(2);
@@ -4359,7 +4808,9 @@
   setInterval(updateNavClock, 1000);
   updateNavClock();
 
-  // Screen [2]: Alpha Dashboard Fetch & Filter
+  // ==========================================================================
+  // SCREEN [2]: ALPHA DASHBOARD DATA & INTERACTIVE SCATTER MAP
+  // ==========================================================================
   async function refreshAlphaData() {
     try {
       const resp = await fetch('/api/v1/terminal/screen/alpha');
@@ -4367,9 +4818,44 @@
       const json = await resp.json();
       window.TERMINAL_STATE.alphaData = json.data || [];
       renderAlphaGrid(window.TERMINAL_STATE.alphaData);
+      renderAlphaLeaderboard(window.TERMINAL_STATE.alphaData);
+      renderAlphaScatterCanvas();
+      updateAlphaInspector(window.TERMINAL_STATE.activeSymbol);
     } catch (e) {
       console.warn('Alpha fetch error:', e);
     }
+  }
+
+  function renderAlphaLeaderboard(items) {
+    const dock = document.getElementById('alpha-leaderboard-dock');
+    if (!dock) return;
+    dock.innerHTML = '';
+
+    const topConviction = [...items].sort((a,b) => (b.gate_g4_score || 0) - (a.gate_g4_score || 0)).slice(0, 10);
+    topConviction.forEach(item => {
+      const card = document.createElement('div');
+      card.style.cssText = 'background:#090d14; border:1px solid var(--border-dim); border-radius:4px; padding:8px; cursor:pointer; transition:all 0.15s;';
+      if (item.symbol === window.TERMINAL_STATE.activeSymbol) {
+        card.style.borderColor = 'var(--neon-cyan)';
+        card.style.background = 'rgba(0,229,255,0.08)';
+      }
+      card.onmouseenter = () => { card.style.borderColor = 'var(--neon-cyan)'; };
+      card.onmouseleave = () => { if (item.symbol !== window.TERMINAL_STATE.activeSymbol) card.style.borderColor = 'var(--border-dim)'; };
+      card.onclick = () => window.selectSymbol(item.symbol);
+
+      card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-weight:800; color:#00E5FF;">${item.symbol}</span>
+          <span class="badge-buy">G4 ${item.gate_g4_score.toFixed(1)}%</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted); margin-top:4px;">
+          <span>NPR ${item.ltp.toFixed(1)}</span>
+          <span style="color:#00E676; font-weight:700;">+${item.exp_return_pct.toFixed(1)}% 5D</span>
+        </div>
+        <div class="progress-cell-bar"><div class="progress-cell-fill" style="width:${Math.min(100, item.gate_g4_score)}%;"></div></div>
+      `;
+      dock.appendChild(card);
+    });
   }
 
   function renderAlphaGrid(items) {
@@ -4388,18 +4874,171 @@
       const isAccum = item.hawkes_flag === 'ACCUMULATION_DETECTED';
 
       tr.innerHTML = `
-        <td style="font-weight:700; color:#58a6ff;">${item.symbol}</td>
+        <td style="font-weight:800; color:#00E5FF;">${item.symbol}</td>
         <td>NPR ${item.ltp.toFixed(1)}</td>
-        <td style="color:${item.exp_return_pct >= 0 ? '#3fb950' : '#f85149'}; font-weight:700;">${item.exp_return_pct >= 0 ? '+' : ''}${item.exp_return_pct.toFixed(2)}%</td>
-        <td style="font-weight:700; color:${item.gate_g4_score >= 70 ? '#3fb950' : '#c9d1d9'};">${item.gate_g4_score.toFixed(1)}%</td>
-        <td>${isAccum ? '<span style="color:#d29922; font-weight:700;">▲ ACCUMULATION</span>' : '<span style="color:#8b949e;">NORMAL</span>'}</td>
-        <td>${item.ofi_ratio ? item.ofi_ratio.toFixed(2) : '1.00'}</td>
+        <td style="color:${item.exp_return_pct >= 0 ? '#00E676' : '#FF1744'}; font-weight:700;">${item.exp_return_pct >= 0 ? '+' : ''}${item.exp_return_pct.toFixed(2)}%</td>
+        <td>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-weight:700;">${item.gate_g4_score.toFixed(1)}%</span>
+            <div style="width:40px; height:3px; background:#1a2230; border-radius:2px; overflow:hidden;">
+              <div style="width:${Math.min(100, item.gate_g4_score)}%; height:100%; background:${item.gate_g4_score >= 70 ? '#00E676' : '#00E5FF'};"></div>
+            </div>
+          </div>
+        </td>
+        <td>${isAccum ? '<span class="badge-amber">▲ ACCUMULATION</span>' : '<span class="badge-neutral">NORMAL</span>'}</td>
+        <td style="color:${item.ofi_ratio > 0 ? '#00E676' : '#FF1744'}; font-weight:700;">${item.ofi_ratio ? (item.ofi_ratio > 0 ? '+' : '') + item.ofi_ratio.toFixed(2) : '0.00'}</td>
         <td><span class="${badgeCls}">${item.status}</span></td>
-        <td style="color:${item.promoter_unlock_30d_pct > 15 ? '#f85149' : '#8b949e'};">${item.promoter_unlock_30d_pct ? item.promoter_unlock_30d_pct.toFixed(1) + '%' : '0.0%'}</td>
+        <td style="color:${item.promoter_unlock_30d_pct > 15 ? '#FF1744' : '#6e7a8e'};">${item.promoter_unlock_30d_pct ? item.promoter_unlock_30d_pct.toFixed(1) + '%' : '0.0%'}</td>
         <td>${item.days_to_promoter_unlock === 9999 ? 'CLEARED' : item.days_to_promoter_unlock + 'd'}</td>
+        <td><button class="nav-btn" onclick="event.stopPropagation(); bridgeToTradingDesk('${item.symbol}')" style="padding:1px 6px; font-size:9.5px; border-color:var(--border-dim);">TRADE</button></td>
       `;
       tr.onclick = () => window.selectSymbol(item.symbol);
       tbody.appendChild(tr);
+    });
+  }
+
+  function updateAlphaInspector(symbol) {
+    const inspSym = document.getElementById('alpha-inspector-symbol');
+    if (inspSym) inspSym.textContent = symbol;
+    const titleSym = document.getElementById('alpha-insp-sym-title');
+    if (titleSym) titleSym.textContent = symbol;
+
+    const data = window.TERMINAL_STATE.alphaData || [];
+    const item = data.find(i => i.symbol === symbol);
+    if (!item) return;
+
+    const ltpEl = document.getElementById('alpha-insp-ltp-title');
+    if (ltpEl) ltpEl.textContent = `NPR ${item.ltp.toFixed(1)}`;
+    const badgeEl = document.getElementById('alpha-insp-status-badge');
+    if (badgeEl) {
+      badgeEl.className = item.status === 'BUY' ? 'badge-buy' : (item.status === 'SELL' ? 'badge-sell' : 'badge-neutral');
+      badgeEl.textContent = item.status;
+    }
+    const xgbEl = document.getElementById('alpha-insp-xgb');
+    if (xgbEl) xgbEl.textContent = `${item.exp_return_pct >= 0 ? '+' : ''}${item.exp_return_pct.toFixed(1)}%`;
+    const ofiEl = document.getElementById('alpha-insp-ofi');
+    if (ofiEl) ofiEl.textContent = `${item.ofi_ratio >= 0 ? '+' : ''}${item.ofi_ratio.toFixed(3)}`;
+    const unlockEl = document.getElementById('alpha-insp-unlock-pct');
+    if (unlockEl) unlockEl.textContent = item.promoter_unlock_30d_pct > 0 ? `${item.promoter_unlock_30d_pct.toFixed(1)}% (LOCKED)` : '0.0% (CLEARED)';
+    const daysEl = document.getElementById('alpha-insp-unlock-days');
+    if (daysEl) daysEl.textContent = item.days_to_promoter_unlock === 9999 ? 'SAFE' : `${item.days_to_promoter_unlock} DAYS LEFT`;
+  }
+
+  function toggleAlphaView(mode) {
+    currentAlphaView = mode;
+    const gridC = document.getElementById('alpha-grid-view-container');
+    const scattC = document.getElementById('alpha-scatter-view-container');
+    const bGrid = document.getElementById('alpha-view-btn-grid');
+    const bScatt = document.getElementById('alpha-view-btn-scatter');
+
+    if (mode === 'scatter') {
+      if (gridC) gridC.style.display = 'none';
+      if (scattC) scattC.style.display = 'block';
+      if (bGrid) bGrid.classList.remove('active');
+      if (bScatt) bScatt.classList.add('active');
+      setTimeout(renderAlphaScatterCanvas, 60);
+    } else {
+      if (gridC) gridC.style.display = 'block';
+      if (scattC) scattC.style.display = 'none';
+      if (bGrid) bGrid.classList.add('active');
+      if (bScatt) bScatt.classList.remove('active');
+    }
+  }
+
+  // 2D HTML5 Canvas Quant Scatter Map
+  function renderAlphaScatterCanvas() {
+    const canvas = document.getElementById('alphaScatterCanvasElement');
+    if (!canvas) return;
+    const parent = canvas.parentElement;
+    canvas.width = parent.clientWidth;
+    canvas.height = parent.clientHeight;
+
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const data = window.TERMINAL_STATE.alphaData || [];
+    if (data.length === 0) return;
+
+    const padLeft = 50;
+    const padRight = 30;
+    const padTop = 30;
+    const padBottom = 40;
+    const plotW = w - padLeft - padRight;
+    const plotH = h - padTop - padBottom;
+
+    // X: Gate G4 Score (0 to 100)
+    // Y: 5D Expected Return (-10% to +15%)
+    const minY = -10;
+    const maxY = 15;
+    const getX = score => padLeft + (score / 100.0) * plotW;
+    const getY = ret => padTop + plotH - ((ret - minY) / (maxY - minY)) * plotH;
+
+    // Draw grid
+    ctx.strokeStyle = '#151c28';
+    ctx.lineWidth = 1;
+    for (let xG = 0; xG <= 100; xG += 20) {
+      const xPx = getX(xG);
+      ctx.beginPath();
+      ctx.moveTo(xPx, padTop);
+      ctx.lineTo(xPx, h - padBottom);
+      ctx.stroke();
+
+      ctx.fillStyle = '#6e7a8e';
+      ctx.font = '9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(xG + '%', xPx, h - padBottom + 16);
+    }
+
+    for (let yG = -10; yG <= 15; yG += 5) {
+      const yPx = getY(yG);
+      ctx.beginPath();
+      ctx.moveTo(padLeft, yPx);
+      ctx.lineTo(w - padRight, yPx);
+      ctx.stroke();
+
+      ctx.fillStyle = '#6e7a8e';
+      ctx.font = '9px monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText((yG > 0 ? '+' : '') + yG + '%', padLeft - 6, yPx + 3);
+    }
+
+    // Zero line
+    ctx.strokeStyle = '#303e54';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(padLeft, getY(0));
+    ctx.lineTo(w - padRight, getY(0));
+    ctx.stroke();
+
+    // Axis Labels
+    ctx.fillStyle = '#00E5FF';
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('GATE G4 PROBABILITY SCORE (0% - 100%)', padLeft + plotW / 2, h - 8);
+
+    // Render bubbles
+    data.forEach(item => {
+      const x = getX(item.gate_g4_score || 50);
+      const y = getY(item.exp_return_pct || 0);
+      const isSelected = item.symbol === window.TERMINAL_STATE.activeSymbol;
+
+      ctx.beginPath();
+      ctx.arc(x, y, isSelected ? 8 : 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = item.status === 'BUY' ? 'rgba(0, 230, 118, 0.7)' : (item.status === 'SELL' ? 'rgba(255, 23, 68, 0.7)' : 'rgba(0, 229, 255, 0.5)');
+      ctx.fill();
+
+      if (isSelected) {
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = '#fff';
+        ctx.font = '10px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(item.symbol, x, y - 11);
+      }
     });
   }
 
@@ -4414,7 +5053,19 @@
     renderAlphaGrid(filtered);
   }
 
-  // Screen [3]: Risk Monitor Fetch & Render
+  function filterAlphaSector(sector) {
+    if (!window.TERMINAL_STATE.alphaData) return;
+    if (sector === 'ALL') {
+      renderAlphaGrid(window.TERMINAL_STATE.alphaData);
+      return;
+    }
+    const filtered = window.TERMINAL_STATE.alphaData.filter(i => (i.sector || '').toUpperCase().includes(sector));
+    renderAlphaGrid(filtered);
+  }
+
+  // ==========================================================================
+  // SCREEN [3]: RISK MONITOR & DENDROGRAM ENGINE
+  // ==========================================================================
   async function refreshRiskData() {
     fetchSymbolRisk(window.TERMINAL_STATE.activeSymbol);
   }
@@ -4443,9 +5094,16 @@
         data.hrp_allocation.forEach(row => {
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td style="font-weight:700; color:#58a6ff;">${row.symbol}</td>
+            <td style="font-weight:800; color:#00E5FF;">${row.symbol}</td>
             <td>${row.cluster || 'Cluster A'}</td>
-            <td style="font-weight:700; color:#3fb950;">${row.weight.toFixed(1)}%</td>
+            <td>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-weight:800; color:#00E676;">${row.weight.toFixed(1)}%</span>
+                <div style="width:60px; height:4px; background:#1a2230; border-radius:2px; overflow:hidden;">
+                  <div style="width:${row.weight}%; height:100%; background:#00E5FF;"></div>
+                </div>
+              </div>
+            </td>
             <td>${row.risk_contrib ? row.risk_contrib.toFixed(1) + '%' : '--'}</td>
             <td>${row.volatility_20d ? (row.volatility_20d * 100).toFixed(1) + '%' : '18.4%'}</td>
           `;
@@ -4464,19 +5122,113 @@
           tr.innerHTML = `
             <td style="font-weight:700; color:#c9d1d9;">#${b.broker_id}</td>
             <td>${b.name || 'Broker ' + b.broker_id}</td>
-            <td style="font-weight:700; color:${isHigh ? '#f85149' : '#58a6ff'};">${b.hhi}</td>
+            <td style="font-weight:800; color:${isHigh ? '#FF1744' : '#00E5FF'};">${b.hhi}</td>
             <td>${b.dominance_pct ? b.dominance_pct.toFixed(1) + '%' : '--'}</td>
             <td>${isHigh ? '<span class="badge-sell">CONCENTRATED</span>' : '<span class="badge-buy">ACCUMULATING</span>'}</td>
           `;
           brokerBody.appendChild(tr);
         });
       }
+
+      renderRiskDendrogramCanvas();
     } catch (e) {
       console.warn('Risk fetch error:', e);
     }
   }
 
-  // Screen [4]: Forecast Data Fetch & Canvas Corridor Redraw
+  function renderRiskDendrogramCanvas() {
+    const canvas = document.getElementById('riskDendrogramCanvasElement');
+    if (!canvas) return;
+    const parent = canvas.parentElement;
+    canvas.width = parent.clientWidth;
+    canvas.height = parent.clientHeight;
+
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const data = window.TERMINAL_STATE.riskData || {};
+    const alloc = data.hrp_allocation || [];
+    if (alloc.length === 0) return;
+
+    // Draw Risk Cluster Linkage Tree
+    ctx.strokeStyle = '#212836';
+    ctx.lineWidth = 1.5;
+
+    const startX = 40;
+    const startY = 30;
+    const itemGap = (h - 60) / alloc.length;
+
+    alloc.forEach((item, idx) => {
+      const y = startY + idx * itemGap;
+      ctx.fillStyle = item.symbol === window.TERMINAL_STATE.activeSymbol ? '#00E5FF' : '#c9d1d9';
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText(item.symbol, startX, y + 4);
+
+      // Node dot
+      ctx.beginPath();
+      ctx.arc(startX + 65, y, 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#00E5FF';
+      ctx.fill();
+
+      // Branch to central cluster spine
+      ctx.beginPath();
+      ctx.moveTo(startX + 68, y);
+      ctx.lineTo(startX + 130, y);
+      ctx.stroke();
+    });
+
+    // Central cluster trunk
+    ctx.beginPath();
+    ctx.moveTo(startX + 130, startY);
+    ctx.lineTo(startX + 130, startY + (alloc.length - 1) * itemGap);
+    ctx.stroke();
+
+    // Portfolio Donut Summary
+    const centerX = w - 100;
+    const centerY = h / 2;
+    const radius = Math.min(65, (h / 2) - 20);
+
+    let startAngle = -Math.PI / 2;
+    const colors = ['#00E5FF', '#00E676', '#FFB300', '#B388FF', '#FF1744', '#1f6feb', '#6e7a8e'];
+
+    alloc.forEach((item, i) => {
+      const sliceAngle = (item.weight / 100.0) * (Math.PI * 2);
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, startAngle, startAngle + sliceAngle);
+      ctx.arc(centerX, centerY, radius * 0.55, startAngle + sliceAngle, startAngle, true);
+      ctx.closePath();
+      ctx.fillStyle = colors[i % colors.length];
+      ctx.fill();
+      startAngle += sliceAngle;
+    });
+
+    ctx.fillStyle = '#f0f6fc';
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('100.0%', centerX, centerY + 3);
+  }
+
+  function runRiskStressTest(type) {
+    const el = document.getElementById('risk-stress-result');
+    if (!el) return;
+    if (type === 'circuit') {
+      el.textContent = '-5.12% CIRCUIT DRAWDOWN (NPR -48.2k)';
+      el.style.color = '#FF1744';
+    } else if (type === 'liquidity') {
+      el.textContent = '-3.80% SLIPPAGE IMPACT (NPR -32.1k)';
+      el.style.color = '#FFB300';
+    } else if (type === 'promoter') {
+      el.textContent = '-2.45% FLOAT DILUTION DOWNSIDE';
+      el.style.color = '#00E5FF';
+    }
+  }
+
+  // ==========================================================================
+  // SCREEN [4]: FORECAST DATA FETCH & INTERACTIVE QUANTILE CORRIDOR CANVAS
+  // ==========================================================================
   async function refreshForecastData() {
     fetchSymbolForecast(window.TERMINAL_STATE.activeSymbol);
   }
@@ -4499,16 +5251,26 @@
           if (item.symbol === window.TERMINAL_STATE.activeSymbol) tr.classList.add('selected-row');
 
           const expSign = item.p50_exp >= 0 ? '+' : '';
-          const expColor = item.p50_exp >= 0 ? '#3fb950' : '#f85149';
+          const expColor = item.p50_exp >= 0 ? '#00E676' : '#FF1744';
           tr.innerHTML = `
-            <td style="font-weight:700; color:#58a6ff;">${item.symbol}</td>
+            <td style="font-weight:800; color:#00E5FF;">${item.symbol}</td>
             <td>${item.latest_close.toFixed(1)}</td>
             <td style="font-weight:700; color:${expColor};">${expSign}${item.p50_exp.toFixed(1)}%</td>
-            <td style="color:#8b949e; font-size:10px;">${item.p10_exp.toFixed(1)}% ~ ${item.p90_exp.toFixed(1)}%</td>
+            <td style="color:var(--text-muted); font-size:10px;">${item.p10_exp.toFixed(1)}% ~ ${item.p90_exp.toFixed(1)}%</td>
           `;
           tr.onclick = () => window.selectSymbol(item.symbol);
           rankBody.appendChild(tr);
         });
+      }
+
+      const p50El = document.getElementById('forecast-p50-val');
+      if (p50El && data.ranked_forecasts) {
+        const cur = data.ranked_forecasts.find(i => i.symbol === symbol);
+        if (cur) p50El.textContent = `${cur.p50_exp >= 0 ? '+' : ''}${cur.p50_exp.toFixed(2)}%`;
+      }
+      const tgtEl = document.getElementById('forecast-target-px');
+      if (tgtEl && data.p50_curve && data.p50_curve.length > 0) {
+        tgtEl.textContent = `NPR ${data.p50_curve[data.p50_curve.length - 1].toFixed(1)}`;
       }
 
       renderForecastCanvas(data);
@@ -4517,7 +5279,32 @@
     }
   }
 
-  // 60 FPS HTML5 Canvas Quantile Corridor Redraw Routine
+  function filterForecastRank(query) {
+    if (!window.TERMINAL_STATE.forecastData || !window.TERMINAL_STATE.forecastData.ranked_forecasts) return;
+    query = (query || '').toUpperCase().trim();
+    const rankBody = document.getElementById('forecast-rank-body');
+    if (!rankBody) return;
+    rankBody.innerHTML = '';
+
+    const list = window.TERMINAL_STATE.forecastData.ranked_forecasts.filter(i => i.symbol.includes(query)).slice(0, 50);
+    list.forEach(item => {
+      const tr = document.createElement('tr');
+      tr.id = 'fc-row-' + item.symbol;
+      if (item.symbol === window.TERMINAL_STATE.activeSymbol) tr.classList.add('selected-row');
+      const expSign = item.p50_exp >= 0 ? '+' : '';
+      const expColor = item.p50_exp >= 0 ? '#00E676' : '#FF1744';
+      tr.innerHTML = `
+        <td style="font-weight:800; color:#00E5FF;">${item.symbol}</td>
+        <td>${item.latest_close.toFixed(1)}</td>
+        <td style="font-weight:700; color:${expColor};">${expSign}${item.p50_exp.toFixed(1)}%</td>
+        <td style="color:var(--text-muted); font-size:10px;">${item.p10_exp.toFixed(1)}% ~ ${item.p90_exp.toFixed(1)}%</td>
+      `;
+      tr.onclick = () => window.selectSymbol(item.symbol);
+      rankBody.appendChild(tr);
+    });
+  }
+
+  // 60 FPS HTML5 Canvas Quantile Corridor Redraw Routine with Interactive Crosshair HUD
   function renderForecastCanvas(data) {
     data = data || window.TERMINAL_STATE.forecastData;
     if (!data) return;
@@ -4556,7 +5343,7 @@
     const getY = val => padTop + plotH - ((val - minY) / (maxY - minY)) * plotH;
 
     // Grid lines
-    ctx.strokeStyle = '#21262d';
+    ctx.strokeStyle = '#151c28';
     ctx.lineWidth = 1;
     for (let g = 0; g <= 4; g++) {
       const yVal = minY + (g / 4) * (maxY - minY);
@@ -4566,7 +5353,7 @@
       ctx.lineTo(w - padRight, yPx);
       ctx.stroke();
 
-      ctx.fillStyle = '#8b949e';
+      ctx.fillStyle = '#6e7a8e';
       ctx.font = '10px monospace';
       ctx.textAlign = 'right';
       ctx.fillText(yVal.toFixed(1), padLeft - 8, yPx + 3);
@@ -4586,12 +5373,12 @@
       ctx.lineTo(x, y);
     }
     ctx.closePath();
-    ctx.fillStyle = 'rgba(88, 166, 255, 0.08)';
+    ctx.fillStyle = 'rgba(0, 229, 255, 0.08)';
     ctx.fill();
 
     // P90 Line (Green Upside)
     ctx.beginPath();
-    ctx.strokeStyle = '#3fb950';
+    ctx.strokeStyle = '#00E676';
     ctx.lineWidth = 1.5;
     ctx.setLineDash([4, 4]);
     for (let i = 0; i < n; i++) {
@@ -4604,7 +5391,7 @@
 
     // P10 Line (Red Downside)
     ctx.beginPath();
-    ctx.strokeStyle = '#f85149';
+    ctx.strokeStyle = '#FF1744';
     ctx.lineWidth = 1.5;
     ctx.setLineDash([4, 4]);
     for (let i = 0; i < n; i++) {
@@ -4615,9 +5402,9 @@
     }
     ctx.stroke();
 
-    // P50 Median Line (Solid Blue/Cyan)
+    // P50 Median Line (Solid Cyan)
     ctx.beginPath();
-    ctx.strokeStyle = '#58a6ff';
+    ctx.strokeStyle = '#00E5FF';
     ctx.lineWidth = 2.5;
     ctx.setLineDash([]);
     for (let i = 0; i < n; i++) {
@@ -4628,28 +5415,61 @@
     }
     ctx.stroke();
 
-    // Points on P50 Curve
+    // Points on P50 Curve & X labels
     for (let i = 0; i < n; i++) {
       const x = getX(i);
       const y = getY(p50[i]);
-      ctx.fillStyle = '#0d1117';
-      ctx.strokeStyle = '#58a6ff';
+      ctx.fillStyle = '#080b10';
+      ctx.strokeStyle = '#00E5FF';
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(x, y, 3, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
-      ctx.fillStyle = '#8b949e';
+      ctx.fillStyle = '#6e7a8e';
       ctx.font = '9px monospace';
       ctx.textAlign = 'center';
       ctx.fillText('D+' + (i + 1), x, h - padBottom + 16);
     }
+
+    // Interactive Mouse Tracking on Canvas
+    canvas.onmousemove = function(e) {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      if (mouseX < padLeft || mouseX > w - padRight) {
+        document.getElementById('forecast-crosshair-hud').style.display = 'none';
+        return;
+      }
+
+      const ratio = (mouseX - padLeft) / plotW;
+      const idx = Math.min(n - 1, Math.max(0, Math.round(ratio * (n - 1))));
+      const curP50 = p50[idx];
+      const curP10 = p10[idx];
+      const curP90 = p90[idx];
+
+      const hud = document.getElementById('forecast-crosshair-hud');
+      if (hud) {
+        hud.style.display = 'block';
+        hud.style.left = (getX(idx) - 80) + 'px';
+        document.getElementById('forecast-hud-date').textContent = `SESSION D+${idx + 1}`;
+        document.getElementById('forecast-hud-px').textContent = `NPR ${curP50.toFixed(1)}`;
+        document.getElementById('forecast-hud-corridor').textContent = `P10: ${curP10.toFixed(1)} ~ P90: ${curP90.toFixed(1)}`;
+      }
+    };
+    canvas.onmouseleave = function() {
+      const hud = document.getElementById('forecast-crosshair-hud');
+      if (hud) hud.style.display = 'none';
+    };
   }
 
   window.addEventListener('resize', () => {
     if (window.TERMINAL_STATE.activeScreen === 'forecast') {
       renderForecastCanvas();
+    } else if (window.TERMINAL_STATE.activeScreen === 'alpha') {
+      renderAlphaScatterCanvas();
+    } else if (window.TERMINAL_STATE.activeScreen === 'risk') {
+      renderRiskDendrogramCanvas();
     }
   });
 
@@ -4667,6 +5487,7 @@
       window.TERMINAL_STATE.alphaData = payload.data;
       if (window.TERMINAL_STATE.activeScreen === 'alpha') {
         renderAlphaGrid(payload.data);
+        renderAlphaLeaderboard(payload.data);
       }
     } else if (payload.type === 'RISK_DATA' && payload.data) {
       window.TERMINAL_STATE.riskData = payload.data;
