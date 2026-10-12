@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"on-tertiary-fixed-variant":"#582a9f","surface-dim":"#0f141b","secondary-fixed-dim":"#00e475","on-primary-fixed-variant":"#004f58","on-secondary-container":"#00622e","secondary":"#7dffa2","surface-container-lowest":"#0a0e15","text-tertiary":"#475569","surface-container":"#1c2027","tertiary":"#f4e8ff","inverse-surface":"#dfe2ed","surface-container-high":"#262a32","surface-elevated":"#131B2A","background":"#0f141b","surface-variant":"#31353d","tertiary-fixed-dim":"#d4bbff","on-background":"#dfe2ed","outline":"#849396","inverse-primary":"#006875","tertiary-container":"#ddc7ff","primary-fixed":"#9cf0ff","status-warning":"#FFB300","on-tertiary-fixed":"#260058","primary":"#c3f5ff","surface-bright":"#353941","flash-decline":"rgba(255, 23, 68, 0.35)","on-primary":"#00363d","outline-variant":"#3b494c","primary-fixed-dim":"#00daf3","inverse-on-surface":"#2c3139","flash-system":"rgba(0, 229, 255, 0.35)","on-secondary-fixed-variant":"#005226","border-accent":"#24344D","primary-container":"#00e5ff","status-rotation":"#B388FF","status-system":"#00E5FF","on-secondary-fixed":"#00210b","error":"#ffb4ab","on-primary-container":"#00626e","surface-container-low":"#181c23","on-surface":"#dfe2ed","surface-panel":"#070B12","on-primary-fixed":"#001f24","flash-warning":"rgba(255, 179, 0, 0.35)","status-decline":"#FF1744","surface-root":"#020306","text-primary":"#FFFFFF","secondary-fixed":"#62ff96","on-tertiary":"#400688","on-secondary":"#003918","on-error-container":"#ffdad6","surface-container-highest":"#31353d","flash-advance":"rgba(0, 230, 118, 0.35)","tertiary-fixed":"#ebdcff","on-error":"#690005","flash-rotation":"rgba(179, 136, 255, 0.35)","status-advance":"#00E676","on-tertiary-container":"#6b40b2","border-subtle":"#1B2538","error-container":"#93000a","secondary-container":"#05e777","surface":"#0f141b","on-surface-variant":"#bac9cc","border-muted":"#131B2A","text-secondary":"#94A3B8","surface-tint":"#00daf3"},borderRadius:{DEFAULT:"0.25rem",lg:"0.5rem",xl:"0.75rem",full:"9999px"},spacing:{"space-xs":"0.125rem","space-md":"0.375rem",margin:"0.25rem",gutter:"0.375rem","space-xl":"0.75rem","space-lg":"0.5rem","space-sm":"0.25rem"},fontFamily:{"headline-lg":["JetBrains Mono"],"label-md":["JetBrains Mono"],"headline-md":["JetBrains Mono"],"label-sm":["JetBrains Mono"],"label-lg":["JetBrains Mono"],"body-sm":["JetBrains Mono"],"body-md":["JetBrains Mono"],"body-lg":["JetBrains Mono"],"headline-sm":["JetBrains Mono"]},fontSize:{"headline-lg":["16px",{lineHeight:"20px",letterSpacing:"0.04em",fontWeight:"700"}],"label-md":["10px",{lineHeight:"12px",letterSpacing:"0.06em",fontWeight:"600"}],"headline-md":["14px",{lineHeight:"18px",letterSpacing:"0.02em",fontWeight:"600"}],"label-sm":["9px",{lineHeight:"11px",letterSpacing:"0.08em",fontWeight:"500"}],"label-lg":["11px",{lineHeight:"14px",letterSpacing:"0.05em",fontWeight:"600"}],"body-sm":["11px",{lineHeight:"14px",letterSpacing:"0em",fontWeight:"400"}],"body-md":["12px",{lineHeight:"16px",letterSpacing:"0em",fontWeight:"400"}],"body-lg":["13px",{lineHeight:"18px",letterSpacing:"0em",fontWeight:"400"}],"headline-sm":["13px",{lineHeight:"16px",letterSpacing:"0.02em",fontWeight:"600"}]}}}};</script></head><body class="bg-surface-root text-on-surface font-body-sm text-body-sm min-h-screen flex flex-col justify-between select-none"><header class="fixed top-0 left-0 right-0 h-[38px] z-50 bg-surface-panel/95 backdrop-blur-md px-gutter flex items-center justify-between border-b border-border-subtle"><div class="flex items-center gap-space-lg"><div class="flex items-center gap-space-sm pl-space-xs"><div class="w-2 h-2 rounded-full bg-status-advance animate-pulse"></div><span class="font-headline-sm text-headline-sm text-primary tracking-wider uppercase font-bold">NEPSE PULSE TERMINAL</span><span class="px-space-xs py-[1px] bg-surface-elevated text-text-secondary font-label-sm text-label-sm rounded">v4.2</span></div><nav class="flex items-center h-[38px]" data-active-classes="bg-surface-elevated text-primary border-b border-primary-container"><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="launch-pad" href="#">[0] LAUNCH PAD</a><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="trading-desk" href="#">[1] TRADING DESK</a><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="alpha-dashboard" href="#">[2] ALPHA DASHBOARD</a><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="risk-lab" href="#">[3] RISK LAB</a><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="20d-forecast" href="#">[4] 20D FORECAST</a><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="blotter" href="#">[5] BLOTTER</a><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="stock-360" href="#">[6] STOCK 360</a><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="smart-alerts" href="#">[7] SMART ALERTS</a><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="macro-regime" href="#">[8] MACRO REGIME</a><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="broker-cartel" href="#">[9] BROKER CARTEL</a></nav></div><div class="flex items-center gap-space-lg"><div class="flex items-center gap-space-sm px-space-md py-space-xs bg-surface-container-lowest border border-border-muted"><span class="w-1.5 h-1.5 rounded-full bg-status-warning"></span><span class="font-label-md text-label-md text-status-warning uppercase font-semibold">MARKET CLOSED</span></div><div class="font-label-md text-label-md text-text-secondary tracking-widest">NPT <span class="text-text-primary font-bold">15:37:42</span></div><div class="font-label-sm text-label-sm text-text-tertiary border-l border-border-subtle pl-space-md">GATE G4: <span class="text-status-advance">60.0 FPS</span> | <span class="text-primary-fixed-dim">142.5 µs</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="w-full pt-[38px] pb-[28px] bg-surface-root min-h-[calc(100vh-28px)]"><div class="flex flex-col w-full">
+<div class="px-gutter pt-space-xs pb-space-lg flex flex-col gap-space-md">
+<!-- 1. PEDAGOGICAL OPERATOR PROTOCOL GUIDE (COLLAPSIBLE) -->
+<section class="bg-surface-panel rounded-lg shadow-md p-space-md flex flex-col gap-space-xs relative overflow-hidden transition-all duration-300" id="macro-guide-container">
+<div class="absolute top-0 left-0 bottom-0 w-[3px] bg-status-advance"></div>
+<div class="flex items-center justify-between pl-space-sm select-none">
+<div class="flex items-center gap-space-md">
+<span class="material-symbols-outlined text-status-advance text-[15px]">radar</span>
+<div class="flex flex-col">
+<div class="flex items-center gap-space-sm">
+<span class="font-headline-sm text-headline-sm text-text-primary tracking-tight">म्याक्रो व्यवस्था तथा कमोडिटी निगरानी</span>
+<span class="font-label-sm text-label-sm text-primary tracking-widest px-space-xs py-[1px] bg-surface-elevated rounded">SCREEN 8: MACRO REGIME &amp; COMMODITY SURVEILLANCE</span>
+</div>
+<span class="font-label-sm text-label-sm text-text-tertiary">SYSTEM PROTOCOL REF: NEPSE-MREG-G4 // REAL-TIME INGESTION ACTIVE</span>
+</div>
+</div>
+<button class="flex items-center gap-space-xs px-space-md py-space-xs bg-surface-elevated hover:bg-surface-container rounded text-text-secondary hover:text-text-primary font-label-sm text-label-sm transition-colors cursor-pointer" id="toggle-guide-btn">
+<span id="guide-toggle-text">PEDAGOGICAL OPERATOR PROTOCOL [ - HIDE GUIDE ]</span>
+<span class="material-symbols-outlined text-[14px]" id="guide-toggle-icon">expand_less</span>
+</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-space-sm pl-space-sm pt-space-xs" id="guide-content">
+<div class="bg-surface-container-lowest p-space-md rounded flex flex-col gap-space-xs">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-primary font-semibold">01. MACRO ENGINE</span>
+<span class="material-symbols-outlined text-primary-fixed-dim text-[13px]">tune</span>
+</div>
+<p class="font-body-sm text-body-sm text-text-secondary leading-tight">
+            Synthesizes external drivers of NEPSE liquidity: Brent Crude spot parity, seasonal Hydrology runoff indices, BFIs Credit-to-Deposit (CD) ratios, and INR peg reserves stability at NRB.
+          </p>
+</div>
+<div class="bg-surface-container-lowest p-space-md rounded flex flex-col gap-space-xs">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-status-advance font-semibold">02. CHROMATIC CODING</span>
+<span class="material-symbols-outlined text-status-advance text-[13px]">palette</span>
+</div>
+<p class="font-body-sm text-body-sm text-text-secondary leading-tight">
+<span class="text-status-advance font-semibold">#00E676</span> Bullish Tailwind (Low Oil, Peak Hydro PPA, Low CD). <span class="text-status-system font-semibold">#00E5FF</span> Baseline Alignment. <span class="text-status-decline font-semibold">#FF1744</span> Squeeze. <span class="text-status-warning font-semibold">#FFB300</span> Tariff Regime Transition.
+          </p>
+</div>
+<div class="bg-surface-container-lowest p-space-md rounded flex flex-col gap-space-xs">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-status-warning font-semibold">03. BEHAVIORAL PROTOCOL</span>
+<span class="material-symbols-outlined text-status-warning text-[13px]">shield</span>
+</div>
+<p class="font-body-sm text-body-sm text-text-secondary leading-tight">
+            Automatic mandate: Trigger progressive equity de-leveraging if banking CD ratio breaches <span class="text-status-warning font-semibold">88.0%</span> or NRB weighted interbank repo rate spikes beyond <span class="text-status-decline font-semibold">6.00%</span>.
+          </p>
+</div>
+<div class="bg-surface-container-lowest p-space-md rounded flex flex-col gap-space-xs">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-status-rotation font-semibold">04. REGIME SYNTHESIS</span>
+<span class="material-symbols-outlined text-status-rotation text-[13px]">account_balance</span>
+</div>
+<p class="font-body-sm text-body-sm text-text-secondary leading-tight">
+            Macro regime conviction is factor-weighted against NEPSE capitalization architecture: <span class="text-text-primary font-semibold">38% Hydropower</span> (seasonal tariff dependent) and <span class="text-text-primary font-semibold">34% Commercial Banks</span> (margin rate driven).
+          </p>
+</div>
+</div>
+</section>
+<!-- 2. INSTITUTIONAL MACRO SURVEILLANCE HERO STRIP -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-space-md">
+<!-- CARD 1: BRENT CRUDE OIL & IMPORT INFLATION -->
+<div class="bg-surface-panel rounded-lg shadow-sm p-space-md flex flex-col justify-between relative overflow-hidden group">
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-status-advance text-[16px]">oil_barrel</span>
+<span class="font-label-lg text-label-lg text-text-primary uppercase tracking-wide">BRENT CRUDE // IMPORT INFLATION</span>
+</div>
+<span class="px-space-xs py-[1px] bg-surface-elevated font-label-sm text-label-sm text-status-advance rounded uppercase tracking-wider font-semibold">
+            BULLISH TAILWIND
+          </span>
+</div>
+<!-- Metric Display & Sparkline -->
+<div class="flex items-end justify-between py-space-sm">
+<div>
+<div class="flex items-baseline gap-space-sm">
+<span class="font-headline-lg text-headline-lg text-text-primary tabular-nums tracking-tight font-bold">$74.20</span>
+<span class="font-label-md text-label-md text-text-tertiary">/bbl</span>
+<span class="font-label-md text-label-md text-status-advance tabular-nums font-semibold flex items-center">
+<span class="material-symbols-outlined text-[13px]">trending_down</span> -1.1% (24H)
+              </span>
+</div>
+<div class="font-label-sm text-label-sm text-text-tertiary pt-[2px]">
+              ICE BRENT CONT. FUTURE (MONTH 1) | FOB ARABIAN GULF REF
+            </div>
+</div>
+<!-- Sparkline Mini SVG -->
+<div class="w-24 h-9">
+<svg class="w-full h-full text-status-advance" fill="none" viewbox="0 0 100 36">
+<path d="M0,8 L15,12 L30,9 L45,18 L60,14 L75,26 L90,22 L100,30" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"></path>
+<polygon fill="currentColor" fill-opacity="0.12" points="0,8 15,12 30,9 45,18 60,14 75,26 90,22 100,30 100,36 0,36"></polygon>
+</svg>
+</div>
+</div>
+<!-- Analytical Breakdown & NEPSE Transmission -->
+<div class="flex flex-col gap-space-xs pt-space-xs">
+<div class="bg-surface-container-lowest p-space-sm rounded flex flex-col gap-[2px]">
+<span class="font-label-sm text-label-sm text-text-secondary uppercase">NEPAL MACRO TRANSMISSION:</span>
+<p class="font-body-sm text-body-sm text-text-primary leading-tight">
+              Lower oil curtails the petroleum import bill (constituting ~14% of gross imports), curbs core inflation, and expands NRB gross forex reserves past 15.2 months of import capacity.
+            </p>
+</div>
+<div class="grid grid-cols-2 gap-space-xs pt-space-xs">
+<div class="bg-surface-elevated p-space-xs rounded flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-text-tertiary">CORRELATION (NEPSE):</span>
+<span class="font-label-md text-label-md text-status-advance font-bold tabular-nums">-0.68 INVERSE</span>
+</div>
+<div class="bg-surface-elevated p-space-xs rounded flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-text-tertiary">INFLATION DRAG:</span>
+<span class="font-label-md text-label-md text-text-primary font-bold tabular-nums">4.12% YOY</span>
+</div>
+</div>
+</div>
+<div class="mt-space-sm pt-space-xs flex items-center justify-between font-label-sm text-label-sm text-text-tertiary">
+<span>SOURCE: ICE CONTINUOUS FEED</span>
+<span class="text-status-advance font-semibold">SURPLUS LIQUIDITY EFFECT: +NPR 4.2B/WK</span>
+</div>
+</div>
+<!-- CARD 2: HYDROLOGY RUNOFF & NEA TARIFF REGIMES -->
+<div class="bg-surface-panel rounded-lg shadow-sm p-space-md flex flex-col justify-between relative overflow-hidden group">
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-status-warning text-[16px]">water_drop</span>
+<span class="font-label-lg text-label-lg text-text-primary uppercase tracking-wide">HYDROLOGY RUNOFF &amp; NEA TARIFF</span>
+</div>
+<span class="px-space-xs py-[1px] bg-surface-elevated font-label-sm text-label-sm text-status-warning rounded uppercase tracking-wider font-semibold">
+            DRY REGIME ACTIVE
+          </span>
+</div>
+<!-- Metric Display & Sparkline -->
+<div class="flex items-end justify-between py-space-sm">
+<div>
+<div class="flex items-baseline gap-space-sm">
+<span class="font-headline-lg text-headline-lg text-status-warning tabular-nums tracking-tight font-bold">NPR 8.40</span>
+<span class="font-label-md text-label-md text-text-tertiary">/unit (PEAK)</span>
+<span class="font-label-md text-label-md text-status-advance tabular-nums font-semibold flex items-center">
+<span class="material-symbols-outlined text-[13px]">arrow_upward</span> +75.0% vs WET
+              </span>
+</div>
+<div class="font-label-sm text-label-sm text-text-tertiary pt-[2px]">
+              NEA PPA SCHEDULE: DRY (MANGSIR 16 - JESTHA 15) vs NPR 4.80 WET
+            </div>
+</div>
+<!-- Runoff Gauge Ring SVG -->
+<div class="w-16 h-10 flex items-center justify-center relative">
+<svg class="w-10 h-10 -rotate-90" viewbox="0 0 36 36">
+<path class="text-surface-elevated" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.5"></path>
+<path class="text-status-warning" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="68, 100" stroke-linecap="round" stroke-width="3.5"></path>
+</svg>
+<span class="absolute font-label-sm text-label-sm text-text-primary font-bold">0.68</span>
+</div>
+</div>
+<!-- Analytical Breakdown & NEPSE Transmission -->
+<div class="flex flex-col gap-space-xs pt-space-xs">
+<div class="bg-surface-container-lowest p-space-sm rounded flex flex-col gap-[2px]">
+<span class="font-label-sm text-label-sm text-text-secondary uppercase">HYDRO SECTOR TRANSMISSION (38% NEPSE WT):</span>
+<p class="font-body-sm text-body-sm text-text-primary leading-tight">
+              Runoff index at 0.68 reflects sub-peak Himalayan discharge. Run-of-River (RoR) flows drop, while Storage &amp; PROR tickers (SAHAS, HDHPC, SHPC) capture maximum dry tariff realized cash margins.
+            </p>
+</div>
+<div class="grid grid-cols-2 gap-space-xs pt-space-xs">
+<div class="bg-surface-elevated p-space-xs rounded flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-text-tertiary">SECTOR QTR EBITDA:</span>
+<span class="font-label-md text-label-md text-status-advance font-bold tabular-nums">+18.4% SURGE</span>
+</div>
+<div class="bg-surface-elevated p-space-xs rounded flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-text-tertiary">GRID EXPORT (IN):</span>
+<span class="font-label-md text-label-md text-text-secondary font-bold tabular-nums">42.8 MW NET</span>
+</div>
+</div>
+</div>
+<div class="mt-space-sm pt-space-xs flex items-center justify-between font-label-sm text-label-sm text-text-tertiary">
+<span>SOURCE: NEA LOAD DISPATCH CENTER</span>
+<span class="text-status-warning font-semibold">PEAK TARIFF WINDOW: 68 DAYS REMAINING</span>
+</div>
+</div>
+<!-- CARD 3: BANKING LIQUIDITY & CD RATIOS -->
+<div class="bg-surface-panel rounded-lg shadow-sm p-space-md flex flex-col justify-between relative overflow-hidden group">
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-status-advance text-[16px]">account_balance_wallet</span>
+<span class="font-label-lg text-label-lg text-text-primary uppercase tracking-wide">BANKING LIQUIDITY &amp; CD RATIO</span>
+</div>
+<span class="px-space-xs py-[1px] bg-surface-elevated font-label-sm text-label-sm text-status-advance rounded uppercase tracking-wider font-semibold">
+            EXPANSIONARY SURPLUS
+          </span>
+</div>
+<!-- Metric Display & Sparkline -->
+<div class="flex items-end justify-between py-space-sm">
+<div>
+<div class="flex items-baseline gap-space-sm">
+<span class="font-headline-lg text-headline-lg text-status-advance tabular-nums tracking-tight font-bold">78.4%</span>
+<span class="font-label-md text-label-md text-text-tertiary">CD RATIO</span>
+<span class="font-label-md text-label-md text-text-tertiary tabular-nums font-semibold flex items-center">
+                CEILING: <span class="text-text-primary ml-1">90.0% NRB</span>
+</span>
+</div>
+<div class="font-label-sm text-label-sm text-text-tertiary pt-[2px]">
+              BFIs SURPLUS LIQUIDITY: NPR 114.6 BILLION // ZERO LIQUIDITY STRESS
+            </div>
+</div>
+<!-- Dual Bar Progress Metric -->
+<div class="w-24 flex flex-col gap-1 items-end">
+<span class="font-label-sm text-label-sm text-status-advance font-mono">11.6% BUFFER</span>
+<div class="w-full h-2 bg-surface-container rounded-full overflow-hidden flex">
+<div class="h-full bg-status-advance" style="width: 78.4%"></div>
+<div class="h-full bg-surface-elevated" style="width: 21.6%"></div>
+</div>
+</div>
+</div>
+<!-- Analytical Breakdown & NEPSE Transmission -->
+<div class="flex flex-col gap-space-xs pt-space-xs">
+<div class="bg-surface-container-lowest p-space-sm rounded flex flex-col gap-[2px]">
+<span class="font-label-sm text-label-sm text-text-secondary uppercase">MONETARY STANCE &amp; MARGIN FLOW:</span>
+<p class="font-body-sm text-body-sm text-text-primary leading-tight">
+              Interbank lending rates remain suppressed at 2.98%, driving Class-A banks to expand margin loan allocations (Title 4/12Cr limits) at an aggressive 8.45% average retail rate.
+            </p>
+</div>
+<div class="grid grid-cols-2 gap-space-xs pt-space-xs">
+<div class="bg-surface-elevated p-space-xs rounded flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-text-tertiary">INTERBANK RATE:</span>
+<span class="font-label-md text-label-md text-status-advance font-bold tabular-nums">2.98% (-42 bps)</span>
+</div>
+<div class="bg-surface-elevated p-space-xs rounded flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-text-tertiary">SHARE LOAN RATE:</span>
+<span class="font-label-md text-label-md text-primary font-bold tabular-nums">8.45% AVG</span>
+</div>
+</div>
+</div>
+<div class="mt-space-sm pt-space-xs flex items-center justify-between font-label-sm text-label-sm text-text-tertiary">
+<span>SOURCE: NRB WEEKLY BULLETIN</span>
+<span class="text-status-advance font-semibold">MARGIN BORROWING CAPACITY: MAX ACCEL</span>
+</div>
+</div>
+</div>
+<!-- 3. SECTOR TRANSMISSION MODEL & MACRO REGIME VERDICT -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-space-md">
+<!-- LEFT 8-COLS: MACRO TRANSMISSION WEIGHT MATRIX -->
+<div class="xl:col-span-8 bg-surface-panel rounded-lg shadow-sm p-space-md flex flex-col justify-between">
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary-fixed-dim text-[16px]">unfold_more_double</span>
+<span class="font-headline-sm text-headline-sm text-text-primary tracking-tight">MACRO TRANSMISSION FACTOR MATRIX (SECTOR IMPACT)</span>
+</div>
+<div class="flex items-center gap-space-sm">
+<span class="font-label-sm text-label-sm text-text-tertiary">FACTOR COVARIANCE: MULTI-ASSET</span>
+<span class="px-space-xs py-[1px] bg-surface-elevated text-text-secondary font-label-sm text-label-sm rounded">NEPSE BETA MAPPED</span>
+</div>
+</div>
+<!-- Matrix Table -->
+<div class="overflow-x-auto w-full pt-space-xs">
+<table class="w-full text-left font-mono border-collapse">
+<thead>
+<tr class="bg-surface-elevated text-text-secondary font-label-sm text-label-sm uppercase">
+<th class="py-space-xs px-space-sm font-semibold">Sector Sub-Index</th>
+<th class="py-space-xs px-space-sm font-semibold text-right">NEPSE Wt</th>
+<th class="py-space-xs px-space-sm font-semibold">Primary Macro Driver</th>
+<th class="py-space-xs px-space-sm font-semibold text-right">Elasticity</th>
+<th class="py-space-xs px-space-sm font-semibold text-right">Conviction Score</th>
+<th class="py-space-xs px-space-sm font-semibold text-right">Action Stance</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border-subtle font-body-sm text-body-sm">
+<!-- Hydro -->
+<tr class="hover:bg-surface-container transition-colors bg-surface-container-lowest">
+<td class="py-space-sm px-space-sm flex items-center gap-space-xs">
+<span class="w-1.5 h-1.5 rounded-full bg-status-advance"></span>
+<span class="text-text-primary font-bold">HYDROPOWER</span>
+</td>
+<td class="py-space-sm px-space-sm text-right tabular-nums text-text-secondary">38.2%</td>
+<td class="py-space-sm px-space-sm text-text-secondary">Dry Season PPA Tariff Tariff (+75%) &amp; Peak Realization</td>
+<td class="py-space-sm px-space-sm text-right tabular-nums text-status-advance font-semibold">+1.82</td>
+<td class="py-space-sm px-space-sm text-right tabular-nums text-status-advance font-bold">+2.10 σ</td>
+<td class="py-space-sm px-space-sm text-right">
+<span class="px-space-xs py-[1px] bg-status-advance/20 text-status-advance font-label-sm text-label-sm rounded uppercase font-bold">
+                    HEAVY OVERWEIGHT
+                  </span>
+</td>
+</tr>
+<!-- Banks -->
+<tr class="hover:bg-surface-container transition-colors">
+<td class="py-space-sm px-space-sm flex items-center gap-space-xs">
+<span class="w-1.5 h-1.5 rounded-full bg-status-system"></span>
+<span class="text-text-primary font-bold">COMMERCIAL BANKS</span>
+</td>
+<td class="py-space-sm px-space-sm text-right tabular-nums text-text-secondary">34.1%</td>
+<td class="py-space-sm px-space-sm text-text-secondary">Low CD Ratio (78.4%), Liquidity Overhang, Margin Loaning</td>
+<td class="py-space-sm px-space-sm text-right tabular-nums text-status-system font-semibold">+1.34</td>
+<td class="py-space-sm px-space-sm text-right tabular-nums text-status-system font-bold">+1.40 σ</td>
+<td class="py-space-sm px-space-sm text-right">
+<span class="px-space-xs py-[1px] bg-status-system/20 text-status-system font-label-sm text-label-sm rounded uppercase font-bold">
+                    OVERWEIGHT
+                  </span>
+</td>
+</tr>
+<!-- Life/Non-Life Insurance -->
+<tr class="hover:bg-surface-container transition-colors bg-surface-container-lowest">
+<td class="py-space-sm px-space-sm flex items-center gap-space-xs">
+<span class="w-1.5 h-1.5 rounded-full bg-status-rotation"></span>
+<span class="text-text-primary font-bold">LIFE &amp; NON-LIFE INS.</span>
+</td>
+<td class="py-space-sm px-space-sm text-right tabular-nums text-text-secondary">11.8%</td>
+<td class="py-space-sm px-space-sm text-text-secondary">Bonds Yield Compression &amp; Solvency Re-investment Spread</td>
+<td class="py-space-sm px-space-sm text-right tabular-nums text-text-secondary font-semibold">+0.62</td>
+<td class="py-space-sm px-space-sm text-right tabular-nums text-status-rotation font-bold">+0.75 σ</td>
+<td class="py-space-sm px-space-sm text-right">
+<span class="px-space-xs py-[1px] bg-status-rotation/20 text-status-rotation font-label-sm text-label-sm rounded uppercase font-bold">
+                    NEUTRAL ACCUM
+                  </span>
+</td>
+</tr>
+<!-- Hotels & Tourism -->
+<tr class="hover:bg-surface-container transition-colors">
+<td class="py-space-sm px-space-sm flex items-center gap-space-xs">
+<span class="w-1.5 h-1.5 rounded-full bg-status-system"></span>
+<span class="text-text-primary font-bold">HOTELS &amp; TOURISM</span>
+</td>
+<td class="py-space-sm px-space-sm text-right tabular-nums text-text-secondary">3.4%</td>
+<td class="py-space-sm px-space-sm text-text-secondary">Autumn/Spring Tourist Inflow Peak, INR Parity Stability</td>
+<td class="py-space-sm px-space-sm text-right tabular-nums text-status-system font-semibold">+0.88</td>
+<td class="py-space-sm px-space-sm text-right tabular-nums text-status-system font-bold">+1.05 σ</td>
+<td class="py-space-sm px-space-sm text-right">
+<span class="px-space-xs py-[1px] bg-status-system/20 text-status-system font-label-sm text-label-sm rounded uppercase font-bold">
+                    OVERWEIGHT
+                  </span>
+</td>
+</tr>
+<!-- Manufacturing & Processing -->
+<tr class="hover:bg-surface-container transition-colors bg-surface-container-lowest">
+<td class="py-space-sm px-space-sm flex items-center gap-space-xs">
+<span class="w-1.5 h-1.5 rounded-full bg-status-decline"></span>
+<span class="text-text-primary font-bold">MANUFACTURING &amp; PROC.</span>
+</td>
+<td class="py-space-sm px-space-sm text-right tabular-nums text-text-secondary">4.5%</td>
+<td class="py-space-sm px-space-sm text-text-secondary">Raw Material Freight Spikes &amp; Indian Border Tariff Friction</td>
+<td class="py-space-sm px-space-sm text-right tabular-nums text-status-decline font-semibold">-0.71</td>
+<td class="py-space-sm px-space-sm text-right tabular-nums text-status-decline font-bold">-0.90 σ</td>
+<td class="py-space-sm px-space-sm text-right">
+<span class="px-space-xs py-[1px] bg-status-decline/20 text-status-decline font-label-sm text-label-sm rounded uppercase font-bold">
+                    UNDERWEIGHT
+                  </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="pt-space-xs flex items-center justify-between text-text-tertiary font-label-sm text-label-sm border-t border-border-subtle mt-space-sm">
+<span>COVARIANCE RUN: 1,000 MONTE CARLO ITERATIONS</span>
+<span class="text-primary font-mono">SECTOR SPREAD DELTA: +300 BPS BIAS TOWARDS ASSET-BACKED HYDRO</span>
+</div>
+</div>
+<!-- RIGHT 4-COLS: MACRO REGIME VERDICT & EXECUTION GUIDANCE -->
+<div class="xl:col-span-4 bg-surface-panel rounded-lg shadow-sm p-space-md flex flex-col justify-between relative overflow-hidden">
+<div class="absolute -right-8 -top-8 w-36 h-36 bg-status-advance/5 rounded-full blur-2xl pointer-events-none"></div>
+<div>
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-status-advance text-[16px]">verified</span>
+<span class="font-headline-sm text-headline-sm text-text-primary tracking-tight">MACRO REGIME VERDICT</span>
+</div>
+<span class="font-label-sm text-label-sm text-text-tertiary">CONFIDENCE: 94.2%</span>
+</div>
+<!-- Master Verdict Banner -->
+<div class="mt-space-xs bg-surface-container-lowest p-space-md rounded border border-status-advance/30 flex flex-col gap-space-xs">
+<span class="font-label-sm text-label-sm text-status-advance tracking-widest uppercase font-semibold">SYNTHESIZED GLOBAL STATE:</span>
+<div class="font-headline-md text-headline-md text-text-primary font-bold tracking-tight">
+              REGIME 1: EXPANSIONARY LIQUIDITY TAILWIND
+            </div>
+<div class="flex items-center gap-space-sm pt-space-xs">
+<span class="px-space-xs py-[1px] bg-status-advance text-surface-root font-label-sm text-label-sm font-bold rounded uppercase">
+                BULLISH CONVICTION
+              </span>
+<span class="font-label-sm text-label-sm text-text-secondary">SYSTEM LEVEL: MAX LONG EXPOSURE</span>
+</div>
+</div>
+<!-- Quantitative Composite Breakdown -->
+<div class="flex flex-col gap-space-xs pt-space-md">
+<div class="flex justify-between items-center text-text-secondary font-label-sm text-label-sm">
+<span>COMMODITY BENEFIT FACTOR (BRENT DROP):</span>
+<span class="text-status-advance font-bold tabular-nums">+0.84</span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-1.5 overflow-hidden">
+<div class="bg-status-advance h-full" style="width: 84%"></div>
+</div>
+<div class="flex justify-between items-center text-text-secondary font-label-sm text-label-sm pt-space-xs">
+<span>TARIFF RUNOFF CASH MULTIPLIER:</span>
+<span class="text-status-advance font-bold tabular-nums">+0.92</span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-1.5 overflow-hidden">
+<div class="bg-status-advance h-full" style="width: 92%"></div>
+</div>
+<div class="flex justify-between items-center text-text-secondary font-label-sm text-label-sm pt-space-xs">
+<span>INTERBANK SURPLUS LIQUIDITY POOL:</span>
+<span class="text-status-advance font-bold tabular-nums">+0.79</span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-1.5 overflow-hidden">
+<div class="bg-status-advance h-full" style="width: 79%"></div>
+</div>
+<div class="flex justify-between items-center text-text-secondary font-label-sm text-label-sm pt-space-xs">
+<span>CROSS-BORDER INR/NPR PEG STRESS:</span>
+<span class="text-status-system font-bold tabular-nums">0.08 (NOMINAL)</span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-1.5 overflow-hidden">
+<div class="bg-status-system h-full" style="width: 8%"></div>
+</div>
+</div>
+</div>
+<!-- Quantitative Strategy Output Action Trigger -->
+<div class="mt-space-md pt-space-sm border-t border-border-subtle flex flex-col gap-space-xs">
+<div class="flex items-center justify-between font-label-sm text-label-sm">
+<span class="text-text-tertiary">MODEL ALLOCATION DIRECTIVE:</span>
+<span class="text-status-advance font-semibold">100% CAPITAL DEPLOYED</span>
+</div>
+<div class="grid grid-cols-2 gap-space-sm pt-space-xs">
+<button class="px-space-md py-space-sm bg-primary/10 hover:bg-primary/20 text-primary border border-primary/40 rounded font-label-md text-label-md uppercase tracking-wider font-bold transition-all text-center flex items-center justify-center gap-space-xs cursor-pointer">
+<span class="material-symbols-outlined text-[14px]">tune</span>
+              EXPORT SECTOR POSITIONS
+            </button>
+<button class="px-space-md py-space-sm bg-status-advance hover:bg-secondary-fixed text-surface-root rounded font-label-md text-label-md uppercase tracking-wider font-bold transition-all text-center flex items-center justify-center gap-space-xs cursor-pointer">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+              EXECUTE TO BLOTTER
+            </button>
+</div>
+</div>
+</div>
+</div>
+<!-- 4. REAL-TIME SURVEILLANCE TELEMETRY TICKER -->
+<div class="bg-surface-panel rounded-lg shadow-sm px-space-md py-space-xs flex items-center justify-between select-none">
+<div class="flex items-center gap-space-lg overflow-x-auto text-text-tertiary font-label-sm text-label-sm whitespace-nowrap">
+<span class="flex items-center gap-space-xs text-text-primary">
+<span class="w-1.5 h-1.5 rounded-full bg-status-advance"></span>
+          SURVEILLANCE INGESTION:
+        </span>
+<span>INR/NPR PEG: <span class="text-text-primary font-mono font-bold">1.6000 FIXED</span> (STABLE)</span>
+<span class="text-border-accent">|</span>
+<span>NRB FOREX BUFFER: <span class="text-status-advance font-mono font-bold">$15.24B</span> (+3.8% MOM)</span>
+<span class="text-border-accent">|</span>
+<span>NEPAL REMITTANCE RUN-RATE: <span class="text-status-advance font-mono font-bold">NPR 118.2B/MO</span> (ATH)</span>
+<span class="text-border-accent">|</span>
+<span>WTI CRUDE: <span class="text-status-advance font-mono font-bold">$69.80</span> (-1.4%)</span>
+<span class="text-border-accent">|</span>
+<span>T-BILL 91D WEIGHTED: <span class="text-primary font-mono font-bold">3.12%</span></span>
+<span class="text-border-accent">|</span>
+<span>REVERSE REPO POOL: <span class="text-status-advance font-mono font-bold">NPR 45.0B OUTSTANDING</span></span>
+</div>
+<div class="hidden xl:flex items-center gap-space-sm text-text-tertiary font-label-sm text-label-sm pl-space-md">
+<span>SYNC STATUS: <span class="text-status-advance font-bold">LOCK 0</span></span>
+<span class="material-symbols-outlined text-status-advance text-[13px]">sync_alt</span>
+</div>
+</div>
+</div>
+</div>
+<script>
+  (function initMacroSurveillance() {
+    const toggleBtn = document.getElementById('toggle-guide-btn');
+    const guideContent = document.getElementById('guide-content');
+    const toggleText = document.getElementById('guide-toggle-text');
+    const toggleIcon = document.getElementById('guide-toggle-icon');
+
+    if (toggleBtn && guideContent) {
+      let isVisible = true;
+      toggleBtn.addEventListener('click', () => {
+        isVisible = !isVisible;
+        if (isVisible) {
+          guideContent.style.display = 'grid';
+          toggleText.textContent = 'PEDAGOGICAL OPERATOR PROTOCOL [ - HIDE GUIDE ]';
+          toggleIcon.textContent = 'expand_less';
+        } else {
+          guideContent.style.display = 'none';
+          toggleText.textContent = 'PEDAGOGICAL OPERATOR PROTOCOL [ + SHOW GUIDE ]';
+          toggleIcon.textContent = 'expand_more';
+        }
+      });
+    }
+  })();
+</script></main><footer class="fixed bottom-0 left-0 right-0 h-[28px] z-50 bg-surface-panel/95 backdrop-blur-md px-gutter flex items-center justify-between border-t border-border-subtle font-label-sm text-label-sm"><div class="flex items-center gap-space-md text-text-tertiary"><span>GATE G4 ENGINE: <span class="text-status-advance font-semibold">ACTIVE (395 SECURITIES)</span></span><span class="text-border-accent">|</span><span>SEQLOCK SEQ: <span class="text-text-secondary font-mono">149,008</span></span><span class="text-border-accent">|</span><span>LATENCY: <span class="text-primary-fixed-dim font-mono">142.5 µs</span></span></div><div class="hidden xl:flex items-center gap-space-lg text-text-tertiary tracking-wider"><span><span class="text-text-secondary">[0-9]</span> WORKSPACES</span><span><span class="text-text-secondary">[SPACE]</span> PAUSE/RESUME</span><span><span class="text-text-secondary">[ESC]</span> LAUNCH PAD</span><span><span class="text-text-secondary">[F2]</span> SEARCH TICKER</span></div><div class="flex items-center gap-space-md"><span class="text-text-secondary">ACTIVE: <span class="text-primary font-semibold">0. LAUNCH PAD</span></span><span class="text-border-accent">|</span><span class="text-status-advance font-semibold">CDSC T+2 SETTLEMENT SHIELD: VERIFIED</span></div></footer></body></html>

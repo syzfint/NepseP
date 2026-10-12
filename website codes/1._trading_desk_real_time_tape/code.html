@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-[#020306] text-[#A0AEC0]" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NEPSE PULSE TERMINAL - Analysis &amp; Execution</title>
+<!-- Tailwind CSS CDN with forms and container queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<style data-purpose="global-resets">
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      font-feature-settings: "tnum" 1, "zero" 1;
+      overflow: hidden;
+      background-color: #020306;
+      color: #94a3b8;
+    }
+    /* Custom terminal scrollbars */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #06090e;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 2px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+  </style>
+<style data-purpose="custom-utilities">
+    .bg-panel {
+      background-color: #080c14;
+    }
+    .border-terminal {
+      border-color: #162032;
+    }
+    .neon-cyan {
+      color: #00E5FF;
+    }
+    .neon-green {
+      color: #00E676;
+    }
+    .neon-red {
+      color: #FF1744;
+    }
+    .neon-amber {
+      color: #FFB300;
+    }
+    .bg-neon-cyan {
+      background-color: #00E5FF;
+    }
+    .bg-neon-green {
+      background-color: #00E676;
+    }
+    .bg-neon-red {
+      background-color: #FF1744;
+    }
+    .bg-neon-amber {
+      background-color: #FFB300;
+    }
+  </style>
+</head>
+<body class="h-screen w-screen flex flex-col text-[11px] antialiased leading-none select-none overflow-hidden">
+<!-- BEGIN: MasterTopBar -->
+<header class="h-[36px] bg-[#05080e] border-b border-[#162032] flex items-center justify-between px-2 text-[10.5px] shrink-0" data-purpose="top-navigation-bar">
+<!-- Left: Brand and Menu -->
+<div class="flex items-center space-x-2">
+<div class="flex items-center space-x-1">
+<span class="text-[#00E5FF] font-black tracking-widest text-[12px] flex items-center">
+<span class="inline-block w-2.5 h-2.5 bg-[#00E5FF] mr-1.5 shadow-[0_0_8px_#00E5FF]"></span>
+          NEPSE PULSE
+        </span>
+<span class="text-white font-extrabold tracking-wider text-[12px]">TERMINAL</span>
+</div>
+<button class="px-1.5 py-0.5 rounded border border-[#1e293b] text-[#64748b] hover:text-[#94a3b8] text-[9.5px] font-bold">
+<span class="text-[#00E5FF]">ESC</span> MENU
+      </button>
+<!-- Workspace Navigation Tabs -->
+<nav class="flex items-center space-x-1 pl-2">
+<button class="px-2 py-1 text-[#64748b] hover:text-white flex items-center gap-1 font-semibold">
+<span class="text-[9px] text-[#475569]">1</span> OVERVIEW
+        </button>
+<button class="px-2.5 py-1 bg-[#0b2436] text-[#00E5FF] border border-[#00E5FF]/40 font-bold flex items-center gap-1 shadow-[0_0_8px_rgba(0,229,255,0.2)]">
+<span class="text-[9px] bg-[#00E5FF] text-black px-1 font-black">2</span> ANALYSIS
+        </button>
+<button class="px-2 py-1 text-[#64748b] hover:text-white flex items-center gap-1 font-semibold">
+<span class="text-[9px] text-[#475569]">3</span> PAPER TRADE
+        </button>
+<button class="px-2 py-1 text-[#64748b] hover:text-white flex items-center gap-1 font-semibold">
+<span class="text-[9px] text-[#475569]">4</span> RISK LAB
+        </button>
+<button class="px-2 py-1 text-[#64748b] hover:text-white flex items-center gap-1 font-semibold">
+<span class="text-[9px] text-[#475569]">5</span> NEWS &amp; IMPACT
+        </button>
+<button class="px-2 py-1 text-[#64748b] hover:text-white flex items-center gap-1 font-semibold">
+<span class="text-[9px] text-[#475569]">6</span> SAFETY SHIELD
+        </button>
+<button class="px-2 py-1 text-[#64748b] hover:text-white flex items-center gap-1 font-semibold">
+<span class="text-[9px] text-[#475569]">7</span> AI RESEARCH
+        </button>
+<button class="px-2 py-1 text-[#64748b] hover:text-white flex items-center gap-1 font-semibold">
+<span class="text-[9px] text-[#475569]">8</span> AUDIT &amp; DATA
+        </button>
+</nav>
+</div>
+<!-- Right: Active Indicator & System Stats -->
+<div class="flex items-center space-x-3">
+<!-- Active Ticker Frame -->
+<div class="border border-[#00E5FF]/60 px-2 py-0.5 rounded bg-[#002a3a]/40 text-white font-bold flex items-center gap-1 text-[10px]">
+<span class="text-[#64748b] text-[8.5px]">ACTIVE:</span>
+<span class="text-[#00E5FF] tracking-wide">NABIL</span>
+</div>
+<!-- Telemetry clock & Engine -->
+<div class="flex items-center space-x-2 text-[10px] text-[#64748b]">
+<span class="text-[#00E5FF]">NPT 15:37:43</span>
+<div class="border border-[#1e293b] px-1.5 py-0.5 bg-[#090e17] text-[#00E676] font-bold">
+          ENGINE: 60 FPS
+        </div>
+</div>
+</div>
+</header>
+<!-- END: MasterTopBar -->
+<!-- BEGIN: TickerStrip -->
+<section class="h-[28px] bg-[#070b12] border-b border-[#162032] flex items-center justify-between px-2 text-[10px] shrink-0 font-medium" data-purpose="nepse-tick-tape">
+<div class="flex items-center space-x-2 overflow-hidden">
+<span class="text-[#00E5FF] font-bold tracking-wider flex items-center gap-1 whitespace-nowrap">
+<span>⚡</span> NEPSE TICK TAPE
+      </span>
+<!-- Badges -->
+<span class="px-1.5 py-0.5 bg-[#251b03] text-[#FFB300] border border-[#FFB300]/40 rounded text-[9px] font-bold flex items-center gap-1 whitespace-nowrap">
+<span class="w-1.5 h-1.5 rounded-full bg-[#FFB300] animate-pulse"></span> MARKET CLOSED 15:37:42 NPT • FROZEN
+      </span>
+<span class="px-1.5 py-0.5 bg-[#0d1520] text-[#64748b] border border-[#1e293b] rounded text-[9px] whitespace-nowrap">
+        SIMULATION REPLAY: OFF
+      </span>
+<span class="px-1.5 py-0.5 bg-[#221a05] text-[#FFB300] border border-[#785408] rounded text-[9px] font-medium whitespace-nowrap">
+        ● SETTLED CLOSING PRICES (NO LIVE TICKS)
+      </span>
+<!-- Marquee mini feed -->
+<div class="flex items-center space-x-3 text-[10px] pl-2 border-l border-[#162032]">
+<span class="text-[#94a3b8]">GHL <span class="text-white font-bold">286.0</span> <span class="text-[#FF1744]">-3.02%</span></span>
+<span class="text-[#94a3b8]">HDHPC <span class="text-white font-bold">228.3</span> <span class="text-[#00E676]">+2.38%</span></span>
+<span class="text-[#94a3b8]">PHCL <span class="text-white font-bold">337.0</span> <span class="text-[#FF1744]">-2.03%</span></span>
+<span class="text-[#94a3b8]">KBL <span class="text-white font-bold">227.8</span> <span class="text-[#00E676]">+0.75%</span></span>
+<span class="text-[#94a3b8]">BHL <span class="text-white font-bold">218.8</span> <span class="text-[#00E676]">+2.72%</span></span>
+</div>
+</div>
+<!-- Macro Indicators -->
+<div class="flex items-center space-x-3 text-[10px] shrink-0 font-semibold">
+<div>
+<span class="text-[#64748b]">NEPSE INDEX</span>
+<span class="text-white font-bold ml-1">2,684.52</span>
+<span class="text-[#00E676] ml-0.5">+18.42 (+0.69%)</span>
+</div>
+<div>
+<span class="text-[#64748b]">TURNOVER</span>
+<span class="text-white font-bold ml-1">NPR 3.92 Arba</span>
+</div>
+<div>
+<span class="text-[#64748b]">VOLUME</span>
+<span class="text-white font-bold ml-1">11.20M Kitta</span>
+</div>
+<div class="flex items-center text-[#00E676]">
+<span class="text-[#64748b] mr-1">BREADTH</span> 171 ▲
+      </div>
+</div>
+</section>
+<!-- END: TickerStrip -->
+<!-- BEGIN: SubWorkspaceStrip -->
+<section class="h-[26px] bg-[#04060b] border-b border-[#162032] flex items-center px-2 text-[9.5px] shrink-0 font-medium space-x-1" data-purpose="sub-workspace-tabs">
+<button class="px-2 py-0.5 rounded text-[#64748b] hover:text-white">1. OVERVIEW</button>
+<button class="px-2 py-0.5 rounded bg-[#0b273c] text-[#00E5FF] border border-[#00E5FF]/40 font-bold">✔ 2. ANALYSIS</button>
+<button class="px-2 py-0.5 rounded text-[#64748b] hover:text-white">3. PAPER TRADE</button>
+<button class="px-2 py-0.5 rounded text-[#64748b] hover:text-white">🛡 4. RISK LAB</button>
+<button class="px-2 py-0.5 rounded text-[#64748b] hover:text-white">📰 5. NEWS &amp; IMPACT</button>
+<button class="px-2 py-0.5 rounded text-[#64748b] hover:text-white">⚡ 6. SAFETY SHIELD</button>
+<button class="px-2 py-0.5 rounded text-[#64748b] hover:text-white">🔮 7. AI RESEARCH</button>
+<button class="px-2 py-0.5 rounded text-[#64748b] hover:text-white">📊 8. AUDIT &amp; DATA</button>
+</section>
+<!-- END: SubWorkspaceStrip -->
+<!-- BEGIN: MainTradingDeskGrid -->
+<main class="flex-1 grid grid-cols-12 gap-0 overflow-hidden" data-purpose="tri-column-trading-grid">
+<!-- ========================================== -->
+<!-- LEFT COLUMN: ORDER BOOK & EXECUTION        -->
+<!-- ========================================== -->
+<!-- BEGIN: LeftColumnExecution -->
+<div class="col-span-3 border-r border-[#162032] bg-[#060910] flex flex-col h-full overflow-y-auto" data-purpose="left-execution-column">
+<!-- Order Book Header -->
+<div class="p-1.5 border-b border-[#162032] bg-[#090d16] flex items-center justify-between font-bold text-[10.5px]">
+<div class="flex items-center gap-1 text-white tracking-wide">
+<span>LEVEL 2 ORDER BOOK</span>
+</div>
+<span class="text-[#00E5FF] tracking-wider font-extrabold">NABIL</span>
+</div>
+<!-- Book Depth Aggregates -->
+<div class="flex justify-between items-center px-2 py-1 text-[10px] bg-[#080c14] border-b border-[#162032]">
+<div>
+<span class="text-[#64748b] text-[9px]">BID VOL:</span>
+<span class="text-[#00E676] font-bold ml-1">22,225</span>
+</div>
+<div>
+<span class="text-[#64748b] text-[9px]">ASK VOL:</span>
+<span class="text-[#FF1744] font-bold ml-1">19,447</span>
+</div>
+</div>
+<!-- Level 2 Depth Table -->
+<table class="w-full text-[10px] text-center border-collapse" data-purpose="order-book-table">
+<thead class="text-[#475569] text-[8.5px] border-b border-[#162032] bg-[#05080e]">
+<tr>
+<th class="py-0.5 font-medium">ORD</th>
+<th class="py-0.5 font-medium">QTY</th>
+<th class="py-0.5 font-medium text-[#00E676]">BID</th>
+<th class="py-0.5 font-medium text-[#FF1744]">ASK</th>
+<th class="py-0.5 font-medium">QTY</th>
+<th class="py-0.5 font-medium">ORD</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#101726] font-mono text-[9.5px]">
+<tr class="hover:bg-[#0b1320]">
+<td class="text-[#64748b] py-0.5">5</td>
+<td class="text-white font-medium">7,409</td>
+<td class="bg-[#00E676]/20 text-[#00E676] font-bold px-1">689.5</td>
+<td class="bg-[#FF1744]/20 text-[#FF1744] font-bold px-1">690.5</td>
+<td class="text-white font-medium">6,483</td>
+<td class="text-[#64748b] py-0.5">5</td>
+</tr>
+<tr class="hover:bg-[#0b1320]">
+<td class="text-[#64748b] py-0.5">4</td>
+<td class="text-white">5,927</td>
+<td class="text-[#00E676] font-bold">689.0</td>
+<td class="text-[#FF1744] font-bold">691.0</td>
+<td class="text-white">5,186</td>
+<td class="text-[#64748b] py-0.5">4</td>
+</tr>
+<tr class="hover:bg-[#0b1320]">
+<td class="text-[#64748b] py-0.5">3</td>
+<td class="text-white">4,445</td>
+<td class="text-[#00E676] font-bold">688.5</td>
+<td class="text-[#FF1744] font-bold">691.5</td>
+<td class="text-white">3,889</td>
+<td class="text-[#64748b] py-0.5">3</td>
+</tr>
+<tr class="hover:bg-[#0b1320]">
+<td class="text-[#64748b] py-0.5">2</td>
+<td class="text-white">2,963</td>
+<td class="text-[#00E676] font-bold">688.0</td>
+<td class="text-[#FF1744] font-bold">692.0</td>
+<td class="text-white">2,593</td>
+<td class="text-[#64748b] py-0.5">2</td>
+</tr>
+<tr class="hover:bg-[#0b1320]">
+<td class="text-[#64748b] py-0.5">1</td>
+<td class="text-white">1,481</td>
+<td class="text-[#00E676] font-bold">687.5</td>
+<td class="text-[#FF1744] font-bold">692.5</td>
+<td class="text-white">1,296</td>
+<td class="text-[#64748b] py-0.5">1</td>
+</tr>
+</tbody>
+</table>
+<!-- Micro Telemetry (OFI, Spread, Range) -->
+<div class="p-1.5 bg-[#05080e] border-y border-[#162032] space-y-1 text-[9px]">
+<div class="flex justify-between items-center">
+<span class="text-[#64748b]">OFI: <span class="text-[#00E676] font-semibold">0.0 (SETTLED / BOOK FROZEN)</span></span>
+<span class="text-[#64748b]">SPREAD: <span class="text-white font-semibold">1.0 NPR (0.14%)</span></span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-[#64748b]">RANGE: <span class="text-white">668.0 – 691.9</span></span>
+<span class="text-[#64748b]">PREV: <span class="text-white">688.0</span></span>
+</div>
+</div>
+<!-- Forensic Profile & Governance Info -->
+<div class="p-2 border-b border-[#162032] bg-[#070b13] space-y-1.5" data-purpose="forensic-profile">
+<div class="flex justify-between items-center text-[9.5px]">
+<span class="text-white font-bold tracking-wider">FORENSIC PROFILE &amp; GOVERNANCE</span>
+<span class="text-[#00E5FF] text-[8.5px] uppercase font-semibold">HYDROPOWER</span>
+</div>
+<div class="grid grid-cols-2 gap-1 text-[9px] text-[#64748b]">
+<div>52W HIGH/LOW: <span class="text-white font-bold ml-1">377.5 — 789.4</span></div>
+<div class="text-right">P/E (TTM): <span class="text-white font-bold ml-1">21.2x</span></div>
+<div>EST. EPS: <span class="text-white font-bold ml-1">NPR 32.5</span></div>
+<div class="text-right">MKT CAP: <span class="text-white font-bold ml-1">NPR 1,331.6 Cr</span></div>
+</div>
+<!-- Amber Warning Banner -->
+<div class="bg-[#1f1704] border border-[#d97706]/50 rounded-sm p-1.5 text-[8.5px] text-[#fcd34d] flex flex-col justify-between">
+<div class="flex justify-between items-center font-bold">
+<span class="text-[#FFB300]">LOCAL LOCK-IN OVERHANG: 279.6x ADV30 ⚑ CRITICAL</span>
+</div>
+<div class="text-[8px] text-[#fde68a] tracking-tight mt-0.5 flex justify-between">
+<span>EXPIRY: 2026-11-14 00:00:00</span>
+</div>
+</div>
+<!-- Centaur Governance Bar -->
+<div class="flex items-center justify-between text-[8px] pt-0.5">
+<span class="text-[#64748b] uppercase font-bold">CENTAUR GOVERNANCE &amp; STAGING BLOTTER</span>
+<div class="flex gap-1">
+<span class="text-[#94a3b8] bg-[#111927] px-1 py-0.5 border border-[#1e293b]">CDSC T+2: LOCKUP</span>
+<span class="text-[#00E676] bg-[#062413] px-1 py-0.5 border border-[#00E676]/40 font-bold">SEBON GATE PASS</span>
+</div>
+</div>
+<!-- Action mini buttons -->
+<div class="grid grid-cols-3 gap-1 pt-1">
+<button class="bg-[#0b1728] border border-[#00E5FF]/40 text-[#00E5FF] hover:bg-[#00E5FF]/10 text-[8.5px] py-0.5 font-semibold">STAGING BLOTTER</button>
+<button class="bg-[#090e18] border border-[#1e293b] text-[#64748b] hover:text-white text-[8.5px] py-0.5">SYMBOL BRAIN</button>
+<button class="bg-[#090e18] border border-[#1e293b] text-[#64748b] hover:text-white text-[8.5px] py-0.5">AUDIT LEDGER</button>
+</div>
+</div>
+<!-- Execution Form Blotter -->
+<div class="p-2 flex-1 flex flex-col justify-between space-y-2 bg-[#05070d]" data-purpose="execution-staging-card">
+<div>
+<!-- Buy/Sell Tabs -->
+<div class="grid grid-cols-2 gap-1 mb-2">
+<button class="bg-[#003847] border border-[#00E5FF] text-[#00E5FF] py-1 text-[10px] font-bold tracking-wider">
+              BUY (LONG)
+            </button>
+<button class="bg-[#111622] border border-[#1e293b] text-[#64748b] py-1 text-[10px] font-semibold hover:text-white">
+              SELL (LIQUIDATE)
+            </button>
+</div>
+<!-- Quantity Section -->
+<div class="space-y-1 mb-2">
+<div class="flex justify-between text-[8.5px] text-[#64748b]">
+<span>QUANTITY (10 KITTA LOTS):</span>
+<span class="text-white">LIMIT PRICE (NPR):</span>
+</div>
+<div class="grid grid-cols-2 gap-2">
+<input class="w-full bg-[#0a0f18] border border-[#1e293b] text-white text-[10px] font-mono px-2 py-0.5 text-right focus:border-[#00E5FF] focus:outline-none" type="text" value="10"/>
+<input class="w-full bg-[#0a0f18] border border-[#1e293b] text-white text-[10px] font-mono px-2 py-0.5 text-right focus:border-[#00E5FF] focus:outline-none" type="text" value="533.0"/>
+</div>
+<!-- Preset Buttons -->
+<div class="grid grid-cols-4 gap-1 pt-0.5">
+<button class="border border-[#00E5FF]/40 bg-[#061e29] text-[#00E5FF] text-[8px] py-0.5 font-bold">10 K</button>
+<button class="border border-[#1e293b] bg-[#0a0f18] text-[#64748b] text-[8px] py-0.5 hover:text-white">50 K</button>
+<button class="border border-[#1e293b] bg-[#0a0f18] text-[#64748b] text-[8px] py-0.5 hover:text-white">100 K</button>
+<button class="border border-[#1e293b] bg-[#0a0f18] text-[#64748b] text-[8px] py-0.5 hover:text-white">500 K</button>
+</div>
+</div>
+<!-- Cost Breakdown List -->
+<div class="border border-[#162032] p-1.5 bg-[#070b13] space-y-0.5 text-[8.5px]">
+<div class="flex justify-between text-[#64748b]">
+<span>GROSS TURNOVER:</span>
+<span class="text-white font-mono">NPR 5,330.00</span>
+</div>
+<div class="flex justify-between text-[#64748b]">
+<span>BROKER COMM (0.36%):</span>
+<span class="text-white font-mono">NPR 19.19</span>
+</div>
+<div class="flex justify-between text-[#64748b]">
+<span>SEBON LEVY (0.015%) + DP:</span>
+<span class="text-white font-mono">NPR 0.80 + 25.00</span>
+</div>
+<div class="flex justify-between text-[#64748b]">
+<span>CGT PREVIEW (N/A BUY):</span>
+<span class="text-white font-mono">NPR 0.00</span>
+</div>
+<div class="flex justify-between text-[#00E5FF] font-bold pt-1 border-t border-[#162032] text-[9.5px]">
+<span>NET SETTLEMENT COST:</span>
+<span class="font-mono">NPR 5,374.99</span>
+</div>
+</div>
+<!-- Guards & TTL -->
+<div class="mt-1.5 flex justify-between items-center text-[8.5px]">
+<span class="text-[#64748b]">SLIPPAGE GUARD (±0.5% CAP):</span>
+<span class="text-[#FF1744] font-bold">-22.75% [EXCEEDS ±0.5%]</span>
+</div>
+<div class="flex justify-between items-center text-[8px] text-[#64748b] pt-0.5">
+<span>STAGED TTL: <span class="text-[#00E5FF]">45s</span></span>
+<span>SEAL: <span class="text-[#00E676] font-bold">READY</span></span>
+</div>
+</div>
+<!-- Action Order Submission Buttons -->
+<div class="space-y-1 pt-1">
+<button class="w-full bg-[#0a121d] border border-[#1e293b] text-[#94a3b8] hover:text-white py-1 text-[9.5px] font-bold flex items-center justify-center gap-1">
+            ⚡ 1. STAGE ORDER TICKET &amp; SEAL HASH
+          </button>
+<button class="w-full bg-[#002f3e] hover:bg-[#004156] border border-[#00E5FF] text-[#00E5FF] py-1 text-[9.5px] font-extrabold tracking-wider flex items-center justify-center gap-1 shadow-[0_0_10px_rgba(0,229,255,0.25)]">
+            ✔ 2. APPROVE &amp; CONFIRM (OPERATOR SIGN-OFF)
+          </button>
+</div>
+</div>
+</div>
+<!-- END: LeftColumnExecution -->
+<!-- ========================================== -->
+<!-- CENTER COLUMN: GRAPHICS PIPELINE & CHART   -->
+<!-- ========================================== -->
+<!-- BEGIN: CenterColumnChart -->
+<div class="col-span-6 flex flex-col h-full border-r border-[#162032] bg-[#020408]" data-purpose="headless-graphics-pipeline">
+<!-- Pipeline Title Bar -->
+<div class="p-1.5 border-b border-[#162032] bg-[#060a12] flex items-center justify-between text-[10px]">
+<div class="flex items-center space-x-1.5">
+<span class="text-white font-bold tracking-wide">HEADLESS GRAPHICS PIPELINE (ZERO-DOM CANVAS)</span>
+</div>
+<div class="flex items-center space-x-2 text-[9.5px]">
+<span class="text-[#00E5FF] font-semibold">NABIL • LIVE DEPTH &amp; CVD</span>
+</div>
+</div>
+<!-- Chart Toolbar Controls -->
+<div class="p-1 bg-[#04070d] border-b border-[#162032] flex items-center justify-between text-[8.5px]">
+<div class="flex items-center space-x-1 overflow-x-auto">
+<button class="px-1.5 py-0.5 rounded bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/60 font-bold whitespace-nowrap">CANDLE + EMA</button>
+<button class="px-1.5 py-0.5 text-[#64748b] hover:text-white border border-transparent hover:border-[#1e293b] whitespace-nowrap">BOLLINGER</button>
+<button class="px-1.5 py-0.5 text-[#64748b] hover:text-white border border-transparent hover:border-[#1e293b] whitespace-nowrap">VPVR PROFILE</button>
+<button class="px-1.5 py-0.5 text-[#64748b] hover:text-white border border-transparent hover:border-[#1e293b] whitespace-nowrap">CHRONOS ICP</button>
+<button class="px-1.5 py-0.5 text-[#64748b] hover:text-white border border-transparent hover:border-[#1e293b] whitespace-nowrap">NORMALIZED SPREAD</button>
+<button class="px-1.5 py-0.5 text-[#64748b] hover:text-white border border-transparent hover:border-[#1e293b] whitespace-nowrap">SECTOR TREEMAP</button>
+<button class="px-1.5 py-0.5 text-[#64748b] hover:text-white border border-transparent hover:border-[#1e293b] whitespace-nowrap">ORDER FLOW / CVD</button>
+<button class="px-1.5 py-0.5 text-[#64748b] hover:text-white border border-transparent hover:border-[#1e293b] whitespace-nowrap">MONTE CARLO</button>
+</div>
+<div class="flex items-center space-x-2 text-[8px] text-[#64748b] shrink-0 font-mono">
+<span>FRAME: <span class="text-[#00E5FF]">#0002</span></span>
+<span>RENDER: <span class="text-[#00E676]">160.6ms</span></span>
+</div>
+</div>
+<!-- Asset Status Mini Strip -->
+<div class="px-2 py-1 bg-[#03060a] border-b border-[#162032] flex items-center justify-between text-[9px] text-[#64748b]">
+<div class="flex items-center space-x-2 font-mono">
+<span>ASSET: <span class="text-white font-bold bg-[#0a1622] px-1 py-0.2 border border-[#00E5FF]/40 text-[#00E5FF]">SAHAS</span> <span class="text-[8px] text-[#94a3b8]">HYDROPOWER</span></span>
+<span>LTP: <span class="text-white font-bold">690.0</span> <span class="text-[#00E676]">+0.29%</span></span>
+<span>RANGE: <span class="text-white">668.0 – 691.9</span></span>
+</div>
+<div class="flex items-center space-x-2 text-[8.5px]">
+<span>P10/P90: <span class="text-white font-mono">586.5 — 793.5</span></span>
+<span class="text-[#64748b]">CIRCUIT: <span class="text-white">±15.0% CLIP</span></span>
+<span class="text-[#FFB300] font-bold">★ SWEET SPOT: ★</span>
+</div>
+</div>
+<!-- High-Density HTML5 Canvas Rendering Container -->
+<div class="flex-1 relative bg-[#020306] overflow-hidden" data-purpose="chart-stage">
+<!-- Interactive Native HTML5 Canvas -->
+<canvas class="w-full h-full block" id="nepseTradingCanvas"></canvas>
+<!-- Dynamic Overlay Elements (Labels & Badges matching snapshot) -->
+<div class="absolute right-[55px] top-[40%] flex flex-col items-end space-y-1 pointer-events-none text-[8px] font-mono">
+<div class="bg-[#FFB300] text-black font-extrabold px-1 rounded-sm shadow">EMA 50: 545.28</div>
+<div class="bg-[#FFB300] text-black font-extrabold px-1.5 py-0.5 rounded shadow flex items-center gap-1">
+            ★ SWEET SPOT (T+1): 544.10
+          </div>
+<div class="bg-[#00E5FF] text-black font-extrabold px-1 rounded-sm shadow">EMA 20: 543.91</div>
+</div>
+<div class="absolute right-[55px] top-[55%] pointer-events-none text-[8.5px] font-mono">
+<div class="bg-[#00E676] text-black font-bold px-1 rounded-sm">533.00</div>
+</div>
+<div class="absolute right-[55px] top-[63%] pointer-events-none text-[8.5px] font-mono">
+<div class="bg-[#FF1744] text-white font-bold px-1 rounded-sm flex items-center gap-0.5">
+            STOP LOSS: 524.00
+          </div>
+</div>
+<div class="absolute right-[55px] bottom-[48px] pointer-events-none text-[8.5px] font-mono">
+<div class="bg-[#00E676] text-black font-bold px-1 rounded-sm">50.32K</div>
+</div>
+</div>
+</div>
+<!-- END: CenterColumnChart -->
+<!-- ========================================== -->
+<!-- RIGHT COLUMN: ACTIVE MARKET UNIVERSE       -->
+<!-- ========================================== -->
+<!-- BEGIN: RightColumnWatchlist -->
+<div class="col-span-3 bg-[#060910] flex flex-col h-full text-[10px]" data-purpose="active-market-universe-watchlist">
+<!-- Watchlist Header -->
+<div class="p-1.5 border-b border-[#162032] bg-[#090d16] flex items-center justify-between font-bold text-[10.5px]">
+<span class="text-white tracking-wide">ACTIVE MARKET UNIVERSE</span>
+<span class="text-[#00E5FF] font-semibold text-[9.5px]">353 SECURITIES</span>
+</div>
+<!-- Symbol Search Input -->
+<div class="p-1.5 bg-[#05080e] border-b border-[#162032]">
+<div class="relative flex items-center">
+<span class="absolute left-2 text-[#475569] text-[9.5px]">🔍</span>
+<input class="w-full bg-[#0a0f18] border border-[#1e293b] rounded-none py-1 pl-6 pr-2 text-[8.5px] text-white placeholder-[#475569] focus:outline-none focus:border-[#00E5FF] font-mono" placeholder="SEARCH SYMBOL OR SECTOR (e.g. NABIL, HYDRO)..." type="text"/>
+</div>
+</div>
+<!-- View and Collapsing Switches -->
+<div class="px-2 py-1 bg-[#060910] border-b border-[#162032] flex items-center justify-between text-[8px] font-bold">
+<div class="flex items-center space-x-1">
+<button class="bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/50 px-1.5 py-0.5">CLASSIFIED VIEW</button>
+<button class="text-[#64748b] px-1 py-0.5 hover:text-white">FLAT RANK</button>
+</div>
+<div class="flex items-center space-x-1 text-[#64748b]">
+<button class="hover:text-white">▼ EXPAND</button>
+<span>|</span>
+<button class="hover:text-white">▶ COLLAPSE</button>
+</div>
+</div>
+<!-- Sector Badges Filter Strip -->
+<div class="p-1 bg-[#04060b] border-b border-[#162032] flex items-center space-x-1 overflow-x-auto text-[7.5px] font-semibold">
+<button class="bg-[#00E5FF]/20 text-[#00E5FF] px-1 py-0.5 border border-[#00E5FF]/40 shrink-0">ALL (353)</button>
+<button class="text-[#64748b] px-1 py-0.5 shrink-0 hover:text-white">BANKS</button>
+<button class="text-[#64748b] px-1 py-0.5 shrink-0 hover:text-white">HYDRO</button>
+<button class="text-[#64748b] px-1 py-0.5 shrink-0 hover:text-white">MICRO</button>
+<button class="text-[#64748b] px-1 py-0.5 shrink-0 hover:text-white">LIFE INS</button>
+<button class="text-[#64748b] px-1 py-0.5 shrink-0 hover:text-white">NON-LIFE</button>
+<button class="text-[#64748b] px-1 py-0.5 shrink-0 hover:text-white">MANUF</button>
+<button class="text-[#64748b] px-1 py-0.5 shrink-0 hover:text-white">HOTELS</button>
+</div>
+<!-- Data Table Headers -->
+<div class="grid grid-cols-12 px-2 py-1 bg-[#070b13] border-b border-[#162032] text-[8.5px] text-[#64748b] font-medium">
+<div class="col-span-5 text-left">SYM</div>
+<div class="col-span-2 text-right">LTP</div>
+<div class="col-span-3 text-right">CHG%</div>
+<div class="col-span-2 text-right">VOL ▾</div>
+</div>
+<!-- Scrollable Watchlist Table -->
+<div class="flex-1 overflow-y-auto font-mono text-[9px]" data-purpose="securities-table">
+<!-- Category 1: Commercial Banks -->
+<div class="px-2 py-1 bg-[#0b121e] border-y border-[#162032] flex items-center justify-between text-[8.5px] font-bold text-white">
+<div class="flex items-center gap-1">
+<span class="text-[#00E5FF]">▼</span>
+<span>🏛 COMMERCIAL BANKS</span>
+</div>
+<div class="flex items-center space-x-2">
+<span class="text-[#64748b]">[20]</span>
+<span class="text-[#00E676]">+0.22%</span>
+</div>
+</div>
+<!-- Row 1: KBL -->
+<div class="grid grid-cols-12 px-2 py-0.5 hover:bg-[#0b1626] border-b border-[#0f1725] items-center">
+<div class="col-span-5 text-white font-bold flex items-center gap-1">KBL <span class="text-[7.5px] text-[#475569]">COMME</span></div>
+<div class="col-span-2 text-right text-white">227.8</div>
+<div class="col-span-3 text-right"><span class="bg-[#00E676]/20 text-[#00E676] px-1 py-0.2 rounded">+0.75%</span></div>
+<div class="col-span-2 text-right text-[#94a3b8]">390k</div>
+</div>
+<!-- Row 2: LSL -->
+<div class="grid grid-cols-12 px-2 py-0.5 hover:bg-[#0b1626] border-b border-[#0f1725] items-center">
+<div class="col-span-5 text-white font-bold flex items-center gap-1">LSL <span class="text-[7.5px] text-[#475569]">COMME</span></div>
+<div class="col-span-2 text-right text-white">255.8</div>
+<div class="col-span-3 text-right"><span class="bg-[#FF1744]/20 text-[#FF1744] px-1 py-0.2 rounded">-0.08%</span></div>
+<div class="col-span-2 text-right text-[#94a3b8]">359k</div>
+</div>
+<!-- Row 3: GBIME -->
+<div class="grid grid-cols-12 px-2 py-0.5 hover:bg-[#0b1626] border-b border-[#0f1725] items-center">
+<div class="col-span-5 text-white font-bold flex items-center gap-1">GBIME <span class="text-[7.5px] text-[#475569]">COMME</span></div>
+<div class="col-span-2 text-right text-white">240.0</div>
+<div class="col-span-3 text-right text-[#FF1744]">-0.41%</div>
+<div class="col-span-2 text-right text-[#94a3b8]">170k</div>
+</div>
+<!-- Row 4: PCBL -->
+<div class="grid grid-cols-12 px-2 py-0.5 hover:bg-[#0b1626] border-b border-[#0f1725] items-center">
+<div class="col-span-5 text-white font-bold flex items-center gap-1">PCBL <span class="text-[7.5px] text-[#475569]">COMME</span></div>
+<div class="col-span-2 text-right text-white">261.0</div>
+<div class="col-span-3 text-right text-[#00E676]">+0.04%</div>
+<div class="col-span-2 text-right text-[#94a3b8]">128k</div>
+</div>
+<!-- Row 5: MBL -->
+<div class="grid grid-cols-12 px-2 py-0.5 hover:bg-[#0b1626] border-b border-[#0f1725] items-center">
+<div class="col-span-5 text-white font-bold flex items-center gap-1">MBL <span class="text-[7.5px] text-[#475569]">COMME</span></div>
+<div class="col-span-2 text-right text-white">257.9</div>
+<div class="col-span-3 text-right text-[#00E676]">+0.94%</div>
+<div class="col-span-2 text-right text-[#94a3b8]">125k</div>
+</div>
+<!-- Row 6: NMB -->
+<div class="grid grid-cols-12 px-2 py-0.5 hover:bg-[#0b1626] border-b border-[#0f1725] items-center">
+<div class="col-span-5 text-white font-bold flex items-center gap-1">NMB <span class="text-[7.5px] text-[#475569]">COMME</span></div>
+<div class="col-span-2 text-right text-white">254.8</div>
+<div class="col-span-3 text-right text-[#FF1744]">-0.16%</div>
+<div class="col-span-2 text-right text-[#94a3b8]">123k</div>
+</div>
+<!-- Row 7: PRVU -->
+<div class="grid grid-cols-12 px-2 py-0.5 hover:bg-[#0b1626] border-b border-[#0f1725] items-center">
+<div class="col-span-5 text-white font-bold flex items-center gap-1">PRVU <span class="text-[7.5px] text-[#475569]">COMME</span></div>
+<div class="col-span-2 text-right text-white">182.5</div>
+<div class="col-span-3 text-right text-[#00E676]">+0.39%</div>
+<div class="col-span-2 text-right text-[#94a3b8]">106k</div>
+</div>
+<!-- Row 8: SANIMA -->
+<div class="grid grid-cols-12 px-2 py-0.5 hover:bg-[#0b1626] border-b border-[#0f1725] items-center">
+<div class="col-span-5 text-white font-bold flex items-center gap-1">SANIMA <span class="text-[7.5px] text-[#475569]">COMME</span></div>
+<div class="col-span-2 text-right text-white">373.5</div>
+<div class="col-span-3 text-right text-[#00E676]">+1.00%</div>
+<div class="col-span-2 text-right text-[#94a3b8]">90k</div>
+</div>
+<!-- Row 9: CZBIL -->
+<div class="grid grid-cols-12 px-2 py-0.5 hover:bg-[#0b1626] border-b border-[#0f1725] items-center">
+<div class="col-span-5 text-white font-bold flex items-center gap-1">CZBIL <span class="text-[7.5px] text-[#475569]">COMME</span></div>
+<div class="col-span-2 text-right text-white">205.0</div>
+<div class="col-span-3 text-right text-[#00E676]">+0.54%</div>
+<div class="col-span-2 text-right text-[#94a3b8]">77k</div>
+</div>
+<!-- Row 10: NIMB -->
+<div class="grid grid-cols-12 px-2 py-0.5 hover:bg-[#0b1626] border-b border-[#0f1725] items-center">
+<div class="col-span-5 text-white font-bold flex items-center gap-1">NIMB <span class="text-[7.5px] text-[#475569]">COMME</span></div>
+<div class="col-span-2 text-right text-white">191.0</div>
+<div class="col-span-3 text-right text-[#FF1744]">-0.37%</div>
+<div class="col-span-2 text-right text-[#94a3b8]">68k</div>
+</div>
+<!-- Row 11: ADBL -->
+<div class="grid grid-cols-12 px-2 py-0.5 hover:bg-[#0b1626] border-b border-[#0f1725] items-center">
+<div class="col-span-5 text-white font-bold flex items-center gap-1">ADBL <span class="text-[7.5px] text-[#475569]">COMME</span></div>
+<div class="col-span-2 text-right text-white">311.9</div>
+<div class="col-span-3 text-right text-[#00E676]">+0.68%</div>
+<div class="col-span-2 text-right text-[#94a3b8]">64k</div>
+</div>
+<!-- Row 12: NBL -->
+<div class="grid grid-cols-12 px-2 py-0.5 hover:bg-[#0b1626] border-b border-[#0f1725] items-center">
+<div class="col-span-5 text-white font-bold flex items-center gap-1">NBL <span class="text-[7.5px] text-[#475569]">COMME</span></div>
+<div class="col-span-2 text-right text-white">292.9</div>
+<div class="col-span-3 text-right text-[#FF1744]">-0.03%</div>
+<div class="col-span-2 text-right text-[#94a3b8]">55k</div>
+</div>
+<!-- Row 13: SBL -->
+<div class="grid grid-cols-12 px-2 py-0.5 hover:bg-[#0b1626] border-b border-[#0f1725] items-center">
+<div class="col-span-5 text-white font-bold flex items-center gap-1">SBL <span class="text-[7.5px] text-[#475569]">COMME</span></div>
+<div class="col-span-2 text-right text-white">403.1</div>
+<div class="col-span-3 text-right text-[#00E676]">+1.18%</div>
+<div class="col-span-2 text-right text-[#94a3b8]">53k</div>
+</div>
+<!-- Row 14: NABIL (Highlighted Active Row) -->
+<div class="grid grid-cols-12 px-2 py-0.5 bg-[#0a2336] border-y border-[#00E5FF]/40 items-center">
+<div class="col-span-5 text-[#00E5FF] font-black flex items-center gap-1">
+<span class="w-1.5 h-1.5 bg-[#00E5FF] inline-block"></span>
+            NABIL <span class="text-[7.5px] text-[#64748b]">COMME</span>
+</div>
+<div class="col-span-2 text-right text-white font-bold">533.0</div>
+<div class="col-span-3 text-right text-[#00E676] font-bold">+0.02%</div>
+<div class="col-span-2 text-right text-[#00E5FF] font-bold">50k</div>
+</div>
+<!-- Row 15: NICA -->
+<div class="grid grid-cols-12 px-2 py-0.5 hover:bg-[#0b1626] border-b border-[#0f1725] items-center">
+<div class="col-span-5 text-white font-bold flex items-center gap-1">NICA <span class="text-[7.5px] text-[#475569]">COMME</span></div>
+<div class="col-span-2 text-right text-white">309.5</div>
+<div class="col-span-3 text-right text-[#00E676]">+0.16%</div>
+<div class="col-span-2 text-right text-[#94a3b8]">39k</div>
+</div>
+<!-- Row 16: EBL -->
+<div class="grid grid-cols-12 px-2 py-0.5 hover:bg-[#0b1626] border-b border-[#0f1725] items-center">
+<div class="col-span-5 text-white font-bold flex items-center gap-1">EBL <span class="text-[7.5px] text-[#475569]">COMME</span></div>
+<div class="col-span-2 text-right text-white">701.0</div>
+<div class="col-span-3 text-right text-[#00E676]">+0.31%</div>
+<div class="col-span-2 text-right text-[#94a3b8]">30k</div>
+</div>
+<!-- Row 17: HBL -->
+<div class="grid grid-cols-12 px-2 py-0.5 hover:bg-[#0b1626] border-b border-[#0f1725] items-center">
+<div class="col-span-5 text-white font-bold flex items-center gap-1">HBL <span class="text-[7.5px] text-[#475569]">COMME</span></div>
+<div class="col-span-2 text-right text-white">192.9</div>
+<div class="col-span-3 text-right text-[#FF1744]">-0.21%</div>
+<div class="col-span-2 text-right text-[#94a3b8]">29k</div>
+</div>
+<!-- Row 18: SCB -->
+<div class="grid grid-cols-12 px-2 py-0.5 hover:bg-[#0b1626] border-b border-[#0f1725] items-center">
+<div class="col-span-5 text-white font-bold flex items-center gap-1">SCB <span class="text-[7.5px] text-[#475569]">COMME</span></div>
+<div class="col-span-2 text-right text-white">660.0</div>
+<div class="col-span-3 text-right text-[#FF1744]">-0.30%</div>
+<div class="col-span-2 text-right text-[#94a3b8]">21k</div>
+</div>
+<!-- Row 19: SBI -->
+<div class="grid grid-cols-12 px-2 py-0.5 hover:bg-[#0b1626] border-b border-[#0f1725] items-center">
+<div class="col-span-5 text-white font-bold flex items-center gap-1">SBI <span class="text-[7.5px] text-[#475569]">COMME</span></div>
+<div class="col-span-2 text-right text-white">405.0</div>
+<div class="col-span-3 text-right text-[#00E676]">+0.50%</div>
+<div class="col-span-2 text-right text-[#94a3b8]">11k</div>
+</div>
+<!-- Row 20: NIMBPO -->
+<div class="grid grid-cols-12 px-2 py-0.5 hover:bg-[#0b1626] border-b border-[#0f1725] items-center">
+<div class="col-span-5 text-white font-bold flex items-center gap-1">NIMBPO <span class="text-[7.5px] text-[#475569]">COMME</span></div>
+<div class="col-span-2 text-right text-white">147.0</div>
+<div class="col-span-3 text-right text-[#FF1744]">-0.47%</div>
+<div class="col-span-2 text-right text-[#94a3b8]">10k</div>
+</div>
+<!-- Category 2: Hydropower -->
+<div class="px-2 py-1 bg-[#0b121e] border-y border-[#162032] flex items-center justify-between text-[8.5px] font-bold text-white mt-1">
+<div class="flex items-center gap-1">
+<span class="text-[#00E5FF]">▼</span>
+<span>⚡ HYDROPOWER</span>
+</div>
+<div class="flex items-center space-x-2">
+<span class="text-[#64748b]">[132]</span>
+<span class="text-[#00E676]">+0.34%</span>
+</div>
+</div>
+<!-- Hydro Row 1: GHL -->
+<div class="grid grid-cols-12 px-2 py-0.5 hover:bg-[#0b1626] border-b border-[#0f1725] items-center">
+<div class="col-span-5 text-white font-bold flex items-center gap-1">GHL <span class="text-[7.5px] text-[#475569]">HYDRO</span></div>
+<div class="col-span-2 text-right text-white">286.0</div>
+<div class="col-span-3 text-right"><span class="bg-[#FF1744]/20 text-[#FF1744] px-1 py-0.2 rounded">-3.02%</span></div>
+<div class="col-span-2 text-right text-[#94a3b8]">870k</div>
+</div>
+<!-- Hydro Row 2: HDHPC -->
+<div class="grid grid-cols-12 px-2 py-0.5 hover:bg-[#0b1626] border-b border-[#0f1725] items-center">
+<div class="col-span-5 text-white font-bold flex items-center gap-1">HDHPC <span class="text-[7.5px] text-[#475569]">HYDRO</span></div>
+<div class="col-span-2 text-right text-white">228.3</div>
+<div class="col-span-3 text-right"><span class="bg-[#00E676]/20 text-[#00E676] px-1 py-0.2 rounded">+2.38%</span></div>
+<div class="col-span-2 text-right text-[#94a3b8]">836k</div>
+</div>
+</div>
+<!-- Watchlist Footer Meta -->
+<div class="px-2 py-1 bg-[#05080e] border-t border-[#162032] flex items-center justify-between text-[8px] text-[#64748b]">
+<span>SHOWING 353 / 353 (CLASSIFIED)</span>
+<span>SORT: <span class="text-white">VOL DESC</span></span>
+</div>
+</div>
+<!-- END: RightColumnWatchlist -->
+</main>
+<!-- END: MainTradingDeskGrid -->
+<!-- BEGIN: MasterFooterTelemetry -->
+<footer class="h-[24px] bg-[#030508] border-t border-[#162032] flex items-center justify-between px-3 text-[9px] shrink-0 font-mono tracking-tight" data-purpose="status-footer">
+<div class="flex items-center space-x-3">
+<div>
+<span class="text-[#64748b]">GATE G4 ENGINE:</span>
+<span class="text-[#00E676] font-bold ml-1">ACTIVE (395 SECURITIES)</span>
+</div>
+<div>
+<span class="text-[#64748b]">SEQLOCK SEQ:</span>
+<span class="text-[#00E5FF] font-semibold ml-1">149,008</span>
+</div>
+<div>
+<span class="text-[#64748b]">LATENCY:</span>
+<span class="text-[#00E676] font-semibold ml-1">142.5 µs</span>
+</div>
+</div>
+<div class="flex items-center space-x-4">
+<div>
+<span class="text-[#64748b]">ACTIVE SCREEN:</span>
+<span class="text-[#00E5FF] font-bold ml-1">2. INDIVIDUAL ANALYSIS</span>
+</div>
+<div>
+<span class="text-[#64748b]">FPS:</span>
+<span class="text-[#00E676] font-bold ml-1">60.0 FPS</span>
+</div>
+</div>
+</footer>
+<!-- END: MasterFooterTelemetry -->
+<!-- BEGIN: ChartCanvasRendererScript -->
+<script data-purpose="chart-canvas-rendering">
+    /**
+     * Headless Graphics Zero-DOM Canvas Emulator
+     * Renders dense candlestick chart, volume histogram, moving averages, and terminal grid.
+     */
+    (function renderTerminalChart() {
+      const canvas = document.getElementById('nepseTradingCanvas');
+      if (!canvas) return;
+
+      const ctx = canvas.getContext('2d');
+
+      function resize() {
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        ctx.resetTransform();
+        ctx.scale(dpr, dpr);
+        draw(rect.width, rect.height);
+      }
+
+      function draw(w, h) {
+        ctx.clearRect(0, 0, w, h);
+
+        const rightMargin = 55;
+        const bottomMargin = 22;
+        const chartW = w - rightMargin;
+        const chartH = h - bottomMargin;
+        const volH = chartH * 0.18;
+        const mainH = chartH - volH;
+
+        // Draw horizontal grid lines & Price Y-Axis
+        const priceMin = 500;
+        const priceMax = 595;
+        const priceStep = 5;
+        ctx.font = '9px "JetBrains Mono", monospace';
+        ctx.lineWidth = 1;
+
+        for (let p = priceMin; p <= priceMax; p += priceStep) {
+          const y = mainH - ((p - priceMin) / (priceMax - priceMin)) * mainH;
+          
+          // Grid lines
+          ctx.strokeStyle = '#0b1322';
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(chartW, y);
+          ctx.stroke();
+
+          // Price labels
+          ctx.fillStyle = '#64748b';
+          ctx.textAlign = 'right';
+          ctx.fillText(p.toFixed(2), w - 8, y + 3);
+        }
+
+        // Draw X-Axis timeline labels
+        const dates = [
+          { label: '6', xPct: 0.05 },
+          { label: '16', xPct: 0.18 },
+          { label: 'Aug', xPct: 0.35 },
+          { label: '13', xPct: 0.50 },
+          { label: 'Sep', xPct: 0.65 },
+          { label: '15', xPct: 0.80 },
+          { label: 'Oct', xPct: 0.94 }
+        ];
+
+        ctx.strokeStyle = '#121c2e';
+        ctx.beginPath();
+        ctx.moveTo(0, chartH);
+        ctx.lineTo(chartW, chartH);
+        ctx.stroke();
+
+        dates.forEach(d => {
+          const x = chartW * d.xPct;
+          ctx.strokeStyle = '#0b1322';
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, chartH);
+          ctx.stroke();
+
+          ctx.fillStyle = '#64748b';
+          ctx.textAlign = 'center';
+          ctx.fillText(d.label, x, h - 7);
+        });
+
+        // Generate synthetic historical candles matching screenshot profile
+        const candleCount = 48;
+        const candleWidth = (chartW / candleCount) * 0.68;
+        const candles = [];
+
+        // Seeded realistic progression mimicking screenshot
+        let cur = 512;
+        for (let i = 0; i < candleCount; i++) {
+          let open = cur;
+          let delta = 0;
+          if (i < 8) {
+            delta = (Math.sin(i) * 3) - 1;
+          } else if (i < 20) {
+            delta = 2.5 + Math.random() * 4;
+          } else if (i < 30) {
+            delta = -2 - Math.random() * 3;
+          } else if (i < 38) {
+            delta = 6 + Math.random() * 5;
+          } else {
+            delta = -4 + Math.random() * 3;
+          }
+
+          let close = open + delta;
+          let high = Math.max(open, close) + Math.random() * 3.5;
+          let low = Math.min(open, close) - Math.random() * 3.5;
+          let vol = Math.floor(15 + Math.random() * 70);
+          cur = close;
+          candles.push({ open, close, high, low, vol });
+        }
+
+        // Render Candles & Volumes
+        const ema20Points = [];
+        const ema50Points = [];
+
+        candles.forEach((c, idx) => {
+          const x = (idx + 0.5) * (chartW / candleCount);
+          const isGreen = c.close >= c.open;
+          const color = isGreen ? '#00E676' : '#FF1744';
+
+          const yOpen = mainH - ((c.open - priceMin) / (priceMax - priceMin)) * mainH;
+          const yClose = mainH - ((c.close - priceMin) / (priceMax - priceMin)) * mainH;
+          const yHigh = mainH - ((c.high - priceMin) / (priceMax - priceMin)) * mainH;
+          const yLow = mainH - ((c.low - priceMin) / (priceMax - priceMin)) * mainH;
+
+          // Wick
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(x, yHigh);
+          ctx.lineTo(x, yLow);
+          ctx.stroke();
+
+          // Body
+          ctx.fillStyle = color;
+          const top = Math.min(yOpen, yClose);
+          const bodyH = Math.max(Math.abs(yClose - yOpen), 1.5);
+          ctx.fillRect(x - candleWidth / 2, top, candleWidth, bodyH);
+
+          // Volume Bar at base
+          const volBarH = (c.vol / 100) * volH;
+          ctx.fillStyle = isGreen ? 'rgba(0, 230, 118, 0.45)' : 'rgba(255, 23, 68, 0.45)';
+          ctx.fillRect(x - candleWidth / 2, chartH - volBarH, candleWidth, volBarH);
+
+          // Save EMA coordinate approximations
+          ema20Points.push({ x, y: yClose + (Math.sin(idx * 0.4) * 8) });
+          ema50Points.push({ x, y: yClose + (Math.cos(idx * 0.3) * 14) + 6 });
+        });
+
+        // Moving Average Line 1: Yellow EMA 50
+        ctx.strokeStyle = '#FFB300';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ema50Points.forEach((pt, i) => {
+          if (i === 0) ctx.moveTo(pt.x, pt.y);
+          else ctx.lineTo(pt.x, pt.y);
+        });
+        ctx.stroke();
+
+        // Moving Average Line 2: Cyan EMA 20
+        ctx.strokeStyle = '#00E5FF';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ema20Points.forEach((pt, i) => {
+          if (i === 0) ctx.moveTo(pt.x, pt.y);
+          else ctx.lineTo(pt.x, pt.y);
+        });
+        ctx.stroke();
+
+        // Horizontal dashed guideline at Stop loss / Sweet spot
+        ctx.setLineDash([3, 3]);
+        ctx.strokeStyle = 'rgba(255, 179, 0, 0.6)';
+        ctx.beginPath();
+        ctx.moveTo(0, mainH * 0.52);
+        ctx.lineTo(chartW, mainH * 0.52);
+        ctx.stroke();
+
+        ctx.strokeStyle = 'rgba(255, 23, 68, 0.6)';
+        ctx.beginPath();
+        ctx.moveTo(0, mainH * 0.68);
+        ctx.lineTo(chartW, mainH * 0.68);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      window.addEventListener('resize', resize);
+      resize();
+    })();
+  </script>
+<!-- END: ChartCanvasRendererScript -->
+</body></html>

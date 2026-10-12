@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"on-tertiary-fixed-variant":"#582a9f","surface-dim":"#0f141b","secondary-fixed-dim":"#00e475","on-primary-fixed-variant":"#004f58","on-secondary-container":"#00622e","secondary":"#7dffa2","surface-container-lowest":"#0a0e15","text-tertiary":"#475569","surface-container":"#1c2027","tertiary":"#f4e8ff","inverse-surface":"#dfe2ed","surface-container-high":"#262a32","surface-elevated":"#131B2A","background":"#0f141b","surface-variant":"#31353d","tertiary-fixed-dim":"#d4bbff","on-background":"#dfe2ed","outline":"#849396","inverse-primary":"#006875","tertiary-container":"#ddc7ff","primary-fixed":"#9cf0ff","status-warning":"#FFB300","on-tertiary-fixed":"#260058","primary":"#c3f5ff","surface-bright":"#353941","flash-decline":"rgba(255, 23, 68, 0.35)","on-primary":"#00363d","outline-variant":"#3b494c","primary-fixed-dim":"#00daf3","inverse-on-surface":"#2c3139","flash-system":"rgba(0, 229, 255, 0.35)","on-secondary-fixed-variant":"#005226","border-accent":"#24344D","primary-container":"#00e5ff","status-rotation":"#B388FF","status-system":"#00E5FF","on-secondary-fixed":"#00210b","error":"#ffb4ab","on-primary-container":"#00626e","surface-container-low":"#181c23","on-surface":"#dfe2ed","surface-panel":"#070B12","on-primary-fixed":"#001f24","flash-warning":"rgba(255, 179, 0, 0.35)","status-decline":"#FF1744","surface-root":"#020306","text-primary":"#FFFFFF","secondary-fixed":"#62ff96","on-tertiary":"#400688","on-secondary":"#003918","on-error-container":"#ffdad6","surface-container-highest":"#31353d","flash-advance":"rgba(0, 230, 118, 0.35)","tertiary-fixed":"#ebdcff","on-error":"#690005","flash-rotation":"rgba(179, 136, 255, 0.35)","status-advance":"#00E676","on-tertiary-container":"#6b40b2","border-subtle":"#1B2538","error-container":"#93000a","secondary-container":"#05e777","surface":"#0f141b","on-surface-variant":"#bac9cc","border-muted":"#131B2A","text-secondary":"#94A3B8","surface-tint":"#00daf3"},borderRadius:{DEFAULT:"0.25rem",lg:"0.5rem",xl:"0.75rem",full:"9999px"},spacing:{"space-xs":"0.125rem","space-md":"0.375rem",margin:"0.25rem",gutter:"0.375rem","space-xl":"0.75rem","space-lg":"0.5rem","space-sm":"0.25rem"},fontFamily:{"headline-lg":["JetBrains Mono"],"label-md":["JetBrains Mono"],"headline-md":["JetBrains Mono"],"label-sm":["JetBrains Mono"],"label-lg":["JetBrains Mono"],"body-sm":["JetBrains Mono"],"body-md":["JetBrains Mono"],"body-lg":["JetBrains Mono"],"headline-sm":["JetBrains Mono"]},fontSize:{"headline-lg":["16px",{lineHeight:"20px",letterSpacing:"0.04em",fontWeight:"700"}],"label-md":["10px",{lineHeight:"12px",letterSpacing:"0.06em",fontWeight:"600"}],"headline-md":["14px",{lineHeight:"18px",letterSpacing:"0.02em",fontWeight:"600"}],"label-sm":["9px",{lineHeight:"11px",letterSpacing:"0.08em",fontWeight:"500"}],"label-lg":["11px",{lineHeight:"14px",letterSpacing:"0.05em",fontWeight:"600"}],"body-sm":["11px",{lineHeight:"14px",letterSpacing:"0em",fontWeight:"400"}],"body-md":["12px",{lineHeight:"16px",letterSpacing:"0em",fontWeight:"400"}],"body-lg":["13px",{lineHeight:"18px",letterSpacing:"0em",fontWeight:"400"}],"headline-sm":["13px",{lineHeight:"16px",letterSpacing:"0.02em",fontWeight:"600"}]}}}};</script></head><body class="bg-surface-root text-on-surface font-body-sm text-body-sm min-h-screen flex flex-col justify-between select-none"><header class="fixed top-0 left-0 right-0 h-[38px] z-50 bg-surface-panel/95 backdrop-blur-md px-gutter flex items-center justify-between border-b border-border-subtle"><div class="flex items-center gap-space-lg"><div class="flex items-center gap-space-sm pl-space-xs"><div class="w-2 h-2 rounded-full bg-status-advance animate-pulse"></div><span class="font-headline-sm text-headline-sm text-primary tracking-wider uppercase font-bold">NEPSE PULSE TERMINAL</span><span class="px-space-xs py-[1px] bg-surface-elevated text-text-secondary font-label-sm text-label-sm rounded">v4.2</span></div><nav class="flex items-center h-[38px]" data-active-classes="bg-surface-elevated text-primary border-b border-primary-container"><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="launch-pad" href="#">[0] LAUNCH PAD</a><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="trading-desk" href="#">[1] TRADING DESK</a><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="alpha-dashboard" href="#">[2] ALPHA DASHBOARD</a><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="risk-lab" href="#">[3] RISK LAB</a><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="20d-forecast" href="#">[4] 20D FORECAST</a><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="blotter" href="#">[5] BLOTTER</a><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="stock-360" href="#">[6] STOCK 360</a><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="smart-alerts" href="#">[7] SMART ALERTS</a><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="macro-regime" href="#">[8] MACRO REGIME</a><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="broker-cartel" href="#">[9] BROKER CARTEL</a></nav></div><div class="flex items-center gap-space-lg"><div class="flex items-center gap-space-sm px-space-md py-space-xs bg-surface-container-lowest border border-border-muted"><span class="w-1.5 h-1.5 rounded-full bg-status-warning"></span><span class="font-label-md text-label-md text-status-warning uppercase font-semibold">MARKET CLOSED</span></div><div class="font-label-md text-label-md text-text-secondary tracking-widest">NPT <span class="text-text-primary font-bold">15:37:42</span></div><div class="font-label-sm text-label-sm text-text-tertiary border-l border-border-subtle pl-space-md">GATE G4: <span class="text-status-advance">60.0 FPS</span> | <span class="text-primary-fixed-dim">142.5 µs</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="w-full pt-[38px] pb-[28px] bg-surface-root min-h-[calc(100vh-28px)]"><div class="flex flex-col w-full">
+<!-- TOP PEDAGOGICAL OPERATOR GUIDE BOX -->
+<section class="w-full px-gutter pt-space-xs transition-all duration-200" id="operator-guide-container">
+<div class="bg-surface-panel p-space-sm shadow-md">
+<!-- Guide Title Bar -->
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-space-sm">
+<span class="w-1.5 h-3 bg-status-system"></span>
+<span class="font-headline-sm text-headline-sm text-text-primary tracking-wide uppercase font-bold">
+            सिन्डिकेट तथा ब्रोकर सूक्ष्मसंरचना (Screen 9: Broker Syndicate &amp; Microstructure Desk)
+          </span>
+<span class="font-label-sm text-label-sm text-status-system uppercase tracking-widest bg-surface-elevated px-space-xs py-[1px]">
+            // PEDAGOGICAL OPERATOR PROTOCOL
+          </span>
+</div>
+<button class="font-label-sm text-label-sm text-text-secondary hover:text-text-primary bg-surface-elevated hover:bg-surface-container px-space-sm py-[2px] transition-colors flex items-center gap-space-xs cursor-pointer" id="toggle-guide-btn">
+<span class="material-symbols-outlined text-[13px] leading-none" id="guide-toggle-icon">expand_less</span>
+<span id="guide-toggle-text">[ - HIDE GUIDE ]</span>
+</button>
+</div>
+<!-- 4 Protocol Cards Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-gutter pt-space-xs" id="guide-cards-grid">
+<!-- Card 1 -->
+<div class="bg-surface-elevated p-space-sm flex flex-col gap-space-xs relative overflow-hidden">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-status-system font-bold">01. SYSTEM OBJECTIVE</span>
+<span class="font-label-sm text-label-sm text-text-tertiary">DE-ANON ENGINE</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface leading-tight">
+            De-anonymize all 62 NEPSE brokers using Bayesian point processes &amp; EOD 150k floorsheets to detect float cornering and syndicate wash trades in real-time.
+          </p>
+<div class="font-label-sm text-label-sm text-text-tertiary flex items-center gap-space-xs mt-space-xs">
+<span class="material-symbols-outlined text-status-advance text-[12px]">verified</span>
+<span>MODULARITY: LEIDEN CLUSTERING v4.2</span>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-elevated p-space-sm flex flex-col gap-space-xs relative overflow-hidden">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-status-warning font-bold">02. CHROMATIC CODING</span>
+<span class="font-label-sm text-label-sm text-text-tertiary">SIGNAL MAPPING</span>
+</div>
+<div class="grid grid-cols-2 gap-space-xs font-label-sm text-label-sm">
+<div class="flex items-center gap-space-xs text-status-advance">
+<span class="w-2 h-2 rounded-full bg-status-advance"></span>
+<span>#00E676 ACCUMULATION</span>
+</div>
+<div class="flex items-center gap-space-xs text-status-decline">
+<span class="w-2 h-2 rounded-full bg-status-decline"></span>
+<span>#FF1744 DISTRIBUTION</span>
+</div>
+<div class="flex items-center gap-space-xs text-status-system">
+<span class="w-2 h-2 rounded-full bg-status-system"></span>
+<span>#00E5FF PROXY FLOW</span>
+</div>
+<div class="flex items-center gap-space-xs text-status-warning">
+<span class="w-2 h-2 rounded-full bg-status-warning"></span>
+<span>#FFB300 HHI BREACH</span>
+</div>
+</div>
+<div class="font-label-sm text-label-sm text-text-secondary mt-space-xs truncate">
+            Float retention mapped via dynamic Bézier weights.
+          </div>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-elevated p-space-sm flex flex-col gap-space-xs relative overflow-hidden">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-primary font-bold">03. OPERATOR PROTOCOL</span>
+<span class="font-label-sm text-label-sm text-text-tertiary">TWO-GATE AUDIT</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface leading-tight">
+<strong class="text-status-system">Gate A:</strong> Live hours (11:00-15:00) invoke Dirichlet Bayesian proxies. 
+            <strong class="text-status-advance">Gate B:</strong> At 15:30 EOD, deterministic floorsheet ingests 150k trades for exact settlement audit.
+          </p>
+<div class="font-label-sm text-label-sm text-text-tertiary flex items-center gap-space-xs mt-space-xs">
+<span class="w-1.5 h-1.5 bg-status-advance rounded-full"></span>
+<span>CDSC T+2 SETTLEMENT SHIELD ARMED</span>
+</div>
+</div>
+<!-- Card 4 -->
+<div class="bg-surface-elevated p-space-sm flex flex-col gap-space-xs relative overflow-hidden">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-status-advance font-bold">04. REGIME CALIBRATION</span>
+<span class="font-label-sm text-label-sm text-status-advance uppercase bg-surface-container px-space-xs">EXACT</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface leading-tight">
+            Current state: POST-MARKET EOD DETERMINISTIC RECONCILIATION. Floorsheet ingested, wash trading filtered via bipartite Leiden modularity.
+          </p>
+<div class="font-label-sm text-label-sm text-status-warning font-semibold flex items-center gap-space-xs mt-space-xs">
+<span class="material-symbols-outlined text-[13px]">warning</span>
+<span>CARTEL DETECTED: 2 ACTIVE ALLIANCES</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- SUB-HEADER TELEMETRY & CONTROLS -->
+<section class="w-full px-gutter pt-space-xs">
+<div class="bg-surface-panel px-space-md py-space-xs flex flex-wrap items-center justify-between gap-space-md shadow-sm">
+<!-- Left Tabs -->
+<div class="flex items-center gap-space-xs">
+<button class="h-[28px] px-space-md flex items-center font-label-md text-label-md tracking-wider bg-surface-elevated text-status-system shadow-inner transition-colors" id="tab-graph">
+          [ 1. BIPARTITE SYNDICATE GRAPH ]
+        </button>
+<button class="h-[28px] px-space-md flex items-center font-label-md text-label-md tracking-wider bg-surface-panel text-text-tertiary hover:text-on-surface hover:bg-surface-container transition-colors" id="tab-directory">
+          [ 2. 62-BROKER DIRECTORY &amp; HHI ]
+        </button>
+<button class="h-[28px] px-space-md flex items-center font-label-md text-label-md tracking-wider bg-surface-panel text-text-tertiary hover:text-on-surface hover:bg-surface-container transition-colors" id="tab-algo">
+          [ 3. ALGORITHMIC SPECS &amp; LEIDEN CLUSTERS ]
+        </button>
+</div>
+<!-- Center Regime Status -->
+<div class="flex items-center gap-space-md">
+<div class="flex items-center gap-space-xs px-space-sm py-[2px] bg-surface-elevated">
+<span class="w-2 h-2 rounded-full bg-status-advance animate-pulse"></span>
+<span class="font-label-md text-label-md text-status-advance font-semibold">
+            EOD RECONCILED: 149,008 TICKS (EXACT FLOORSHEET)
+          </span>
+</div>
+<div class="font-label-sm text-label-sm text-text-secondary">
+          BAYESIAN PROXY CONFIDENCE: <span class="text-status-system font-bold">99.4%</span>
+</div>
+</div>
+<!-- Right Quick Statistics -->
+<div class="flex items-center gap-space-lg font-label-sm text-label-sm">
+<div class="text-text-secondary">
+          MONITORED: <span class="text-text-primary font-bold">62/62</span>
+</div>
+<div class="text-text-secondary">
+          ALLIANCES: <span class="text-status-warning font-bold">2 DETECTED</span>
+</div>
+<div class="text-text-secondary px-space-xs py-[1px] bg-surface-container-high text-status-decline font-semibold">
+          TOP HHI: 0.312 (CRITICAL RISK)
+        </div>
+</div>
+</div>
+</section>
+<!-- MAIN WORKSPACE: 3-PANEL HIGH DENSITY DESK -->
+<main class="w-full px-gutter pt-space-xs pb-space-sm flex-1">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-start">
+<!-- ================= PANEL A: LEFT COLUMN (BROKER TAPE & LEADERBOARD) ================= -->
+<div class="lg:col-span-3 flex flex-col gap-space-xs bg-surface-panel p-space-sm shadow-md">
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[15px]">account_balance</span>
+<span class="font-headline-sm text-headline-sm text-text-primary uppercase font-bold tracking-wider">
+              62 BROKER DIRECTORY
+            </span>
+</div>
+<span class="font-label-sm text-label-sm text-status-system font-mono">FLOW: EOD</span>
+</div>
+<!-- Filter Pill Chips -->
+<div class="grid grid-cols-4 gap-space-xs pt-space-xs">
+<button class="broker-filter-btn active py-[3px] font-label-sm text-label-sm text-center bg-surface-elevated text-status-system transition-colors font-semibold" id="btn-filter-all">
+            ALL 62
+          </button>
+<button class="broker-filter-btn py-[3px] font-label-sm text-label-sm text-center bg-surface-container-low text-text-tertiary hover:text-status-advance transition-colors" id="btn-filter-acc">
+            ACCUM
+          </button>
+<button class="broker-filter-btn py-[3px] font-label-sm text-label-sm text-center bg-surface-container-low text-text-tertiary hover:text-status-decline transition-colors" id="btn-filter-dist">
+            DISTR
+          </button>
+<button class="broker-filter-btn py-[3px] font-label-sm text-label-sm text-center bg-surface-container-low text-text-tertiary hover:text-status-warning transition-colors" id="btn-filter-cartel">
+            CARTEL
+          </button>
+</div>
+<!-- Search Bar -->
+<div class="relative mt-space-xs">
+<input class="w-full bg-surface-container-lowest font-body-sm text-body-sm text-text-primary px-space-sm py-[4px] pl-6 placeholder:text-text-tertiary focus:outline-none focus:bg-surface-elevated" id="broker-search-input" placeholder="FILTER BROKER NUMBER OR ASSET..." type="text"/>
+<span class="material-symbols-outlined text-[13px] text-text-tertiary absolute left-1.5 top-1.5">search</span>
+</div>
+<!-- Broker Virtualized Scroll Well -->
+<div class="flex flex-col gap-space-xs mt-space-xs max-h-[640px] overflow-y-auto pr-space-xs" id="broker-list-well">
+<!-- Broker #58 (Cartel Leader) -->
+<div class="broker-card p-space-xs bg-surface-elevated hover:bg-surface-container cursor-pointer transition-all flex flex-col gap-[2px]" data-broker="58" data-type="cartel accum">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="font-label-md text-label-md text-status-warning font-bold">#58</span>
+<span class="font-body-sm text-body-sm text-text-primary font-semibold truncate max-w-[130px]">Naasa Securities</span>
+</div>
+<span class="font-label-sm text-label-sm text-status-warning bg-surface-container-high px-space-xs py-[1px] uppercase">CARTEL LEADER</span>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm pt-[2px]">
+<span class="text-text-tertiary">NET BUY:</span>
+<span class="text-status-advance font-bold font-mono">+NPR 84.2M</span>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm text-text-secondary">
+<span>TARGETS: <strong class="text-text-primary">SAHAS, SHIVM</strong></span>
+<span>HHI: <strong class="text-status-warning">0.384</strong></span>
+</div>
+<div class="w-full bg-surface-container-lowest h-1 mt-1 overflow-hidden">
+<div class="bg-status-advance h-full w-[84%]"></div>
+</div>
+</div>
+<!-- Broker #45 -->
+<div class="broker-card p-space-xs bg-surface-elevated hover:bg-surface-container cursor-pointer transition-all flex flex-col gap-[2px]" data-broker="45" data-type="cartel accum">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="font-label-md text-label-md text-status-system font-bold">#45</span>
+<span class="font-body-sm text-body-sm text-text-primary font-semibold truncate max-w-[130px]">Imperial Securities</span>
+</div>
+<span class="font-label-sm text-label-sm text-status-system bg-surface-container-high px-space-xs py-[1px] uppercase">ALLIANCE BUYER</span>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm pt-[2px]">
+<span class="text-text-tertiary">NET BUY:</span>
+<span class="text-status-advance font-bold font-mono">+NPR 61.5M</span>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm text-text-secondary">
+<span>TARGETS: <strong class="text-text-primary">SAHAS, GHL</strong></span>
+<span>HHI: <strong class="text-status-system">0.290</strong></span>
+</div>
+<div class="w-full bg-surface-container-lowest h-1 mt-1 overflow-hidden">
+<div class="bg-status-advance h-full w-[65%]"></div>
+</div>
+</div>
+<!-- Broker #28 -->
+<div class="broker-card p-space-xs bg-surface-elevated hover:bg-surface-container cursor-pointer transition-all flex flex-col gap-[2px]" data-broker="28" data-type="dist">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="font-label-md text-label-md text-status-decline font-bold">#28</span>
+<span class="font-body-sm text-body-sm text-text-primary font-semibold truncate max-w-[130px]">Shree Krishna Sec.</span>
+</div>
+<span class="font-label-sm text-label-sm text-status-decline bg-surface-container-high px-space-xs py-[1px] uppercase">DUMP RISK</span>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm pt-[2px]">
+<span class="text-text-tertiary">NET SELL:</span>
+<span class="text-status-decline font-bold font-mono">-NPR 72.1M</span>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm text-text-secondary">
+<span>TARGETS: <strong class="text-text-primary">CIT, NICA</strong></span>
+<span>HHI: <strong class="text-text-primary">0.198</strong></span>
+</div>
+<div class="w-full bg-surface-container-lowest h-1 mt-1 overflow-hidden">
+<div class="bg-status-decline h-full w-[78%]"></div>
+</div>
+</div>
+<!-- Broker #34 -->
+<div class="broker-card p-space-xs bg-surface-elevated hover:bg-surface-container cursor-pointer transition-all flex flex-col gap-[2px]" data-broker="34" data-type="cartel accum">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="font-label-md text-label-md text-status-system font-bold">#34</span>
+<span class="font-body-sm text-body-sm text-text-primary font-semibold truncate max-w-[130px]">Vision Securities</span>
+</div>
+<span class="font-label-sm text-label-sm text-status-warning bg-surface-container-high px-space-xs py-[1px] uppercase">CONVEX HULL #1</span>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm pt-[2px]">
+<span class="text-text-tertiary">NET BUY:</span>
+<span class="text-status-advance font-bold font-mono">+NPR 39.8M</span>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm text-text-secondary">
+<span>CORNERING: <strong class="text-text-primary">HDHPC, SAHAS</strong></span>
+<span>HHI: <strong class="text-status-warning">0.315</strong></span>
+</div>
+<div class="w-full bg-surface-container-lowest h-1 mt-1 overflow-hidden">
+<div class="bg-status-advance h-full w-[44%]"></div>
+</div>
+</div>
+<!-- Broker #49 -->
+<div class="broker-card p-space-xs bg-surface-elevated hover:bg-surface-container cursor-pointer transition-all flex flex-col gap-[2px]" data-broker="49" data-type="dist">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="font-label-md text-label-md text-status-decline font-bold">#49</span>
+<span class="font-body-sm text-body-sm text-text-primary font-semibold truncate max-w-[130px]">Online Securities</span>
+</div>
+<span class="font-label-sm text-label-sm text-text-tertiary bg-surface-container-high px-space-xs py-[1px] uppercase">BANKS DUMP</span>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm pt-[2px]">
+<span class="text-text-tertiary">NET SELL:</span>
+<span class="text-status-decline font-bold font-mono">-NPR 44.2M</span>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm text-text-secondary">
+<span>SELLING: <strong class="text-text-primary">NABIL, GBIME</strong></span>
+<span>HHI: <strong class="text-text-primary">0.142</strong></span>
+</div>
+<div class="w-full bg-surface-container-lowest h-1 mt-1 overflow-hidden">
+<div class="bg-status-decline h-full w-[52%]"></div>
+</div>
+</div>
+<!-- Broker #57 -->
+<div class="broker-card p-space-xs bg-surface-elevated hover:bg-surface-container cursor-pointer transition-all flex flex-col gap-[2px]" data-broker="57" data-type="accum">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="font-label-md text-label-md text-status-advance font-bold">#57</span>
+<span class="font-body-sm text-body-sm text-text-primary font-semibold truncate max-w-[130px]">Aryatara Inv.</span>
+</div>
+<span class="font-label-sm text-label-sm text-status-advance bg-surface-container-high px-space-xs py-[1px] uppercase">ABSORPTION</span>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm pt-[2px]">
+<span class="text-text-tertiary">NET BUY:</span>
+<span class="text-status-advance font-bold font-mono">+NPR 28.4M</span>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm text-text-secondary">
+<span>PROMOTER: <strong class="text-text-primary">SHIVM, HDHPC</strong></span>
+<span>HHI: <strong class="text-text-primary">0.211</strong></span>
+</div>
+<div class="w-full bg-surface-container-lowest h-1 mt-1 overflow-hidden">
+<div class="bg-status-advance h-full w-[31%]"></div>
+</div>
+</div>
+<!-- Broker #19 -->
+<div class="broker-card p-space-xs bg-surface-elevated hover:bg-surface-container cursor-pointer transition-all flex flex-col gap-[2px]" data-broker="19" data-type="cartel">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="font-label-md text-label-md text-text-secondary font-bold">#19</span>
+<span class="font-body-sm text-body-sm text-text-primary font-semibold truncate max-w-[130px]">Nepal Stock House</span>
+</div>
+<span class="font-label-sm text-label-sm text-status-system bg-surface-container-high px-space-xs py-[1px] uppercase">WASH 92%</span>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm pt-[2px]">
+<span class="text-text-tertiary">NET DELTA:</span>
+<span class="text-text-secondary font-bold font-mono">+NPR 1.2M</span>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm text-text-secondary">
+<span>WASH TRADING: <strong class="text-status-system">FILTERED</strong></span>
+<span>HHI: <strong class="text-text-primary">0.082</strong></span>
+</div>
+<div class="w-full bg-surface-container-lowest h-1 mt-1 overflow-hidden">
+<div class="bg-status-system h-full w-[12%]"></div>
+</div>
+</div>
+</div>
+<!-- Directory Footer Meta -->
+<div class="pt-space-xs font-label-sm text-label-sm text-text-tertiary flex items-center justify-between">
+<span>62/62 ACTIVE RECONCILED</span>
+<span class="text-primary-fixed-dim">CDSC T+2: OK</span>
+</div>
+</div>
+<!-- ================= PANEL B: CENTER STAGE (BIPARTITE NETWORK GRAPH) ================= -->
+<div class="lg:col-span-6 flex flex-col gap-space-xs bg-surface-panel p-space-sm shadow-md">
+<!-- Canvas Command Bar -->
+<div class="flex flex-wrap items-center justify-between gap-space-xs pb-space-xs">
+<div>
+<div class="flex items-center gap-space-xs">
+<span class="w-2 h-2 bg-status-advance"></span>
+<span class="font-headline-sm text-headline-sm text-text-primary uppercase font-bold tracking-wider">
+                BIPARTITE DIRECTED FLOW ENGINE
+              </span>
+</div>
+<span class="font-label-sm text-label-sm text-text-tertiary">
+              LEIDEN MODULARITY &amp; BIPARTITE GRAPH CONVOLUTION
+            </span>
+</div>
+<!-- Controls -->
+<div class="flex items-center gap-space-xs">
+<button class="px-space-xs py-[2px] bg-surface-elevated hover:bg-surface-container text-status-warning font-label-sm text-label-sm transition-colors cursor-pointer" id="btn-toggle-hulls">
+              [ HULLS: ON ]
+            </button>
+<button class="px-space-xs py-[2px] bg-surface-elevated hover:bg-surface-container text-text-secondary font-label-sm text-label-sm transition-colors cursor-pointer" id="btn-force-atlas">
+              [ FORCE ATLAS ]
+            </button>
+<button class="px-space-xs py-[2px] bg-surface-elevated text-primary font-label-sm text-label-sm">
+              [ MIN: 10M NPR ]
+            </button>
+<span class="font-label-sm text-label-sm text-status-advance bg-surface-container px-space-xs py-[2px]">
+              PHYSICS: STABLE
+            </span>
+</div>
+</div>
+<!-- High-density Custom SVG/Canvas Stage -->
+<div class="relative w-full h-[520px] bg-surface-container-lowest overflow-hidden">
+<!-- Grid Reticle Background -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none opacity-20">
+<defs>
+<pattern height="40" id="grid-pattern" patternunits="userSpaceOnUse" width="40">
+<path d="M 40 0 L 0 0 0 40" fill="none" stroke="#24344D" stroke-width="0.75"></path>
+</pattern>
+</defs>
+<rect fill="url(#grid-pattern)" height="100%" width="100%"></rect>
+</svg>
+<!-- Main Interactive SVG Network -->
+<svg class="absolute inset-0 w-full h-full" id="network-svg" viewbox="0 0 760 520">
+<defs>
+<!-- Glowing Filters -->
+<filter height="140%" id="glow-green" width="140%" x="-20%" y="-20%">
+<fegaussianblur result="blur" stddeviation="3"></fegaussianblur>
+<femerge>
+<femergenode in="blur"></femergenode>
+<femergenode in="SourceGraphic"></femergenode>
+</femerge>
+</filter>
+<filter height="140%" id="glow-amber" width="140%" x="-20%" y="-20%">
+<fegaussianblur result="blur" stddeviation="4"></fegaussianblur>
+<femerge>
+<femergenode in="blur"></femergenode>
+<femergenode in="SourceGraphic"></femergenode>
+</femerge>
+</filter>
+<filter height="140%" id="glow-red" width="140%" x="-20%" y="-20%">
+<fegaussianblur result="blur" stddeviation="3"></fegaussianblur>
+<femerge>
+<femergenode in="blur"></femergenode>
+<femergenode in="SourceGraphic"></femergenode>
+</femerge>
+</filter>
+<!-- Gradients for Flow Beziers -->
+<lineargradient id="flow-58-sahas" x1="0%" x2="100%" y1="0%" y2="0%">
+<stop offset="0%" stop-color="#FFB300"></stop>
+<stop offset="100%" stop-color="#00E676"></stop>
+</lineargradient>
+<lineargradient id="flow-45-sahas" x1="0%" x2="100%" y1="0%" y2="0%">
+<stop offset="0%" stop-color="#00E5FF"></stop>
+<stop offset="100%" stop-color="#00E676"></stop>
+</lineargradient>
+<lineargradient id="flow-28-cit" x1="0%" x2="100%" y1="0%" y2="0%">
+<stop offset="0%" stop-color="#FF1744"></stop>
+<stop offset="100%" stop-color="#FF1744" stop-opacity="0.8"></stop>
+</lineargradient>
+</defs>
+<!-- ================= CONVEX HULL 1: CARTEL ALLIANCE ALPHA ================= -->
+<g class="transition-opacity duration-300" id="convex-hull-group">
+<!-- Hull Polygon encompassing Broker #58 (90, 70), Broker #45 (90, 140), Broker #34 (90, 210) and Target SAHAS (640, 95) -->
+<path d="M 60,40 L 140,40 L 680,65 L 680,140 L 140,250 L 50,230 Z" fill="#FFB300" fill-opacity="0.06" filter="url(#glow-amber)" stroke="#FFB300" stroke-dasharray="6,4" stroke-width="1.5"></path>
+<rect fill="#131B2A" height="18" stroke="#FFB300" stroke-width="1" width="410" x="180" y="32"></rect>
+<text fill="#FFB300" font-family="JetBrains Mono" font-size="9" font-weight="700" letter-spacing="0.08em" x="190" y="45">
+                ⚡ CARTEL ALLIANCE ALPHA: SAHAS FLOAT CORNERING (68.4% CLUSTER SHARE)
+              </text>
+<!-- Secondary Convex Hull (Broker #57, #34 to HDHPC) -->
+<path d="M 60,260 L 140,260 L 680,210 L 680,265 L 140,360 L 60,340 Z" fill="#B388FF" fill-opacity="0.04" stroke="#B388FF" stroke-dasharray="4,4" stroke-width="1"></path>
+<rect fill="#131B2A" height="16" stroke="#B388FF" stroke-width="1" width="310" x="220" y="275"></rect>
+<text fill="#B388FF" font-family="JetBrains Mono" font-size="8.5" font-weight="600" letter-spacing="0.06em" x="230" y="287">
+                SYNDICATE BETA: HDHPC ABSORPTION RING (42.1%)
+              </text>
+</g>
+<!-- ================= DIRECTED EDGES (FLOW CURVES) ================= -->
+<!-- 1. Broker #58 -> SAHAS (Heavy Accumulation NPR 52M) -->
+<path d="M 120,70 C 340,70 420,95 620,95" fill="none" filter="url(#glow-green)" stroke="url(#flow-58-sahas)" stroke-linecap="round" stroke-width="5"></path>
+<!-- 2. Broker #58 -> SHIVM (NPR 32.2M) -->
+<path d="M 120,70 C 340,70 420,165 620,165" fill="none" opacity="0.85" stroke="#00E676" stroke-linecap="round" stroke-width="3"></path>
+<!-- 3. Broker #45 -> SAHAS (NPR 41.5M) -->
+<path d="M 120,140 C 340,140 420,95 620,95" fill="none" filter="url(#glow-green)" stroke="url(#flow-45-sahas)" stroke-linecap="round" stroke-width="4.2"></path>
+<!-- 4. Broker #45 -> GHL (NPR 20.0M) -->
+<path d="M 120,140 C 340,140 420,305 620,305" fill="none" opacity="0.7" stroke="#00E676" stroke-width="2.5"></path>
+<!-- 5. Broker #34 -> HDHPC (NPR 24.8M) -->
+<path d="M 120,210 C 340,210 420,235 620,235" fill="none" stroke="#00E676" stroke-linecap="round" stroke-width="3.5"></path>
+<!-- 6. Broker #34 -> SAHAS (NPR 15.0M) -->
+<path d="M 120,210 C 340,210 420,95 620,95" fill="none" opacity="0.8" stroke="#00E676" stroke-width="2.2"></path>
+<!-- 7. Broker #28 -> CIT (HEAVY DUMP - NPR 48.1M) -->
+<path d="M 120,280 C 340,280 420,445 620,445" fill="none" filter="url(#glow-red)" stroke="url(#flow-28-cit)" stroke-linecap="round" stroke-width="5"></path>
+<!-- 8. Broker #28 -> NICA (DUMP - NPR 24.0M) -->
+<path d="M 120,280 C 340,280 420,375 620,375" fill="none" opacity="0.9" stroke="#FF1744" stroke-width="3.2"></path>
+<!-- 9. Broker #49 -> NABIL (NPR 26.2M SELL) -->
+<path d="M 120,350 C 340,350 420,410 620,410" fill="none" opacity="0.75" stroke="#FF1744" stroke-width="2.8"></path>
+<!-- 10. Broker #49 -> GBIME (NPR 18.0M SELL) -->
+<path d="M 120,350 C 340,350 420,480 620,480" fill="none" opacity="0.65" stroke="#FF1744" stroke-width="2"></path>
+<!-- 11. Broker #57 -> HDHPC (NPR 18.4M BUY) -->
+<path d="M 120,420 C 340,420 420,235 620,235" fill="none" opacity="0.8" stroke="#00E676" stroke-width="2.6"></path>
+<!-- 12. Broker #19 -> SHIVM (Wash trading loop proxy - dotted cyan) -->
+<path d="M 120,480 C 340,480 420,165 620,165" fill="none" opacity="0.8" stroke="#00E5FF" stroke-dasharray="4,4" stroke-width="1.8"></path>
+<!-- Directed Arrow Heads (Embedded SVG Markers via tiny shapes) -->
+<circle cx="615" cy="95" fill="#00E676" r="3"></circle>
+<circle cx="615" cy="165" fill="#00E676" r="3"></circle>
+<circle cx="615" cy="235" fill="#00E676" r="3"></circle>
+<circle cx="615" cy="305" fill="#00E676" r="3"></circle>
+<circle cx="615" cy="375" fill="#FF1744" r="3"></circle>
+<circle cx="615" cy="410" fill="#FF1744" r="3"></circle>
+<circle cx="615" cy="445" fill="#FF1744" r="3"></circle>
+<circle cx="615" cy="480" fill="#FF1744" r="3"></circle>
+<!-- ================= LEFT COLUMN: BROKER NODES ================= -->
+<!-- Broker 58 -->
+<g class="cursor-pointer">
+<circle cx="100" cy="70" fill="#131B2A" r="18" stroke="#FFB300" stroke-width="2"></circle>
+<text fill="#FFFFFF" font-family="JetBrains Mono" font-size="11" font-weight="700" text-anchor="middle" x="100" y="74">#58</text>
+<text fill="#FFB300" font-family="JetBrains Mono" font-size="9" font-weight="600" text-anchor="end" x="74" y="74">NAASA</text>
+</g>
+<!-- Broker 45 -->
+<g class="cursor-pointer">
+<circle cx="100" cy="140" fill="#131B2A" r="17" stroke="#00E5FF" stroke-width="2"></circle>
+<text fill="#FFFFFF" font-family="JetBrains Mono" font-size="11" font-weight="700" text-anchor="middle" x="100" y="144">#45</text>
+<text fill="#00E5FF" font-family="JetBrains Mono" font-size="9" font-weight="600" text-anchor="end" x="74" y="144">IMPERIAL</text>
+</g>
+<!-- Broker 34 -->
+<g class="cursor-pointer">
+<circle cx="100" cy="210" fill="#131B2A" r="16" stroke="#00E676" stroke-width="1.8"></circle>
+<text fill="#FFFFFF" font-family="JetBrains Mono" font-size="11" font-weight="700" text-anchor="middle" x="100" y="214">#34</text>
+<text fill="#00E676" font-family="JetBrains Mono" font-size="9" font-weight="600" text-anchor="end" x="74" y="214">VISION</text>
+</g>
+<!-- Broker 28 -->
+<g class="cursor-pointer">
+<circle cx="100" cy="280" fill="#131B2A" r="17" stroke="#FF1744" stroke-width="2"></circle>
+<text fill="#FFFFFF" font-family="JetBrains Mono" font-size="11" font-weight="700" text-anchor="middle" x="100" y="284">#28</text>
+<text fill="#FF1744" font-family="JetBrains Mono" font-size="9" font-weight="600" text-anchor="end" x="74" y="284">SHREE KRISHNA</text>
+</g>
+<!-- Broker 49 -->
+<g class="cursor-pointer">
+<circle cx="100" cy="350" fill="#131B2A" r="15" stroke="#FF1744" stroke-width="1.5"></circle>
+<text fill="#FFFFFF" font-family="JetBrains Mono" font-size="10.5" font-weight="700" text-anchor="middle" x="100" y="354">#49</text>
+<text fill="#94A3B8" font-family="JetBrains Mono" font-size="9" text-anchor="end" x="76" y="354">ONLINE</text>
+</g>
+<!-- Broker 57 -->
+<g class="cursor-pointer">
+<circle cx="100" cy="420" fill="#131B2A" r="14" stroke="#00E676" stroke-width="1.5"></circle>
+<text fill="#FFFFFF" font-family="JetBrains Mono" font-size="10.5" font-weight="700" text-anchor="middle" x="100" y="424">#57</text>
+<text fill="#00E676" font-family="JetBrains Mono" font-size="9" text-anchor="end" x="78" y="424">ARYATARA</text>
+</g>
+<!-- Broker 19 -->
+<g class="cursor-pointer">
+<circle cx="100" cy="480" fill="#131B2A" r="13" stroke="#849396" stroke-width="1.2"></circle>
+<text fill="#849396" font-family="JetBrains Mono" font-size="10" font-weight="600" text-anchor="middle" x="100" y="484">#19</text>
+<text fill="#475569" font-family="JetBrains Mono" font-size="8.5" text-anchor="end" x="80" y="484">NEPAL STK</text>
+</g>
+<!-- ================= RIGHT COLUMN: EQUITY TARGET NODES ================= -->
+<!-- SAHAS -->
+<g class="cursor-pointer">
+<rect fill="#131B2A" height="30" stroke="#FFB300" stroke-width="2" width="105" x="625" y="80"></rect>
+<text fill="#00E676" font-family="JetBrains Mono" font-size="11.5" font-weight="800" x="635" y="99">SAHAS</text>
+<text fill="#FFB300" font-family="JetBrains Mono" font-size="9" font-weight="600" text-anchor="end" x="720" y="99">HHI 0.31</text>
+</g>
+<!-- SHIVM -->
+<g class="cursor-pointer">
+<rect fill="#131B2A" height="30" stroke="#00E676" stroke-width="1.5" width="105" x="625" y="150"></rect>
+<text fill="#00E676" font-family="JetBrains Mono" font-size="11" font-weight="700" x="635" y="169">SHIVM</text>
+<text fill="#94A3B8" font-family="JetBrains Mono" font-size="9" text-anchor="end" x="720" y="169">CEMENT</text>
+</g>
+<!-- HDHPC -->
+<g class="cursor-pointer">
+<rect fill="#131B2A" height="30" stroke="#B388FF" stroke-width="1.5" width="105" x="625" y="220"></rect>
+<text fill="#00E676" font-family="JetBrains Mono" font-size="11" font-weight="700" x="635" y="239">HDHPC</text>
+<text fill="#B388FF" font-family="JetBrains Mono" font-size="9" text-anchor="end" x="720" y="239">CORNER</text>
+</g>
+<!-- GHL -->
+<g class="cursor-pointer">
+<rect fill="#131B2A" height="30" stroke="#00E676" stroke-width="1" width="105" x="625" y="290"></rect>
+<text fill="#00E676" font-family="JetBrains Mono" font-size="11" font-weight="600" x="635" y="309">GHL</text>
+<text fill="#94A3B8" font-family="JetBrains Mono" font-size="9" text-anchor="end" x="720" y="309">HYDRO</text>
+</g>
+<!-- NICA -->
+<g class="cursor-pointer">
+<rect fill="#131B2A" height="30" stroke="#FF1744" stroke-width="1.5" width="105" x="625" y="360"></rect>
+<text fill="#FF1744" font-family="JetBrains Mono" font-size="11" font-weight="700" x="635" y="379">NICA</text>
+<text fill="#FF1744" font-family="JetBrains Mono" font-size="9" text-anchor="end" x="720" y="379">DUMP</text>
+</g>
+<!-- NABIL -->
+<g class="cursor-pointer">
+<rect fill="#131B2A" height="28" stroke="#FF1744" stroke-width="1" width="105" x="625" y="395"></rect>
+<text fill="#FF1744" font-family="JetBrains Mono" font-size="10.5" font-weight="600" x="635" y="413">NABIL</text>
+<text fill="#94A3B8" font-family="JetBrains Mono" font-size="8.5" text-anchor="end" x="720" y="413">BANK</text>
+</g>
+<!-- CIT -->
+<g class="cursor-pointer">
+<rect fill="#131B2A" height="30" stroke="#FF1744" stroke-width="2" width="105" x="625" y="430"></rect>
+<text fill="#FF1744" font-family="JetBrains Mono" font-size="11" font-weight="800" x="635" y="449">CIT</text>
+<text fill="#FF1744" font-family="JetBrains Mono" font-size="9" text-anchor="end" x="720" y="449">EXIT</text>
+</g>
+<!-- GBIME -->
+<g class="cursor-pointer">
+<rect fill="#131B2A" height="26" stroke="#3b494c" stroke-width="1" width="105" x="625" y="468"></rect>
+<text fill="#BAC9CC" font-family="JetBrains Mono" font-size="10" font-weight="600" x="635" y="485">GBIME</text>
+<text fill="#475569" font-family="JetBrains Mono" font-size="8.5" text-anchor="end" x="720" y="485">COM</text>
+</g>
+</svg>
+<!-- Interactive Node Floating Legend -->
+<div class="absolute bottom-2 left-2 bg-surface-panel/90 backdrop-blur px-space-sm py-space-xs flex items-center gap-space-md font-label-sm text-label-sm text-text-tertiary">
+<span class="flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-status-warning"></span> SYNDICATE CORNER
+            </span>
+<span class="flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-status-advance"></span> AGGRESSIVE BUY
+            </span>
+<span class="flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-status-decline"></span> EXODUS DUMP
+            </span>
+<span class="flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-status-system"></span> PROXY TRACE
+            </span>
+</div>
+</div>
+<!-- Live Graph Telemetry Overlay -->
+<div class="bg-surface-elevated px-space-md py-space-xs flex flex-wrap items-center justify-between font-label-sm text-label-sm">
+<div class="flex items-center gap-space-md text-text-secondary">
+<span>NODES: <strong class="text-text-primary">62 BROKERS / 353 ASSETS</strong></span>
+<span class="text-border-accent">|</span>
+<span>EDGES: <strong class="text-status-system">1,842 FLOWS</strong></span>
+</div>
+<div class="flex items-center gap-space-md">
+<span>MODULARITY Q: <strong class="text-status-advance">0.741 (HIGH PARTITION)</strong></span>
+<span class="text-border-accent">|</span>
+<span>CONVEX HULLS: <strong class="text-status-warning font-bold">2 ACTIVE</strong></span>
+</div>
+</div>
+</div>
+<!-- ================= PANEL C: RIGHT COLUMN (CARTEL FORENSICS & HHI DEEP-DIVE) ================= -->
+<div class="lg:col-span-3 flex flex-col gap-space-xs bg-surface-panel p-space-sm shadow-md">
+<!-- CARD 1: HERFINDAHL-HIRSCHMAN INDEX (HHI) SURVEILLANCE -->
+<div class="bg-surface-elevated p-space-sm flex flex-col gap-space-xs">
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-status-warning text-[16px]">pie_chart</span>
+<span class="font-headline-sm text-headline-sm text-text-primary uppercase font-bold">HHI SURVEILLANCE</span>
+</div>
+<span class="font-label-sm text-label-sm text-status-warning bg-surface-container px-space-xs py-[1px]">ALERT LVL 3</span>
+</div>
+<div class="flex items-center justify-between font-label-md text-label-md pt-space-xs">
+<span class="text-text-secondary">ASSET IN FOCUS:</span>
+<span class="text-status-advance font-bold font-mono">SAHAS HYDROPOWER</span>
+</div>
+<!-- Gauge Score & Interpretation -->
+<div class="bg-surface-container-lowest p-space-sm flex flex-col gap-space-xs">
+<div class="flex items-baseline justify-between">
+<span class="font-label-sm text-label-sm text-text-tertiary">CONCENTRATION INDEX</span>
+<span class="font-headline-lg text-headline-lg text-status-warning font-extrabold font-mono">0.312</span>
+</div>
+<!-- Meter Bar -->
+<div class="w-full bg-surface-container h-2 relative overflow-hidden">
+<div class="bg-gradient-to-r from-status-advance via-status-warning to-status-decline h-full w-[88%]"></div>
+</div>
+<div class="flex justify-between font-label-sm text-label-sm text-text-tertiary">
+<span>0.10 BENCHMARK</span>
+<span class="text-status-warning font-semibold">&gt;0.25 SQUEEZE THRESHOLD</span>
+</div>
+</div>
+<!-- Top 3 Buying Brokers Absorption -->
+<div class="flex flex-col gap-space-xs pt-space-xs">
+<div class="font-label-sm text-label-sm text-text-secondary flex justify-between">
+<span>FLOAT ABSORPTION (TOP 3):</span>
+<span class="text-status-warning font-bold">74.2% OF FREE FLOAT</span>
+</div>
+<div class="grid grid-cols-3 gap-space-xs font-label-sm text-label-sm text-center">
+<div class="bg-surface-container p-space-xs flex flex-col">
+<span class="text-text-secondary">#58 NAASA</span>
+<span class="text-status-advance font-bold font-mono text-body-sm">38.4%</span>
+</div>
+<div class="bg-surface-container p-space-xs flex flex-col">
+<span class="text-text-secondary">#45 IMP</span>
+<span class="text-status-advance font-bold font-mono text-body-sm">24.1%</span>
+</div>
+<div class="bg-surface-container p-space-xs flex flex-col">
+<span class="text-text-secondary">#34 VIS</span>
+<span class="text-status-advance font-bold font-mono text-body-sm">11.7%</span>
+</div>
+</div>
+</div>
+<!-- Float Warning Banner -->
+<div class="p-space-xs bg-surface-container-high text-status-warning font-label-sm text-label-sm leading-tight flex items-start gap-space-xs mt-space-xs">
+<span class="material-symbols-outlined text-[15px] shrink-0 text-status-warning">bolt</span>
+<span>WARNING: SYNDICATE FLOAT RETENTION EXCEEDS 45-DAY FLOORSHEET MEAN. SQUEEZE DETECTED.</span>
+</div>
+</div>
+<!-- CARD 2: LEIDEN CLUSTERING & WASH TRADING DETECTOR -->
+<div class="bg-surface-elevated p-space-sm flex flex-col gap-space-xs">
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-status-system text-[16px]">bubble_chart</span>
+<span class="font-headline-sm text-headline-sm text-text-primary uppercase font-bold">WASH FORENSICS</span>
+</div>
+<span class="font-label-sm text-label-sm text-status-advance bg-surface-container px-space-xs py-[1px]">VERIFIED</span>
+</div>
+<div class="grid grid-cols-2 gap-space-xs pt-space-xs">
+<div class="bg-surface-container p-space-xs flex flex-col">
+<span class="font-label-sm text-label-sm text-text-tertiary">LEIDEN Q SCORE</span>
+<span class="font-headline-md text-headline-md text-status-advance font-bold font-mono">0.741</span>
+<span class="font-label-sm text-label-sm text-text-secondary">Syndicate Part.</span>
+</div>
+<div class="bg-surface-container p-space-xs flex flex-col">
+<span class="font-label-sm text-label-sm text-text-tertiary">SCRUBBED VOL</span>
+<span class="font-headline-md text-headline-md text-status-system font-bold font-mono">18.4M NPR</span>
+<span class="font-label-sm text-label-sm text-text-secondary">412 Wash Ticks</span>
+</div>
+</div>
+<div class="font-body-sm text-body-sm text-text-secondary leading-tight mt-space-xs">
+            Zero-Delta round trips isolated. Broker #19 self-matched matching pairs de-weighted from synthetic momentum metrics.
+          </div>
+<!-- CDSC T+2 Clearance Flag -->
+<div class="p-space-xs bg-surface-container text-text-primary font-label-sm text-label-sm leading-tight flex items-start gap-space-xs">
+<span class="material-symbols-outlined text-[14px] shrink-0 text-status-advance">shield</span>
+<span>CDSC T+2 CLEARANCE FLAG: SETTLEMENT AT RISK IF CDSC DELIVERY FAILS ON T+2 (NO SAME-DAY SQUARING).</span>
+</div>
+</div>
+<!-- CARD 3: ACTIONABLE OPERATOR DIRECTIVES -->
+<div class="bg-surface-elevated p-space-sm flex flex-col gap-space-xs">
+<div class="flex items-center gap-space-xs pb-space-xs">
+<span class="material-symbols-outlined text-primary text-[16px]">terminal</span>
+<span class="font-headline-sm text-headline-sm text-text-primary uppercase font-bold">OPERATOR VERDICT</span>
+</div>
+<div class="bg-surface-container-lowest p-space-sm text-status-advance font-body-sm text-body-sm leading-normal">
+            &gt; <span class="font-bold text-text-primary">INSTITUTIONAL ACCUMULATION VERIFIED.</span>
+            Ride Alliance Momentum with trailing stop loss pinned at <span class="font-mono text-status-system font-bold">524.00 NPR</span>. Do not short while Broker #58 maintains 38% buy depth.
+          </div>
+<div class="flex flex-col gap-space-xs pt-space-xs">
+<button class="w-full py-space-xs bg-surface-container hover:bg-surface-container-high text-status-system font-label-md text-label-md uppercase tracking-wider flex items-center justify-center gap-space-xs transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-[14px]">table_rows</span>
+<span>[ VIEW LEVEL 2 BOOK (SCREEN 1) ]</span>
+</button>
+<button class="w-full py-space-xs bg-surface-container hover:bg-surface-container-high text-text-primary font-label-md text-label-md uppercase tracking-wider flex items-center justify-center gap-space-xs transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-[14px]">receipt_long</span>
+<span>[ AUDIT FULL 150K FLOORSHEET ]</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- CLIENT MICRO-INTERACTIONS SCRIPT -->
+<script>
+  (function initBrokerDesk() {
+    // 1. Pedagogical Operator Guide Toggle
+    const toggleBtn = document.getElementById('toggle-guide-btn');
+    const guideGrid = document.getElementById('guide-cards-grid');
+    const toggleText = document.getElementById('guide-toggle-text');
+    const toggleIcon = document.getElementById('guide-toggle-icon');
+    let guideVisible = true;
+
+    if (toggleBtn && guideGrid) {
+      toggleBtn.addEventListener('click', () => {
+        guideVisible = !guideVisible;
+        if (guideVisible) {
+          guideGrid.classList.remove('hidden');
+          toggleText.textContent = '[ - HIDE GUIDE ]';
+          toggleIcon.textContent = 'expand_less';
+        } else {
+          guideGrid.classList.add('hidden');
+          toggleText.textContent = '[ + SHOW GUIDE ]';
+          toggleIcon.textContent = 'expand_more';
+        }
+      });
+    }
+
+    // 2. Broker Directory Filter Buttons
+    const filterButtons = document.querySelectorAll('.broker-filter-btn');
+    const brokerCards = document.querySelectorAll('.broker-card');
+
+    filterButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterButtons.forEach(b => {
+          b.classList.remove('bg-surface-elevated', 'text-status-system', 'font-semibold');
+          b.classList.add('bg-surface-container-low', 'text-text-tertiary');
+        });
+        btn.classList.add('bg-surface-elevated', 'text-status-system', 'font-semibold');
+        btn.classList.remove('bg-surface-container-low', 'text-text-tertiary');
+
+        const filterId = btn.id;
+        brokerCards.forEach(card => {
+          const type = card.getAttribute('data-type') || '';
+          if (filterId === 'btn-filter-all') {
+            card.classList.remove('hidden');
+          } else if (filterId === 'btn-filter-acc') {
+            card.classList.toggle('hidden', !type.includes('accum'));
+          } else if (filterId === 'btn-filter-dist') {
+            card.classList.toggle('hidden', !type.includes('dist'));
+          } else if (filterId === 'btn-filter-cartel') {
+            card.classList.toggle('hidden', !type.includes('cartel'));
+          }
+        });
+      });
+    });
+
+    // 3. Broker Search Input
+    const searchInput = document.getElementById('broker-search-input');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        const val = e.target.value.toLowerCase().trim();
+        brokerCards.forEach(card => {
+          const text = card.textContent.toLowerCase();
+          card.classList.toggle('hidden', !text.includes(val));
+        });
+      });
+    }
+
+    // 4. Toggle Convex Hulls on Center SVG
+    const toggleHullsBtn = document.getElementById('btn-toggle-hulls');
+    const hullGroup = document.getElementById('convex-hull-group');
+    let hullsActive = true;
+
+    if (toggleHullsBtn && hullGroup) {
+      toggleHullsBtn.addEventListener('click', () => {
+        hullsActive = !hullsActive;
+        if (hullsActive) {
+          hullGroup.style.opacity = '1';
+          toggleHullsBtn.textContent = '[ HULLS: ON ]';
+          toggleHullsBtn.classList.remove('text-text-tertiary');
+          toggleHullsBtn.classList.add('text-status-warning');
+        } else {
+          hullGroup.style.opacity = '0';
+          toggleHullsBtn.textContent = '[ HULLS: OFF ]';
+          toggleHullsBtn.classList.remove('text-status-warning');
+          toggleHullsBtn.classList.add('text-text-tertiary');
+        }
+      });
+    }
+
+    // 5. Force Atlas Layout Re-simulation Feedback
+    const forceAtlasBtn = document.getElementById('btn-force-atlas');
+    if (forceAtlasBtn) {
+      forceAtlasBtn.addEventListener('click', () => {
+        forceAtlasBtn.textContent = '[ RELAXING... ]';
+        forceAtlasBtn.classList.add('text-status-system');
+        setTimeout(() => {
+          forceAtlasBtn.textContent = '[ FORCE ATLAS ]';
+          forceAtlasBtn.classList.remove('text-status-system');
+        }, 600);
+      });
+    }
+  })();
+</script></main><footer class="fixed bottom-0 left-0 right-0 h-[28px] z-50 bg-surface-panel/95 backdrop-blur-md px-gutter flex items-center justify-between border-t border-border-subtle font-label-sm text-label-sm"><div class="flex items-center gap-space-md text-text-tertiary"><span>GATE G4 ENGINE: <span class="text-status-advance font-semibold">ACTIVE (395 SECURITIES)</span></span><span class="text-border-accent">|</span><span>SEQLOCK SEQ: <span class="text-text-secondary font-mono">149,008</span></span><span class="text-border-accent">|</span><span>LATENCY: <span class="text-primary-fixed-dim font-mono">142.5 µs</span></span></div><div class="hidden xl:flex items-center gap-space-lg text-text-tertiary tracking-wider"><span><span class="text-text-secondary">[0-9]</span> WORKSPACES</span><span><span class="text-text-secondary">[SPACE]</span> PAUSE/RESUME</span><span><span class="text-text-secondary">[ESC]</span> LAUNCH PAD</span><span><span class="text-text-secondary">[F2]</span> SEARCH TICKER</span></div><div class="flex items-center gap-space-md"><span class="text-text-secondary">ACTIVE: <span class="text-primary font-semibold">0. LAUNCH PAD</span></span><span class="text-border-accent">|</span><span class="text-status-advance font-semibold">CDSC T+2 SETTLEMENT SHIELD: VERIFIED</span></div></footer></body></html>

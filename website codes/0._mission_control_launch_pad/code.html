@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100..900&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"on-tertiary-fixed-variant":"#582a9f","surface-dim":"#0f141b","secondary-fixed-dim":"#00e475","on-primary-fixed-variant":"#004f58","on-secondary-container":"#00622e","secondary":"#7dffa2","surface-container-lowest":"#0a0e15","text-tertiary":"#475569","surface-container":"#1c2027","tertiary":"#f4e8ff","inverse-surface":"#dfe2ed","surface-container-high":"#262a32","surface-elevated":"#131B2A","background":"#0f141b","surface-variant":"#31353d","tertiary-fixed-dim":"#d4bbff","on-background":"#dfe2ed","outline":"#849396","inverse-primary":"#006875","tertiary-container":"#ddc7ff","primary-fixed":"#9cf0ff","status-warning":"#FFB300","on-tertiary-fixed":"#260058","primary":"#c3f5ff","surface-bright":"#353941","flash-decline":"rgba(255, 23, 68, 0.35)","on-primary":"#00363d","outline-variant":"#3b494c","primary-fixed-dim":"#00daf3","inverse-on-surface":"#2c3139","flash-system":"rgba(0, 229, 255, 0.35)","on-secondary-fixed-variant":"#005226","border-accent":"#24344D","primary-container":"#00e5ff","status-rotation":"#B388FF","status-system":"#00E5FF","on-secondary-fixed":"#00210b","error":"#ffb4ab","on-primary-container":"#00626e","surface-container-low":"#181c23","on-surface":"#dfe2ed","surface-panel":"#070B12","on-primary-fixed":"#001f24","flash-warning":"rgba(255, 179, 0, 0.35)","status-decline":"#FF1744","surface-root":"#020306","text-primary":"#FFFFFF","secondary-fixed":"#62ff96","on-tertiary":"#400688","on-secondary":"#003918","on-error-container":"#ffdad6","surface-container-highest":"#31353d","flash-advance":"rgba(0, 230, 118, 0.35)","tertiary-fixed":"#ebdcff","on-error":"#690005","flash-rotation":"rgba(179, 136, 255, 0.35)","status-advance":"#00E676","on-tertiary-container":"#6b40b2","border-subtle":"#1B2538","error-container":"#93000a","secondary-container":"#05e777","surface":"#0f141b","on-surface-variant":"#bac9cc","border-muted":"#131B2A","text-secondary":"#94A3B8","surface-tint":"#00daf3"},borderRadius:{DEFAULT:"0.25rem",lg:"0.5rem",xl:"0.75rem",full:"9999px"},spacing:{"space-xs":"0.125rem","space-md":"0.375rem",margin:"0.25rem",gutter:"0.375rem","space-xl":"0.75rem","space-lg":"0.5rem","space-sm":"0.25rem"},fontFamily:{"headline-lg":["JetBrains Mono"],"label-md":["JetBrains Mono"],"headline-md":["JetBrains Mono"],"label-sm":["JetBrains Mono"],"label-lg":["JetBrains Mono"],"body-sm":["JetBrains Mono"],"body-md":["JetBrains Mono"],"body-lg":["JetBrains Mono"],"headline-sm":["JetBrains Mono"]},fontSize:{"headline-lg":["16px",{lineHeight:"20px",letterSpacing:"0.04em",fontWeight:"700"}],"label-md":["10px",{lineHeight:"12px",letterSpacing:"0.06em",fontWeight:"600"}],"headline-md":["14px",{lineHeight:"18px",letterSpacing:"0.02em",fontWeight:"600"}],"label-sm":["9px",{lineHeight:"11px",letterSpacing:"0.08em",fontWeight:"500"}],"label-lg":["11px",{lineHeight:"14px",letterSpacing:"0.05em",fontWeight:"600"}],"body-sm":["11px",{lineHeight:"14px",letterSpacing:"0em",fontWeight:"400"}],"body-md":["12px",{lineHeight:"16px",letterSpacing:"0em",fontWeight:"400"}],"body-lg":["13px",{lineHeight:"18px",letterSpacing:"0em",fontWeight:"400"}],"headline-sm":["13px",{lineHeight:"16px",letterSpacing:"0.02em",fontWeight:"600"}]}}}};</script></head><body class="bg-surface-root text-on-surface font-body-sm text-body-sm min-h-screen flex flex-col justify-between select-none"><header class="fixed top-0 left-0 right-0 h-[38px] z-50 bg-surface-panel/95 backdrop-blur-md px-gutter flex items-center justify-between border-b border-border-subtle"><div class="flex items-center gap-space-lg"><div class="flex items-center gap-space-sm pl-space-xs"><div class="w-2 h-2 rounded-full bg-status-advance animate-pulse"></div><span class="font-headline-sm text-headline-sm text-primary tracking-wider uppercase font-bold">NEPSE PULSE TERMINAL</span><span class="px-space-xs py-[1px] bg-surface-elevated text-text-secondary font-label-sm text-label-sm rounded">v4.2</span></div><nav class="flex items-center h-[38px]" data-active-classes="bg-surface-elevated text-primary border-b border-primary-container"><a aria-current="page" class="h-[38px] px-space-md flex items-center font-label-md tracking-wider transition-colors bg-surface-elevated text-primary border-b border-primary-container" data-path="launch-pad" href="#">[0] LAUNCH PAD</a><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="trading-desk" href="#">[1] TRADING DESK</a><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="alpha-dashboard" href="#">[2] ALPHA DASHBOARD</a><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="risk-lab" href="#">[3] RISK LAB</a><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="20d-forecast" href="#">[4] 20D FORECAST</a><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="blotter" href="#">[5] BLOTTER</a><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="stock-360" href="#">[6] STOCK 360</a><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="smart-alerts" href="#">[7] SMART ALERTS</a><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="macro-regime" href="#">[8] MACRO REGIME</a><a class="h-[38px] px-space-md flex items-center text-text-secondary hover:text-on-surface hover:bg-surface-container font-label-md text-label-md tracking-wider transition-colors" data-path="broker-cartel" href="#">[9] BROKER CARTEL</a></nav></div><div class="flex items-center gap-space-lg"><div class="flex items-center gap-space-sm px-space-md py-space-xs bg-surface-container-lowest border border-border-muted"><span class="w-1.5 h-1.5 rounded-full bg-status-warning"></span><span class="font-label-md text-label-md text-status-warning uppercase font-semibold">MARKET CLOSED</span></div><div class="font-label-md text-label-md text-text-secondary tracking-widest">NPT <span class="text-text-primary font-bold">15:37:42</span></div><div class="font-label-sm text-label-sm text-text-tertiary border-l border-border-subtle pl-space-md">GATE G4: <span class="text-status-advance">60.0 FPS</span> | <span class="text-primary-fixed-dim">142.5 µs</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="w-full pt-[38px] pb-[28px] bg-surface-root min-h-[calc(100vh-28px)]"><div class="flex flex-col w-full text-on-surface select-none">
+<!-- PERSISTENT TWO-ROW CONTINUOUS MARKET TAPE SUB-NAV -->
+<section class="w-full bg-surface-panel flex flex-col border-b border-border-subtle text-label-sm font-label-sm">
+<!-- Row 1: Status Chips & Marquee Continuous Tape -->
+<div class="w-full px-gutter py-[4px] flex items-center justify-between border-b border-border-muted/60 overflow-x-auto min-w-0 gap-space-md">
+<div class="flex items-center gap-space-md shrink-0">
+<div class="flex items-center gap-space-xs shrink-0 bg-surface-container-lowest px-space-md py-[2px] rounded border border-border-muted">
+<span class="w-1.5 h-1.5 rounded-full bg-status-warning"></span>
+<span class="text-status-warning font-semibold uppercase tracking-wider">MARKET CLOSED 15:37:42 NPT • FROZEN</span>
+</div>
+<div class="shrink-0 bg-surface-elevated px-space-sm py-[2px] rounded text-text-tertiary">
+        SIMULATION REPLAY: <span class="text-text-secondary font-semibold">OFF</span>
+</div>
+<div class="shrink-0 bg-surface-elevated px-space-sm py-[2px] rounded text-status-warning/90 flex items-center gap-1">
+<span class="w-1 h-1 rounded-full bg-status-warning"></span>
+<span>SETTLED CLOSING PRICES (NO LIVE TICKS)</span>
+</div>
+</div>
+<!-- Ticker Marquee Chips -->
+<div class="flex items-center gap-space-lg pl-space-md border-l border-border-muted shrink-0 font-label-md text-label-md">
+<div class="flex items-center gap-space-xs"><span class="text-text-primary font-bold">GHL</span><span class="text-text-secondary font-mono">286.0</span><span class="text-status-decline font-semibold font-mono">-3.02%</span></div>
+<div class="flex items-center gap-space-xs"><span class="text-text-primary font-bold">HDHPC</span><span class="text-text-secondary font-mono">228.3</span><span class="text-status-advance font-semibold font-mono">+2.38%</span></div>
+<div class="flex items-center gap-space-xs"><span class="text-text-primary font-bold">PHCL</span><span class="text-text-secondary font-mono">337.0</span><span class="text-status-decline font-semibold font-mono">-2.03%</span></div>
+<div class="flex items-center gap-space-xs"><span class="text-text-primary font-bold">KBL</span><span class="text-text-secondary font-mono">227.8</span><span class="text-status-advance font-semibold font-mono">+0.75%</span></div>
+<div class="flex items-center gap-space-xs"><span class="text-text-primary font-bold">BHL</span><span class="text-text-secondary font-mono">218.8</span><span class="text-status-advance font-semibold font-mono">+2.72%</span></div>
+<div class="flex items-center gap-space-xs"><span class="text-text-primary font-bold">NABIL</span><span class="text-text-secondary font-mono">533.0</span><span class="text-status-advance font-semibold font-mono">+0.02%</span></div>
+</div>
+</div>
+<!-- Row 2: Secondary Telemetry strip (Index, Turnover, Volume, Breadth) -->
+<div class="w-full px-gutter py-[4px] flex items-center justify-between overflow-x-auto min-w-0 bg-surface-panel/90 text-label-sm font-label-sm">
+<div class="flex items-center gap-space-lg shrink-0">
+<div class="flex items-center gap-space-xs">
+<span class="text-text-tertiary">NEPSE INDEX</span>
+<span class="text-text-primary font-bold font-mono text-label-md">2,684.52</span>
+<span class="text-status-advance font-semibold font-mono">+18.42 (+0.69%)</span>
+</div>
+<div class="flex items-center gap-space-xs border-l border-border-muted pl-space-md">
+<span class="text-text-tertiary">TURNOVER</span>
+<span class="text-text-primary font-semibold font-mono">NPR 3.92 Arba</span>
+</div>
+<div class="flex items-center gap-space-xs border-l border-border-muted pl-space-md">
+<span class="text-text-tertiary">VOLUME</span>
+<span class="text-text-primary font-semibold font-mono">11.20M Kitta</span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs shrink-0">
+<span class="text-text-tertiary">BREADTH</span>
+<div class="flex items-center gap-1 font-mono">
+<span class="text-status-advance font-semibold">171▲</span>
+<span class="text-text-tertiary">/</span>
+<span class="text-status-decline font-semibold">64▼</span>
+<span class="text-text-tertiary">/</span>
+<span class="text-text-secondary font-semibold">8-</span>
+</div>
+</div>
+</div>
+</section>
+<!-- WORKSPACE CONTENT CONTAINER -->
+<div class="w-full max-w-[1920px] mx-auto px-gutter py-space-md flex flex-col gap-space-md">
+<!-- COLLAPSIBLE PEDAGOGICAL OPERATOR GUIDE -->
+<div class="w-full bg-surface-panel rounded border border-border-subtle border-l-[3px] border-l-primary-container p-space-md transition-all duration-200" id="operatorGuide">
+<div class="flex items-center justify-between pb-space-xs border-b border-border-muted">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[18px]">terminal</span>
+<span class="font-headline-sm text-headline-sm text-primary tracking-wide">कमाण्ड केन्द्र (Screen 0: Mission Control Launch Pad)</span>
+<span class="text-text-tertiary font-label-sm text-label-sm">// PEDAGOGICAL OPERATOR PROTOCOL</span>
+</div>
+<div class="flex items-center gap-space-md">
+<span class="font-label-sm text-label-sm text-status-advance flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-status-advance animate-ping"></span>
+            SYSTEMIC ENGINE READY
+          </span>
+<button class="px-space-md py-[2px] bg-surface-elevated hover:bg-surface-container text-text-secondary hover:text-on-surface font-label-sm text-label-sm uppercase rounded transition-colors border border-border-subtle" id="toggleGuideBtn">
+            [ - HIDE GUIDE ]
+          </button>
+</div>
+</div>
+<!-- 4-Card Pedagogical Matrix -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-space-md pt-space-md" id="guideContent">
+<!-- Card 1 -->
+<div class="bg-surface-elevated/70 p-space-md rounded border border-border-muted flex flex-col gap-space-xs">
+<div class="flex items-center justify-between text-label-sm font-label-sm">
+<span class="text-primary font-semibold uppercase tracking-wider">01. SYSTEM OBJECTIVE</span>
+<span class="text-text-tertiary">लक्षित उद्देश्य</span>
+</div>
+<p class="font-body-sm text-body-sm text-text-secondary leading-relaxed">
+            Zero-Latency System Overview: Aggregates real-time lakehouse ingestion, systemic spectral fragility, liquidity pools, and provides rapid keyboard routing <span class="text-primary font-mono">[1-9]</span> to all deep analytical workspaces.
+          </p>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-elevated/70 p-space-md rounded border border-border-muted flex flex-col gap-space-xs">
+<div class="flex items-center justify-between text-label-sm font-label-sm">
+<span class="text-primary font-semibold uppercase tracking-wider">02. CHROMATIC CODING</span>
+<span class="text-text-tertiary">रंग संकेत प्रणाली</span>
+</div>
+<div class="font-body-sm text-body-sm text-text-secondary flex flex-col gap-[2px]">
+<div><span class="text-status-advance font-bold">Green (#00E676):</span> Institutional accumulation / bullish regimes</div>
+<div><span class="text-status-decline font-bold">Red (#FF1744):</span> Stop-loss triggers / cartel distribution</div>
+<div><span class="text-primary font-bold">Cyan (#00E5FF):</span> P50 forecasts / verified EOD floorsheets</div>
+<div><span class="text-status-warning font-bold">Amber (#FFB300):</span> Cartel cornering &amp; anomaly breach</div>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-elevated/70 p-space-md rounded border border-border-muted flex flex-col gap-space-xs">
+<div class="flex items-center justify-between text-label-sm font-label-sm">
+<span class="text-primary font-semibold uppercase tracking-wider">03. OPERATOR PROTOCOL</span>
+<span class="text-text-tertiary">सञ्चालन कार्यविधि</span>
+</div>
+<p class="font-body-sm text-body-sm text-text-secondary leading-relaxed">
+<span class="text-text-primary font-semibold">Rule 1:</span> Always verify CDSC T+2 settlement shield before deploying capital.
+            <span class="text-text-primary font-semibold">Rule 2:</span> In live continuous mode (11:00-15:00), broker nodes are Bayesian probabilistic proxies until 15:30 EOD floorsheet ingestion.
+          </p>
+</div>
+<!-- Card 4 -->
+<div class="bg-surface-elevated/70 p-space-md rounded border border-border-muted flex flex-col gap-space-xs">
+<div class="flex items-center justify-between text-label-sm font-label-sm">
+<span class="text-primary font-semibold uppercase tracking-wider">04. MARKET REGIME CONTEXT</span>
+<span class="text-text-tertiary">बजार स्थिति</span>
+</div>
+<p class="font-body-sm text-body-sm text-text-secondary leading-relaxed">
+            Market State: <span class="text-status-warning font-semibold">POST-MARKET RECONCILIATION</span>. 150,000 floorsheet ticks fully ingested. Conformal coverage guaranteed at <span class="text-status-advance font-semibold">90%</span> across 395 tracked benchmark assets.
+          </p>
+</div>
+</div>
+</div>
+<!-- HIGH-DENSITY TELEMETRY AGGREGATE STRIP -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-space-md font-label-sm text-label-sm">
+<div class="bg-surface-panel p-space-md rounded border border-border-subtle flex flex-col gap-space-xs">
+<span class="text-text-tertiary uppercase tracking-wider">LAKEHOUSE STORED TICKS</span>
+<div class="flex items-baseline justify-between">
+<span class="font-headline-lg text-headline-lg text-text-primary font-mono font-bold">149,008</span>
+<span class="text-status-advance font-semibold">PARQUET SYNCED</span>
+</div>
+<div class="w-full bg-surface-container h-1 rounded-full overflow-hidden mt-space-xs">
+<div class="bg-status-advance h-full w-[98%]"></div>
+</div>
+</div>
+<div class="bg-surface-panel p-space-md rounded border border-border-subtle flex flex-col gap-space-xs">
+<span class="text-text-tertiary uppercase tracking-wider">LIQUID CAPITAL AVAILABLE</span>
+<div class="flex items-baseline justify-between">
+<span class="font-headline-lg text-headline-lg text-primary font-mono font-bold">NPR 42,500,000</span>
+<span class="text-status-advance font-semibold">T+2 SHIELD PASS</span>
+</div>
+<div class="w-full bg-surface-container h-1 rounded-full overflow-hidden mt-space-xs">
+<div class="bg-primary-container h-full w-[85%]"></div>
+</div>
+</div>
+<div class="bg-surface-panel p-space-md rounded border border-border-subtle flex flex-col gap-space-xs">
+<span class="text-text-tertiary uppercase tracking-wider">SYSTEMIC SPECTRAL RADIUS</span>
+<div class="flex items-baseline justify-between">
+<span class="font-headline-lg text-headline-lg text-text-primary font-mono font-bold">0.742</span>
+<span class="text-status-advance font-semibold">SUBCRITICAL (&lt;0.85)</span>
+</div>
+<div class="w-full bg-surface-container h-1 rounded-full overflow-hidden mt-space-xs">
+<div class="bg-status-advance h-full w-[65%]"></div>
+</div>
+</div>
+<div class="bg-surface-panel p-space-md rounded border border-border-subtle flex flex-col gap-space-xs">
+<span class="text-text-tertiary uppercase tracking-wider">MACRO REGIME SYNTHESIS</span>
+<div class="flex items-baseline justify-between">
+<span class="font-headline-lg text-headline-lg text-text-primary font-mono font-bold">$74.20 <span class="text-label-sm font-normal text-text-secondary">BRENT</span></span>
+<span class="text-status-warning font-semibold">DRY TARIFF (0.68)</span>
+</div>
+<div class="flex items-center justify-between text-text-tertiary text-label-sm mt-space-xs font-mono">
+<span>IB LIQUIDITY: NPR 112.4A</span>
+<span class="text-status-advance">STABLE</span>
+</div>
+</div>
+</div>
+<!-- 3x3 INTERACTIVE LAUNCH CARDS GRID (SCREENS 1 - 9) -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-space-md">
+<!-- CARD 1: TRADING DESK -->
+<div class="bg-surface-panel rounded border border-border-subtle hover:border-primary-container/80 transition-all duration-150 p-space-lg flex flex-col justify-between group">
+<div>
+<div class="flex items-start justify-between pb-space-sm border-b border-border-muted">
+<div class="flex items-center gap-space-sm">
+<span class="px-space-xs py-[2px] bg-primary/10 text-primary border border-primary/30 rounded font-label-md text-label-md font-bold font-mono">[1]</span>
+<span class="font-headline-md text-headline-md text-text-primary font-bold">Trading Desk &amp; Real-Time Tape</span>
+</div>
+<span class="px-space-xs py-[1px] bg-status-advance/10 text-status-advance border border-status-advance/30 font-label-sm text-label-sm rounded uppercase font-semibold">ACTIVE LIVE</span>
+</div>
+<div class="grid grid-cols-2 gap-space-sm py-space-md text-label-sm font-label-sm border-b border-border-muted">
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">L2 ORDER BOOK</span>
+<span class="font-mono text-text-primary font-semibold">50 Depths (Real-Time)</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">BID / ASK SPREAD</span>
+<span class="font-mono text-status-advance font-semibold">NPR 1.0 (0.14%)</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">ACTIVE ASSET</span>
+<span class="font-mono text-primary font-semibold">NABIL @ NPR 533.0</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">ZERO-DOM STAGE</span>
+<span class="font-mono text-text-secondary">Candle + VPVR + EMA</span>
+</div>
+</div>
+<!-- Mini Sparkline / Depth preview -->
+<div class="py-space-md flex items-center justify-between gap-space-sm font-mono text-label-sm">
+<div class="w-1/2 bg-status-advance/10 px-space-sm py-space-xs rounded border border-status-advance/20">
+<div class="text-text-tertiary text-label-sm uppercase">BID QUEUE</div>
+<div class="text-status-advance font-bold">22,225 Kitta</div>
+</div>
+<div class="w-1/2 bg-status-decline/10 px-space-sm py-space-xs rounded border border-status-decline/20">
+<div class="text-text-tertiary text-label-sm uppercase">ASK QUEUE</div>
+<div class="text-status-decline font-bold">19,447 Kitta</div>
+</div>
+</div>
+</div>
+<a class="mt-space-sm w-full py-space-sm px-space-md bg-surface-elevated hover:bg-primary/20 text-text-secondary hover:text-primary border border-border-subtle hover:border-primary-container rounded flex items-center justify-between font-label-md text-label-md tracking-wider transition-colors" href="#">
+<span>ENTER TRADING DESK</span>
+<span class="font-bold">LAUNCH WORKSPACE [1] →</span>
+</a>
+</div>
+<!-- CARD 2: ALPHA DASHBOARD -->
+<div class="bg-surface-panel rounded border border-border-subtle hover:border-primary-container/80 transition-all duration-150 p-space-lg flex flex-col justify-between group">
+<div>
+<div class="flex items-start justify-between pb-space-sm border-b border-border-muted">
+<div class="flex items-center gap-space-sm">
+<span class="px-space-xs py-[2px] bg-primary/10 text-primary border border-primary/30 rounded font-label-md text-label-md font-bold font-mono">[2]</span>
+<span class="font-headline-md text-headline-md text-text-primary font-bold">Alpha Dashboard &amp; Hawkes Mechanics</span>
+</div>
+<span class="px-space-xs py-[1px] bg-primary-container/10 text-primary-container border border-primary-container/30 font-label-sm text-label-sm rounded uppercase font-semibold">SIGNAL ACTIVE</span>
+</div>
+<div class="grid grid-cols-2 gap-space-sm py-space-md text-label-sm font-label-sm border-b border-border-muted">
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">HAWKES INTENSITY</span>
+<span class="font-mono text-status-advance font-semibold">88.4% (Extreme Sweep)</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">TOP ACCUMULATION</span>
+<span class="font-mono text-primary font-semibold">SAHAS, SHIVM</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">5D EXPECTED RETURN</span>
+<span class="font-mono text-status-advance font-semibold">+4.82% Alpha</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">ORDER FLOW CONVICTION</span>
+<span class="font-mono text-text-primary">Strong Accumulate</span>
+</div>
+</div>
+<!-- Mini Hawkes intensity visual -->
+<div class="py-space-md flex flex-col gap-1">
+<div class="flex justify-between font-mono text-label-sm text-text-tertiary">
+<span>HAWKES CLUSTER SPREAD</span>
+<span class="text-status-advance font-bold">0.884 λ</span>
+</div>
+<div class="w-full bg-surface-container h-2 rounded overflow-hidden flex">
+<div class="bg-status-advance h-full shadow-[0_0_8px_rgba(0,230,118,0.5)]" style="width: 88.4%;"></div>
+<div class="bg-status-decline h-full" style="width: 11.6%;"></div>
+</div>
+</div>
+</div>
+<a class="mt-space-sm w-full py-space-sm px-space-md bg-surface-elevated hover:bg-primary/20 text-text-secondary hover:text-primary border border-border-subtle hover:border-primary-container rounded flex items-center justify-between font-label-md text-label-md tracking-wider transition-colors" href="#">
+<span>RUN ALPHA MODELS</span>
+<span class="font-bold">LAUNCH WORKSPACE [2] →</span>
+</a>
+</div>
+<!-- CARD 3: RISK LAB -->
+<div class="bg-surface-panel rounded border border-border-subtle hover:border-primary-container/80 transition-all duration-150 p-space-lg flex flex-col justify-between group">
+<div>
+<div class="flex items-start justify-between pb-space-sm border-b border-border-muted">
+<div class="flex items-center gap-space-sm">
+<span class="px-space-xs py-[2px] bg-primary/10 text-primary border border-primary/30 rounded font-label-md text-label-md font-bold font-mono">[3]</span>
+<span class="font-headline-md text-headline-md text-text-primary font-bold">Risk Lab &amp; Systemic Governance</span>
+</div>
+<span class="px-space-xs py-[1px] bg-status-advance/10 text-status-advance border border-status-advance/30 font-label-sm text-label-sm rounded uppercase font-semibold">PROTECTED</span>
+</div>
+<div class="grid grid-cols-2 gap-space-sm py-space-md text-label-sm font-label-sm border-b border-border-muted">
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">95% 5D PORTFOLIO VAR</span>
+<span class="font-mono text-text-primary font-semibold">3.12% Exposure</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">DIVERSIFICATION RATIO</span>
+<span class="font-mono text-status-advance font-semibold">2.84x (HRP Opt)</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">SPECTRAL FRAGILITY</span>
+<span class="font-mono text-text-secondary">0.742 (Subcritical)</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">CDSC DELIVERY RISK</span>
+<span class="font-mono text-status-advance font-semibold">0.00% Zero-Fault</span>
+</div>
+</div>
+<!-- Micro gauge -->
+<div class="py-space-md flex items-center justify-between text-label-sm font-mono">
+<span class="text-text-tertiary uppercase">SEBON NET CAPITAL SURPLUS:</span>
+<span class="text-status-advance font-semibold">+NPR 18.4M BUFFER</span>
+</div>
+</div>
+<a class="mt-space-sm w-full py-space-sm px-space-md bg-surface-elevated hover:bg-primary/20 text-text-secondary hover:text-primary border border-border-subtle hover:border-primary-container rounded flex items-center justify-between font-label-md text-label-md tracking-wider transition-colors" href="#">
+<span>INSPECT RISK LIMITS</span>
+<span class="font-bold">LAUNCH WORKSPACE [3] →</span>
+</a>
+</div>
+<!-- CARD 4: 20D FORECAST -->
+<div class="bg-surface-panel rounded border border-border-subtle hover:border-primary-container/80 transition-all duration-150 p-space-lg flex flex-col justify-between group">
+<div>
+<div class="flex items-start justify-between pb-space-sm border-b border-border-muted">
+<div class="flex items-center gap-space-sm">
+<span class="px-space-xs py-[2px] bg-primary/10 text-primary border border-primary/30 rounded font-label-md text-label-md font-bold font-mono">[4]</span>
+<span class="font-headline-md text-headline-md text-text-primary font-bold">20-Day Forecast Engine</span>
+</div>
+<span class="px-space-xs py-[1px] bg-primary-container/10 text-primary-container border border-primary-container/30 font-label-sm text-label-sm rounded uppercase font-semibold">MODEL READY</span>
+</div>
+<div class="grid grid-cols-2 gap-space-sm py-space-md text-label-sm font-label-sm border-b border-border-muted">
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">CONFORMAL COVERAGE</span>
+<span class="font-mono text-status-advance font-semibold">90% Confidence</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">BENCHMARK P90 TARGET</span>
+<span class="font-mono text-status-advance font-semibold">2,745.0 (+2.25%)</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">P50 MEDIAN PATH</span>
+<span class="font-mono text-primary font-semibold">2,698.2 (+0.51%)</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">P10 CONFORMAL FLOOR</span>
+<span class="font-mono text-status-decline font-semibold">2,640.0 (-1.65%)</span>
+</div>
+</div>
+<!-- Conformal corridor preview strip -->
+<div class="py-space-md">
+<div class="flex justify-between font-mono text-label-sm text-text-tertiary mb-1">
+<span>P10: 2,640</span>
+<span class="text-primary font-bold">P50: 2,698.2</span>
+<span>P90: 2,745</span>
+</div>
+<div class="h-2 bg-surface-container rounded flex overflow-hidden">
+<div class="w-1/3 bg-status-decline/60"></div>
+<div class="w-1/3 bg-primary-container/80"></div>
+<div class="w-1/3 bg-status-advance/60"></div>
+</div>
+</div>
+</div>
+<a class="mt-space-sm w-full py-space-sm px-space-md bg-surface-elevated hover:bg-primary/20 text-text-secondary hover:text-primary border border-border-subtle hover:border-primary-container rounded flex items-center justify-between font-label-md text-label-md tracking-wider transition-colors" href="#">
+<span>OPEN PREDICTIVE MATRIX</span>
+<span class="font-bold">LAUNCH WORKSPACE [4] →</span>
+</a>
+</div>
+<!-- CARD 5: BLOTTER -->
+<div class="bg-surface-panel rounded border border-border-subtle hover:border-primary-container/80 transition-all duration-150 p-space-lg flex flex-col justify-between group">
+<div>
+<div class="flex items-start justify-between pb-space-sm border-b border-border-muted">
+<div class="flex items-center gap-space-sm">
+<span class="px-space-xs py-[2px] bg-primary/10 text-primary border border-primary/30 rounded font-label-md text-label-md font-bold font-mono">[5]</span>
+<span class="font-headline-md text-headline-md text-text-primary font-bold">Portfolio Blotter &amp; Execution</span>
+</div>
+<span class="px-space-xs py-[1px] bg-status-advance/10 text-status-advance border border-status-advance/30 font-label-sm text-label-sm rounded uppercase font-semibold">BALANCED</span>
+</div>
+<div class="grid grid-cols-2 gap-space-sm py-space-md text-label-sm font-label-sm border-b border-border-muted">
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">PORTFOLIO BASE</span>
+<span class="font-mono text-text-primary font-semibold">NPR 50,000,000</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">ALMGREN-CHRISS ENGINE</span>
+<span class="font-mono text-status-advance font-semibold">10-Kitta Quantized</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">EXECUTION URGENCY</span>
+<span class="font-mono text-text-secondary font-semibold">PASSIVE (Low Impact)</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">PENDING SETTLEMENT</span>
+<span class="font-mono text-primary font-semibold">NPR 5,374.99 (T+2)</span>
+</div>
+</div>
+<div class="py-space-md flex items-center justify-between text-label-sm font-mono">
+<span class="text-text-tertiary uppercase">SLIPPAGE GUARD:</span>
+<span class="text-status-advance font-semibold">±0.5% BOUND ACTIVE</span>
+</div>
+</div>
+<a class="mt-space-sm w-full py-space-sm px-space-md bg-surface-elevated hover:bg-primary/20 text-text-secondary hover:text-primary border border-border-subtle hover:border-primary-container rounded flex items-center justify-between font-label-md text-label-md tracking-wider transition-colors" href="#">
+<span>AUDIT OPEN ORDERS</span>
+<span class="font-bold">LAUNCH WORKSPACE [5] →</span>
+</a>
+</div>
+<!-- CARD 6: STOCK 360 -->
+<div class="bg-surface-panel rounded border border-border-subtle hover:border-primary-container/80 transition-all duration-150 p-space-lg flex flex-col justify-between group">
+<div>
+<div class="flex items-start justify-between pb-space-sm border-b border-border-muted">
+<div class="flex items-center gap-space-sm">
+<span class="px-space-xs py-[2px] bg-primary/10 text-primary border border-primary/30 rounded font-label-md text-label-md font-bold font-mono">[6]</span>
+<span class="font-headline-md text-headline-md text-text-primary font-bold">Stock 360 Research Dossier</span>
+</div>
+<span class="px-space-xs py-[1px] bg-status-advance/10 text-status-advance border border-status-advance/30 font-label-sm text-label-sm rounded uppercase font-semibold">395 COVERED</span>
+</div>
+<div class="grid grid-cols-2 gap-space-sm py-space-md text-label-sm font-label-sm border-b border-border-muted">
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">HYDRO CONVICTION</span>
+<span class="font-mono text-status-advance font-semibold">ROR Strong Buy (PPA)</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">MANUFACTURING GATE</span>
+<span class="font-mono text-status-decline font-semibold">VETO (Input Shocks)</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">PROMOTER OVERHANG</span>
+<span class="font-mono text-status-warning font-semibold">279.6x ADV30 CLIFF</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">FORENSIC SCORING</span>
+<span class="font-mono text-text-primary">Beneish M-Score: OK</span>
+</div>
+</div>
+<div class="py-space-md flex items-center justify-between text-label-sm font-mono">
+<span class="text-text-tertiary uppercase">LOCAL LOCK-IN EXPIRY:</span>
+<span class="text-status-warning font-semibold">2026-11-14 (CRITICAL)</span>
+</div>
+</div>
+<a class="mt-space-sm w-full py-space-sm px-space-md bg-surface-elevated hover:bg-primary/20 text-text-secondary hover:text-primary border border-border-subtle hover:border-primary-container rounded flex items-center justify-between font-label-md text-label-md tracking-wider transition-colors" href="#">
+<span>INVESTIGATE PROFILE</span>
+<span class="font-bold">LAUNCH WORKSPACE [6] →</span>
+</a>
+</div>
+<!-- CARD 7: SMART ALERTS -->
+<div class="bg-surface-panel rounded border border-border-subtle hover:border-primary-container/80 transition-all duration-150 p-space-lg flex flex-col justify-between group">
+<div>
+<div class="flex items-start justify-between pb-space-sm border-b border-border-muted">
+<div class="flex items-center gap-space-sm">
+<span class="px-space-xs py-[2px] bg-primary/10 text-primary border border-primary/30 rounded font-label-md text-label-md font-bold font-mono">[7]</span>
+<span class="font-headline-md text-headline-md text-text-primary font-bold">Smart Money Alerts</span>
+</div>
+<span class="px-space-xs py-[1px] bg-status-warning/10 text-status-warning border border-status-warning/30 font-label-sm text-label-sm rounded uppercase font-semibold">4 ANOMALIES</span>
+</div>
+<div class="grid grid-cols-2 gap-space-sm py-space-md text-label-sm font-label-sm border-b border-border-muted">
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">HAWKES SWEEP</span>
+<span class="font-mono text-status-warning font-semibold">SAHAS: 22.4k / 420ms</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">CARTEL INFILTRATION</span>
+<span class="font-mono text-status-warning font-semibold">Broker #58 Alliance</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">ICEBERG DETECTION</span>
+<span class="font-mono text-primary font-semibold">PHCL Hidden Buy Node</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">LATENCY BREACH</span>
+<span class="font-mono text-status-advance font-semibold">0 Rejected Pulses</span>
+</div>
+</div>
+<div class="py-space-md flex items-center gap-2 text-label-sm font-mono text-status-warning">
+<span class="w-1.5 h-1.5 rounded-full bg-status-warning animate-ping"></span>
+<span>● HIGH INTENSITY SWEEP DETECTED ON HYDRO SECTOR</span>
+</div>
+</div>
+<a class="mt-space-sm w-full py-space-sm px-space-md bg-surface-elevated hover:bg-primary/20 text-text-secondary hover:text-primary border border-border-subtle hover:border-primary-container rounded flex items-center justify-between font-label-md text-label-md tracking-wider transition-colors" href="#">
+<span>MONITOR FLOW SIGNALS</span>
+<span class="font-bold">LAUNCH WORKSPACE [7] →</span>
+</a>
+</div>
+<!-- CARD 8: MACRO REGIME -->
+<div class="bg-surface-panel rounded border border-border-subtle hover:border-primary-container/80 transition-all duration-150 p-space-lg flex flex-col justify-between group">
+<div>
+<div class="flex items-start justify-between pb-space-sm border-b border-border-muted">
+<div class="flex items-center gap-space-sm">
+<span class="px-space-xs py-[2px] bg-primary/10 text-primary border border-primary/30 rounded font-label-md text-label-md font-bold font-mono">[8]</span>
+<span class="font-headline-md text-headline-md text-text-primary font-bold">Macro Regime &amp; Surveillance</span>
+</div>
+<span class="px-space-xs py-[1px] bg-primary-container/10 text-primary-container border border-primary-container/30 font-label-sm text-label-sm rounded uppercase font-semibold">SYNCHRONIZED</span>
+</div>
+<div class="grid grid-cols-2 gap-space-sm py-space-md text-label-sm font-label-sm border-b border-border-muted">
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">BRENT CRUDE OIL</span>
+<span class="font-mono text-text-primary font-semibold">$74.20/bbl (-1.1%)</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">BANKING CD RATIO</span>
+<span class="font-mono text-status-advance font-semibold">78.4% (Margin Buffer)</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">HYDROLOGY RUNOFF</span>
+<span class="font-mono text-status-warning font-semibold">0.68 Factor (Dry Tariff)</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">INR/NPR PEG SHIELD</span>
+<span class="font-mono text-status-advance font-semibold">1.6000 Hard Locked</span>
+</div>
+</div>
+<div class="py-space-md flex items-center justify-between text-label-sm font-mono">
+<span class="text-text-tertiary uppercase">INTERBANK RATE (NRB):</span>
+<span class="text-text-primary font-semibold">2.98% (Ample Liquidity)</span>
+</div>
+</div>
+<a class="mt-space-sm w-full py-space-sm px-space-md bg-surface-elevated hover:bg-primary/20 text-text-secondary hover:text-primary border border-border-subtle hover:border-primary-container rounded flex items-center justify-between font-label-md text-label-md tracking-wider transition-colors" href="#">
+<span>SURVEIL MACRO METRICS</span>
+<span class="font-bold">LAUNCH WORKSPACE [8] →</span>
+</a>
+</div>
+<!-- CARD 9: BROKER CARTEL -->
+<div class="bg-surface-panel rounded border border-border-subtle hover:border-primary-container/80 transition-all duration-150 p-space-lg flex flex-col justify-between group">
+<div>
+<div class="flex items-start justify-between pb-space-sm border-b border-border-muted">
+<div class="flex items-center gap-space-sm">
+<span class="px-space-xs py-[2px] bg-primary/10 text-primary border border-primary/30 rounded font-label-md text-label-md font-bold font-mono">[9]</span>
+<span class="font-headline-md text-headline-md text-text-primary font-bold">Broker Syndicate &amp; Cartel Desk</span>
+</div>
+<span class="px-space-xs py-[1px] bg-status-advance/10 text-status-advance border border-status-advance/30 font-label-sm text-label-sm rounded uppercase font-semibold">FLOORSHEET INGESTED</span>
+</div>
+<div class="grid grid-cols-2 gap-space-sm py-space-md text-label-sm font-label-sm border-b border-border-muted">
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">REGISTERED NODES</span>
+<span class="font-mono text-text-primary font-semibold">62 Brokers Monitored</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">BIPARTITE GRAPH TICKS</span>
+<span class="font-mono text-status-advance font-semibold">150k Floorsheet Ticks</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">TOP SYNDICATE NODE</span>
+<span class="font-mono text-status-warning font-semibold">Broker #58 &amp; #45</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-tertiary uppercase">CONCENTRATION HHI</span>
+<span class="font-mono text-text-secondary font-semibold">0.284 (Moderate Pool)</span>
+</div>
+</div>
+<div class="py-space-md flex items-center justify-between text-label-sm font-mono">
+<span class="text-text-tertiary uppercase">CORNERING ALERT:</span>
+<span class="text-status-warning font-semibold">BROKER 58 BUY-SIDE DOMINANCE</span>
+</div>
+</div>
+<a class="mt-space-sm w-full py-space-sm px-space-md bg-surface-elevated hover:bg-primary/20 text-text-secondary hover:text-primary border border-border-subtle hover:border-primary-container rounded flex items-center justify-between font-label-md text-label-md tracking-wider transition-colors" href="#">
+<span>INSPECT BROKER GRAPH</span>
+<span class="font-bold">LAUNCH WORKSPACE [9] →</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+<script>
+  // Micro-interaction for the pedagogical collapsible guide
+  const toggleBtn = document.getElementById('toggleGuideBtn');
+  const guideContent = document.getElementById('guideContent');
+  let isGuideVisible = true;
+
+  if (toggleBtn && guideContent) {
+    toggleBtn.addEventListener('click', () => {
+      isGuideVisible = !isGuideVisible;
+      if (isGuideVisible) {
+        guideContent.classList.remove('hidden');
+        toggleBtn.textContent = '[ - HIDE GUIDE ]';
+      } else {
+        guideContent.classList.add('hidden');
+        toggleBtn.textContent = '[ + SHOW GUIDE ]';
+      }
+    });
+  }
+
+  // Keyboard router listener [1-9] for rapid institutional dispatch
+  document.addEventListener('keydown', (e) => {
+    const key = e.key;
+    if (['1','2','3','4','5','6','7','8','9'].includes(key)) {
+      const paths = {
+        '1': 'trading-desk',
+        '2': 'alpha-dashboard',
+        '3': 'risk-lab',
+        '4': '20d-forecast',
+        '5': 'blotter',
+        '6': 'stock-360',
+        '7': 'smart-alerts',
+        '8': 'macro-regime',
+        '9': 'broker-cartel'
+      };
+      const navItem = document.querySelector(`header nav a[data-path="${paths[key]}"]`);
+      if (navItem) {
+        navItem.click();
+      }
+    }
+  });
+</script></main><footer class="fixed bottom-0 left-0 right-0 h-[28px] z-50 bg-surface-panel/95 backdrop-blur-md px-gutter flex items-center justify-between border-t border-border-subtle font-label-sm text-label-sm"><div class="flex items-center gap-space-md text-text-tertiary"><span>GATE G4 ENGINE: <span class="text-status-advance font-semibold">ACTIVE (395 SECURITIES)</span></span><span class="text-border-accent">|</span><span>SEQLOCK SEQ: <span class="text-text-secondary font-mono">149,008</span></span><span class="text-border-accent">|</span><span>LATENCY: <span class="text-primary-fixed-dim font-mono">142.5 µs</span></span></div><div class="hidden xl:flex items-center gap-space-lg text-text-tertiary tracking-wider"><span><span class="text-text-secondary">[0-9]</span> WORKSPACES</span><span><span class="text-text-secondary">[SPACE]</span> PAUSE/RESUME</span><span><span class="text-text-secondary">[ESC]</span> LAUNCH PAD</span><span><span class="text-text-secondary">[F2]</span> SEARCH TICKER</span></div><div class="flex items-center gap-space-md"><span class="text-text-secondary">ACTIVE: <span class="text-primary font-semibold">0. LAUNCH PAD</span></span><span class="text-border-accent">|</span><span class="text-status-advance font-semibold">CDSC T+2 SETTLEMENT SHIELD: VERIFIED</span></div></footer></body></html>

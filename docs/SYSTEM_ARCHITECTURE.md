@@ -211,4 +211,17 @@ The remote inference server runs as an asynchronous FastAPI application on Googl
   - Gradient Checkpointing: Active (caps backprop memory at $\sim 10.4\text{ GB}$, fitting comfortably in the 16 GB T4 VRAM).
   - Adapter Footprint: **65 MB** (`adapter_model.safetensors`), allowing instant hot-swapping across market regimes without restarting the base model.
 
+---
+
+## 9. Three-Tier Production Hybrid Architecture & Storage Pathology
+
+For in-depth forensic analysis of consumer cloud limitations and complete latency profiles, see the full research report:
+👉 [`reports/HIGH_FREQUENCY_QUANTITATIVE_INFRASTRUCTURE_HYBRID_ARCHITECTURE.md`](../reports/HIGH_FREQUENCY_QUANTITATIVE_INFRASTRUCTURE_HYBRID_ARCHITECTURE.md)
+
+### Architectural Invariant: Strict Decoupling of Ingestion, Cold Storage & Ephemeral GPU
+* **Tier 1: Live Execution (Local NVMe / OCI Free Ampere):** Sub-millisecond tick ingestion via DuckDB C++ Appender API and POSIX record locking (`fcntl` / `F_OFD_SETLK`). Direct ring buffer execution bypassing cloud sync APIs.
+* **Tier 2: EOD Lakehouse (Post-Market Synchronization):** Automated batch conversion to Hive-partitioned Parquet (`ZSTD`) and resumable upload to Google Drive using truncated exponential backoff ($T_{\text{wait}} = \min(2^n + \text{jitter}, 64)$) to bypass HTTP 429/403 rate limits. Script: `scripts/01_etl_and_ingestion/eod_lakehouse_sync.py`.
+* **Tier 3: Offline Model Pipeline (Google Colab T4 GPU):** Ephemeral compute with native Drive mount (`/content/drive`), PyArrow predicate pushdown, LightGBM Gate G4 regime classification, and Chronos-Bolt foundation model fine-tuning with dynamic INT8 ONNX export (`scripts/02_modeling_and_calculations/quantize_chronos_bolt_onnx.py`).
+
+
 
