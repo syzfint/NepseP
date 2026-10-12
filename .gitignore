@@ -3,7 +3,13 @@
 *.json
 __pycache__/
 .venv/
-.env
+.env*
+*.pem
+*.key
+*.token
+*.log
+strix_runs/
+scratch/
 *.py[cod]
 .pytest_cache/
 *.duckdb
@@ -18,3 +24,6 @@ nepse_lakehouse/
 data/
 models/
 .aider*
+runs/
+cloud_mirror/*/runs/
+cloud_mirror/**/runs/
