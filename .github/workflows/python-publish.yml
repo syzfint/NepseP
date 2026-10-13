@@ -8,9 +8,9 @@
 
 name: Upload Python Package
 
+# NOTE: Automated public publishing to PyPI is disabled to protect proprietary trading logic.
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
 
 permissions:
   contents: read

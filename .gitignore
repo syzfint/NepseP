@@ -36,6 +36,8 @@ cloud_mirror/**/runs/
 *.pfx
 *.rsa
 id_rsa*
+id_ed25519*
+id_ecdsa*
 *.credentials
 credentials.json
 secrets.yaml
@@ -45,3 +47,14 @@ secrets.json
 *.kdb
 *.auth
 *.session
+*.sqlite
+*.sqlite3
+*.db
+*.pcap
+*.dump
+*.wireguard
+*.ovpn
+*.conf
+broker_tokens/
+auth_tokens/
+.strix/
