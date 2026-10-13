@@ -243,12 +243,13 @@ def init_promoter_lockin_lakehouse() -> None:
         """)
         logger.info("Created backbone view `view_daily_price_tape`.")
 
-        # 4. Create Predictive Feature View with zero-lookahead supply-shock metrics
+        # 4. Create Predictive Feature View with zero-lookahead supply-shock and macro metrics
         con.execute("""
             CREATE OR REPLACE VIEW view_predictive_feature_feed AS
             WITH daily_backbone AS (
                 SELECT symbol, trading_date, close_price, volume
                 FROM view_daily_price_tape
+                WHERE trading_date >= DATE '2021-01-01'
             ),
             lockin_summary AS (
                 SELECT 
@@ -260,34 +261,51 @@ def init_promoter_lockin_lakehouse() -> None:
                     public_notice_date_ad, 
                     major_sale_notice_date_ad
                 FROM staging_promoter_lockin_events
+            ),
+            aggregated_feed AS (
+                SELECT 
+                    d.symbol,
+                    d.trading_date,
+                    d.trading_date AS trade_date,
+                    d.close_price,
+                    d.volume,
+                    COALESCE(
+                        MIN(CASE WHEN l.lockin_expiry_date_ad > d.trading_date 
+                                 THEN DATEDIFF('day', d.trading_date, l.lockin_expiry_date_ad) 
+                            END), 
+                        9999
+                    ) AS days_to_promoter_unlock,
+                    COALESCE(
+                        SUM(CASE WHEN l.lockin_expiry_date_ad > d.trading_date 
+                                  AND l.lockin_expiry_date_ad <= d.trading_date + INTERVAL '30 DAYS'
+                                 THEN (l.promoter_shares_count::DOUBLE / l.public_floating_supply::DOUBLE) * 100.0 
+                            ELSE 0.0 END), 
+                        0.0
+                    ) AS promoter_unlock_30d_pct,
+                    MAX(CASE WHEN l.public_notice_date_ad IS NOT NULL 
+                              AND d.trading_date >= l.public_notice_date_ad + INTERVAL '1 DAY' 
+                             THEN 1 ELSE 0 END) AS lockin_30d_notice_flag,
+                    MAX(CASE WHEN l.major_sale_notice_date_ad IS NOT NULL 
+                              AND d.trading_date >= l.major_sale_notice_date_ad + INTERVAL '1 DAY' 
+                             THEN 1 ELSE 0 END) AS major_sale_intent_flag
+                FROM daily_backbone d
+                LEFT JOIN lockin_summary l ON d.symbol = l.symbol
+                GROUP BY d.symbol, d.trading_date, d.close_price, d.volume
             )
-            SELECT 
-                d.symbol,
-                d.trading_date,
-                d.close_price,
-                d.volume,
-                COALESCE(
-                    MIN(CASE WHEN l.lockin_expiry_date_ad > d.trading_date 
-                             THEN DATEDIFF('day', d.trading_date, l.lockin_expiry_date_ad) 
-                        END), 
-                    9999
-                ) AS days_to_promoter_unlock,
-                COALESCE(
-                    SUM(CASE WHEN l.lockin_expiry_date_ad > d.trading_date 
-                              AND l.lockin_expiry_date_ad <= d.trading_date + INTERVAL '30 DAYS'
-                             THEN (l.promoter_shares_count::DOUBLE / l.public_floating_supply::DOUBLE) * 100.0 
-                        ELSE 0.0 END), 
-                    0.0
-                ) AS promoter_unlock_30d_pct,
-                MAX(CASE WHEN l.public_notice_date_ad IS NOT NULL 
-                          AND d.trading_date >= l.public_notice_date_ad + INTERVAL '1 DAY' 
-                         THEN 1 ELSE 0 END) AS lockin_30d_notice_flag,
-                MAX(CASE WHEN l.major_sale_notice_date_ad IS NOT NULL 
-                          AND d.trading_date >= l.major_sale_notice_date_ad + INTERVAL '1 DAY' 
-                         THEN 1 ELSE 0 END) AS major_sale_intent_flag
-            FROM daily_backbone d
-            LEFT JOIN lockin_summary l ON d.symbol = l.symbol
-            GROUP BY d.symbol, d.trading_date, d.close_price, d.volume;
+            SELECT
+                a.*,
+                m.rf_yield_91d,
+                m.yield_28d,
+                m.yield_182d,
+                m.yield_364d,
+                m.interbank_rate,
+                m.avg_deposit_rate,
+                m.avg_lending_rate,
+                (m.yield_364d - m.yield_28d) AS tbill_term_spread_364_28,
+                (m.interbank_rate - m.rf_yield_91d) AS interbank_liquidity_premium
+            FROM aggregated_feed a
+            ASOF LEFT JOIN macro_interest_rates m
+              ON a.trading_date >= (m.effective_date + INTERVAL 1 DAY);
         """)
         logger.info("Created Point-In-Time feature view `view_predictive_feature_feed`.")
 

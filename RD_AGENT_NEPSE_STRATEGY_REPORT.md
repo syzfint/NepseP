@@ -50,25 +50,25 @@ This report documents the end-to-end execution of the customized **RD-Agent & Ql
 | **Monte_carlo** | 3989 | 125 | 3.134% | 33.540709 | 0.0 | **FAIL** |
 
 ## 6. Live Staged Execution Blotter (Dynamic POV & TMS Gateway)
-- **Blotter Reference ID:** `BLOTTER-20261011-093205`
+- **Blotter Reference ID:** `BLOTTER-20261013-080010`
 - **Total Capital:** NPR 10,000,000.00 | **Available Cash Reserve:** NPR 999,000.00
 - **Total Staged Child Orders:** 29
 - **Total Buy Value:** NPR 8,393,662.00 | **Est. Commission:** NPR 34,833.70
 - **Compliance & Collateral Check:** `PASS`
-- **Cryptographic SHA-256 Provenance Hash:** `04b1ceb3a74aa5d30e8d6a5fedda817e3e76c00a9f8c6453ec36b87136cb6ae3`
+- **Cryptographic SHA-256 Provenance Hash:** `b0c9e75af7d18bd15b3e97d605b12088d3e8ba9e3e101f4bf3ca21885d1a198e`
 
 | Ticket ID | Symbol | Side | Quantity | Limit Price (NPR) | Total NPR | Slices | LOB Depth Share | Circuit Range | Status |
 |---|---|---|---|---|---|---|---|---|---|
-| `TICK-CHCL-1OF4-D3E60F` | **CHCL** | `BUY` | 1200 | NPR 333.0 | 399,600 | 1/4 | 15.0% | [292.5, 357.5] | **STAGED** |
-| `TICK-CHCL-2OF4-10882F` | **CHCL** | `BUY` | 1200 | NPR 333.0 | 399,600 | 2/4 | 15.0% | [292.5, 357.5] | **STAGED** |
-| `TICK-CHCL-3OF4-32276A` | **CHCL** | `BUY` | 1200 | NPR 333.0 | 399,600 | 3/4 | 15.0% | [292.5, 357.5] | **STAGED** |
-| `TICK-CHCL-4OF4-806F25` | **CHCL** | `BUY` | 1000 | NPR 333.0 | 333,000 | 4/4 | 12.5% | [292.5, 357.5] | **STAGED** |
-| `TICK-NABIL-1OF7-FCC35D` | **NABIL** | `BUY` | 670 | NPR 536.2 | 359,254 | 1/7 | 14.89% | [477.0, 583.0] | **STAGED** |
-| `TICK-NABIL-2OF7-78CF94` | **NABIL** | `BUY` | 670 | NPR 536.2 | 359,254 | 2/7 | 14.89% | [477.0, 583.0] | **STAGED** |
-| `TICK-NABIL-3OF7-03CB5E` | **NABIL** | `BUY` | 670 | NPR 536.2 | 359,254 | 3/7 | 14.89% | [477.0, 583.0] | **STAGED** |
-| `TICK-NABIL-4OF7-1AF515` | **NABIL** | `BUY` | 670 | NPR 536.2 | 359,254 | 4/7 | 14.89% | [477.0, 583.0] | **STAGED** |
-| `TICK-NABIL-5OF7-A71446` | **NABIL** | `BUY` | 670 | NPR 536.2 | 359,254 | 5/7 | 14.89% | [477.0, 583.0] | **STAGED** |
-| `TICK-NABIL-6OF7-5BC78C` | **NABIL** | `BUY` | 670 | NPR 536.2 | 359,254 | 6/7 | 14.89% | [477.0, 583.0] | **STAGED** |
+| `TICK-CHCL-1OF4-C23868` | **CHCL** | `BUY` | 1200 | NPR 333.0 | 399,600 | 1/4 | 15.0% | [292.5, 357.5] | **STAGED** |
+| `TICK-CHCL-2OF4-47820E` | **CHCL** | `BUY` | 1200 | NPR 333.0 | 399,600 | 2/4 | 15.0% | [292.5, 357.5] | **STAGED** |
+| `TICK-CHCL-3OF4-FCF574` | **CHCL** | `BUY` | 1200 | NPR 333.0 | 399,600 | 3/4 | 15.0% | [292.5, 357.5] | **STAGED** |
+| `TICK-CHCL-4OF4-07B3B8` | **CHCL** | `BUY` | 1000 | NPR 333.0 | 333,000 | 4/4 | 12.5% | [292.5, 357.5] | **STAGED** |
+| `TICK-NABIL-1OF7-0427B9` | **NABIL** | `BUY` | 670 | NPR 536.2 | 359,254 | 1/7 | 14.89% | [477.0, 583.0] | **STAGED** |
+| `TICK-NABIL-2OF7-495C14` | **NABIL** | `BUY` | 670 | NPR 536.2 | 359,254 | 2/7 | 14.89% | [477.0, 583.0] | **STAGED** |
+| `TICK-NABIL-3OF7-EEA097` | **NABIL** | `BUY` | 670 | NPR 536.2 | 359,254 | 3/7 | 14.89% | [477.0, 583.0] | **STAGED** |
+| `TICK-NABIL-4OF7-96CB09` | **NABIL** | `BUY` | 670 | NPR 536.2 | 359,254 | 4/7 | 14.89% | [477.0, 583.0] | **STAGED** |
+| `TICK-NABIL-5OF7-D22B24` | **NABIL** | `BUY` | 670 | NPR 536.2 | 359,254 | 5/7 | 14.89% | [477.0, 583.0] | **STAGED** |
+| `TICK-NABIL-6OF7-F954A3` | **NABIL** | `BUY` | 670 | NPR 536.2 | 359,254 | 6/7 | 14.89% | [477.0, 583.0] | **STAGED** |
 | *... and 19 more child tickets staged in static_data/live_staged_orders.json* | | | | | | | | | |
 
 ## 7. R&D Memory Graph: Autonomous Evolution Diagnostics

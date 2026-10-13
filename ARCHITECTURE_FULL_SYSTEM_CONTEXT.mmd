@@ -1,0 +1,142 @@
+flowchart TD
+    %% =========================================================================
+    %% APEXMARKETENGINE — COMPLETE SYSTEM ARCHITECTURE CONTEXT BLUEPRINT
+    %% =========================================================================
+
+    %% LAYER 1: DATA INGESTION & CHRONO-VAULT OLAP LAKEHOUSE
+    subgraph L1 ["Layer 1: Data Ingestion & CHRONO-VAULT Lakehouse"]
+        direction TB
+        L1_Raw["Raw Data Feeds<br/>• 12-Yr Floorsheet Ticks (2014–2026)<br/>• 720k+ Daily OHLCV Bars<br/>• Broker Floorsheet Records & Logs<br/>• NRB Macro Circulars & T-Bill Auctions<br/>• Promoter Lock-In Statutory Notices"]
+        L1_Engine["CHRONO-VAULT Lakehouse (DuckDB + Parquet)<br/>• Sub-92ms Vectorized Query Engine<br/>• Point-In-Time (PIT) Backward Adjustment Engine<br/>• Anti-Wash Trade Filter (Buyer == Seller Broker)<br/>• Unified Predictive Feature View with 1-Session Lag"]
+        L1_FracDiff["Fractional Differentiation Engine (d = 0.35)<br/>• Memory-Preserving Stationarity (ADF p = 0.0121 &lt; 0.05)<br/>• Preserves &gt;0.90 Real Price Correlation<br/>• Fixed-Width Window Backshift Expansion"]
+        L1_Raw --> L1_Engine --> L1_FracDiff
+    end
+
+    %% LAYER 2: MICROSTRUCTURE, SYNDICATES & MACRO DRIVERS
+    subgraph L2 ["Layer 2: Microstructure, Broker Syndicates & Macro Drivers"]
+        direction TB
+        L2_OFI["Cont-Stoikov Order Flow Imbalance (OFI)<br/>• Real-Time Level-2 Net Buying Pressure"]
+        L2_VPIN["Volume-Synchronized Toxicity (VPIN)<br/>• High-Frequency Adverse Selection Tracking"]
+        L2_Hawkes["Multivariate Hawkes Broker Cascade<br/>• Accumulation/Dumping Sweeps (Brokers 58, 45, 49, 42)"]
+        L2_Macro["NEPSE Macro & Calendar Engine<br/>• Bikram Sambat (BS-AD) Fiscal Cyclicality<br/>• RoR Monsoon Hydro Seasonality Filter<br/>• NRB Interbank & T-Bill Liquidity Spreads"]
+        L2_OFI --> L2_VPIN --> L2_Hawkes --> L2_Macro
+    end
+
+    %% LAYER 3: HYBRID PROBABILISTIC FORECASTING ENSEMBLE
+    subgraph L3 ["Layer 3: Probabilistic Forecasting & Temporal Ensembling"]
+        direction TB
+        L3_Chronos["Amazon Chronos-Bolt (48M)<br/>• 5-Session P10 / P50 / P90 Probabilistic Corridors"]
+        L3_LGBM["LightGBM Cross-Sectional Ranker<br/>• Combinatorial Purged & Embargoed Cross-Validation (CPCV)"]
+        L3_Kronos["AAAI 2026 Kronos 5D Sequence Tokenizer<br/>• Multi-Variable Candlestick Tokenization [O, H, L, C, V]"]
+        L3_Router["Adaptive Regime Router<br/>• System 1 Fast Mean-Reversion vs System 2 Deep Trend"]
+        L3_Chronos --> L3_LGBM --> L3_Kronos --> L3_Router
+    end
+
+    %% LAYER 4: FORENSIC GOVERNANCE & TRIPLE-BARRIER LABELING
+    subgraph L4 ["Layer 4: Forensic Governance & Triple-Barrier Labeling"]
+        direction TB
+        L4_TB["López de Prado Triple-Barrier Framework<br/>• Dynamic 2.0σ Upper Profit / Lower Stop / Time Limits"]
+        L4_Meta["Gate G4 Meta-Labeler<br/>• False Positive Precision Filtering + Laplace Smoothing"]
+        L4_CDSC["CDSC T+2 Demat Settlement Shield<br/>• Capital Lock-Up & Illiquidity Guard"]
+        L4_Amihud["Amihud Illiquidity & Circuit Breaker Filter<br/>• Pre-Trade 10% Circuit Halted Security Rejection"]
+        L4_TB --> L4_Meta --> L4_CDSC --> L4_Amihud
+    end
+
+    %% LAYER 5: PORTFOLIO RISK LAB & HYSTERESIS ALLOCATOR
+    subgraph L5 ["Layer 5: Portfolio Risk Lab & Hysteresis Allocator"]
+        direction TB
+        L5_HRP["Hierarchical Risk Parity (HRP)<br/>• Tree Clustering Portfolio Allocation (skfolio)"]
+        L5_Hysteresis["Hysteresis Retention Algorithm<br/>• Buy Top 5, Retain in Top 15 Candidates<br/>• Reduces Turnover Drag from 100% to 11.9%<br/>• +3,438.94% Net Cumulative Strategy Yield"]
+        L5_Cash["Dynamic Defensive Cash Buffer<br/>• Up to 25% Defensive Cash Allocation in High-Vol Regimes"]
+        L5_NRB["NRB Regulatory Exposure Rules<br/>• 120% Margin Coverage & Single-Issuer / Sector Caps"]
+        L5_HRP --> L5_Hysteresis --> L5_Cash --> L5_NRB
+    end
+
+    %% LAYER 6: MULTI-BROKER ROUTER (MBOR) & OMS EXECUTION PLANE
+    subgraph L6 ["Layer 6: Multi-Broker Router (MBOR) & Automated OMS"]
+        direction TB
+        L6_L2Book["In-Memory Level-2 Order Book Engine<br/>• 20-Level Depth, Relative Spread & Slope Computation<br/>• Sub-15ms Latency SLA & WebSocket Heartbeat Watchdog"]
+        L6_PreOpen["Overnight & Pre-Open Session Audit Engine<br/>• Sentiment &lt; -0.40 Cancellation (FIX 35=F)<br/>• TOP Slippage &gt; 3% Price Modification (FIX 35=G)<br/>• Relative Spread &gt; 8% Execution Pause Guard"]
+        L6_Margin["T+2 Cash Flow & Margin Bridge Engine<br/>• T+2 Settlement Forecast & Class A/B Haircut Allocator<br/>• Dynamic Liquidity Deficit Routing Engine"]
+        L6_MBOR["Multi-Broker Router (MBOR Gateway)<br/>• Primary YCO / Secondary TMS / Fallback FIX Gateway<br/>• EWMA Latency Tracking & 1000ms Automatic Failover<br/>• ClOrdID Idempotency & PossDupFlag Reconciliation"]
+        L6_KillSwitch["Regulatory Guard & Emergency Hard Kill-Switch<br/>• Token-Bucket Order-to-Trade (OTR) Throttling Limiter<br/>• Daily Drawdown &gt;= 3.0% Trigger -&gt; FIX 35=q Mass Cancel<br/>• Transition to LOCKED_FAIL_CLOSED State"]
+        L6_L2Book --> L6_PreOpen --> L6_Margin --> L6_MBOR --> L6_KillSwitch
+    end
+
+    %% LAYER 7: CLEF MULTIMODAL VLM & GPU CLOUD BRIDGE
+    subgraph L7 ["Layer 7: CLEF Multimodal VLM & Remote GPU Bridge"]
+        direction TB
+        subgraph L7_Local ["Local Bridge Worker (33_clef_inference_bridge.py)"]
+            direction TB
+            L7_Base64["Headless Matplotlib Agg PNG<br/>• In-Memory Base64 Render (Zero Disk File Leakage)"]
+            L7_Seal["Sovereign Pod Provenance Seal<br/>• Composite Hash: H_master = SHA256(Ctx:Fcst:Disc:Vis)"]
+            L7_Base64 --> L7_Seal
+        end
+        subgraph L7_Tunnel ["Cloudflare Encrypted Tunnel"]
+            direction TB
+            L7_E2E["HTTPS POST /synthesize<br/>• Latency: 8.42s RTT | 130KB Scrubbed Egress"]
+        end
+        subgraph L7_Remote ["Remote Colab / GCP GPU Compute"]
+            direction TB
+            L7_GPU["NVIDIA Tesla T4 GPU (FP16 Async FastAPI)"]
+            L7_VLM["Qwen2.5-VL-3B Multimodal Vision-Language Transformer"]
+            L7_LoRA["PEFT/LoRA Adapter (r=16, alpha=32, 65MB Safetensors)"]
+            L7_GPU --> L7_VLM
+            L7_LoRA -.-> L7_VLM
+        end
+        subgraph L7_Breaker ["Cryptographic Fail-Closed Circuit Breaker"]
+            direction TB
+            L7_Check{"Pydantic v2 Valid & Hash Match?"}
+            L7_Pass["PASS: Output static_data/clef_analyst_report.json"]
+            L7_Fail["FAIL-CLOSED: Fallback to Pure Deterministic Quant Mode"]
+            L7_Check -->|"Yes"| L7_Pass
+            L7_Check -->|"Timeout &gt; 45s / Mismatch"| L7_Fail
+        end
+        L7_Seal --> L7_E2E --> L7_GPU
+        L7_VLM --> L7_E2E --> L7_Check
+    end
+
+    %% LAYER 8: 10-GATE FORENSIC AUDIT & CERTIFICATION MATRIX
+    subgraph L8 ["Layer 8: 10-Gate Forensic Certification Matrix"]
+        direction TB
+        L8_Matrix["10-Gate Audit Verification Matrix<br/>• G1: Purged Walk-Forward (10d Purge, 5d Embargo)<br/>• G2: FracDiff Stationarity (ADF p &lt; 0.05)<br/>• G3: Friction Drag Audit (0.65% Fee Net Positive)<br/>• G4: Deflated Sharpe Ratio (DSR &gt;= 0.95)<br/>• G5: Max Drawdown Guard (MDD &lt;= 18.5% 90d)<br/>• G6: Rank Information Coefficient (IC &gt;= +0.04)<br/>• G7: TreeSHAP Unlagged Feature Dominance Audit<br/>• G8: Pydantic v2 Canonical Contract Schema Verification<br/>• G9: Zero Host Path Leakage (In-Memory Base64 Encoding)<br/>• G10: Master SHA-256 Provenance Seal & Manifest Integrity"]
+    end
+
+    %% LAYER 9: PROGRESSIVE DISCLOSURE UX & TERMINAL INTERFACES
+    subgraph L9 ["Layer 9: Progressive Disclosure UX & Terminals"]
+        direction TB
+        subgraph L9_Tiers ["3-Tier Progressive UX"]
+            direction TB
+            L9_T1["Tier 1: Executive Panel<br/>• High-Conviction Layman Summary, Rank #1 Target & Stop-Loss"]
+            L9_T2["Tier 2: Evidence Matrix<br/>• Multimodal Market Context, 2.0σ Price Corridor & Broker OFI"]
+            L9_T3["Tier 3: Quant Analytical Row<br/>• Forensic FracDiff Statistics, SHAP Importances & Backtest Proof"]
+            L9_T1 --> L9_T2 --> L9_T3
+        end
+        subgraph L9_Terminals ["Delivery Terminals & Execution Consoles"]
+            direction TB
+            L9_Streamlit["Streamlit Terminal UI (:8501)<br/>(scripts/08_dashboard_ui/04_streamlit_terminal_ui.py)"]
+            L9_Prism["PRISM Station<br/>(launch_prism_station.py)"]
+            L9_Hedge["Hedge Terminal<br/>(hedge_terminal.py)"]
+            L9_Apex["Apex Terminal<br/>(c:/Users/achar/OpenResearch/apexterminal)"]
+            L9_TMS["NEPSE Multi-Broker OMS Direct Gateway"]
+        end
+        L9_T3 --> L9_Streamlit
+        L9_T3 --> L9_Prism
+        L9_T3 --> L9_Hedge
+        L9_T3 --> L9_Apex
+        L9_T3 --> L9_TMS
+    end
+
+    %% =========================================================================
+    %% MAIN PIPELINE INTER-LAYER RELATIONSHIPS
+    %% =========================================================================
+    L1_FracDiff -->|"Cleaned PIT Bars & Stationary Features"| L2_OFI
+    L2_Macro -->|"Microstructure Imbalances & Macro Spreads"| L3_Chronos
+    L3_Router -->|"Probabilistic Corridors & Quantiles"| L4_TB
+    L4_Amihud -->|"Triple-Barrier Meta-Labeled Alpha Signals"| L5_HRP
+    L5_NRB -->|"Optimal HRP Weights & Staged Blotter"| L6_L2Book
+    L5_Cash -->|"Forecast Context & Base64 Multimodal Payload"| L7_Base64
+    L7_Pass --> L8_Matrix
+    L7_Fail --> L8_Matrix
+    L6_KillSwitch --> L8_Matrix
+    L8_Matrix -->|"Fully Certified Institutional Signal Stream"| L9_T1

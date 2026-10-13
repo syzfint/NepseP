@@ -123,14 +123,14 @@ def execute_full_resync(changed_files, tick_count):
     logger.info(f"⚡ Change detected in {len(changed_files)} file(s)! Initiating compulsory auto-sync...")
     try:
         # Re-run Part 1 (Modules 1-12)
-        gen1_script = PROJECT_ROOT / "scratch" / "gen_part1.py"
+        gen1_script = PROJECT_ROOT / "scratch" / "build_publication_diagrams_01_12.py"
         if gen1_script.exists():
-            os.system(f'"{sys.executable}" "{gen1_script}"')
+            subprocess.run([sys.executable, str(gen1_script)], check=False)
             
         # Re-run Part 2 (Modules 13-24)
-        gen2_script = PROJECT_ROOT / "scratch" / "gen_part2.py"
+        gen2_script = PROJECT_ROOT / "scratch" / "build_publication_diagrams_13_24.py"
         if gen2_script.exists():
-            os.system(f'"{sys.executable}" "{gen2_script}"')
+            subprocess.run([sys.executable, str(gen2_script)], check=False)
 
         update_ticker_status(changed_files, tick_count, status="SYNCHRONIZED_OK")
         logger.info(f"✅ Compulsory auto-sync completed successfully! (Tick #{tick_count})")

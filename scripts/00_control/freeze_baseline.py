@@ -31,6 +31,8 @@ import pandas as pd
 import polars as pl
 
 BASE_DIR = Path.cwd()
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
 BASELINE_DIR = BASE_DIR / "BASELINE"
 BASELINE_DIR.mkdir(parents=True, exist_ok=True)
 

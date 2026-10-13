@@ -165,3 +165,18 @@ def test_end_to_end_bridge_pipeline(mock_candidates, mock_returns_panel):
     assert "risk_summary" in res
     assert "execution_blotter" in res
     assert res["execution_blotter"]["compliance_passed"] is True
+
+
+def test_mbor_dispatch_integration(mock_candidates, mock_returns_panel):
+    bridge = RDAgentLiveExecutionBridge()
+    res = bridge.run_bridge_pipeline(
+        candidates=mock_candidates,
+        returns_df=mock_returns_panel,
+        total_capital_npr=10_000_000.0,
+    )
+    blotter = res["execution_blotter"]
+    mbor_result = bridge.route_blotter_via_mbor(blotter)
+    assert mbor_result["routed_count"] > 0
+    assert mbor_result["active_gateway"] == "GATEWAY_PRIMARY_YCO"
+    assert len(mbor_result["provenance_seal"]) == 64
+

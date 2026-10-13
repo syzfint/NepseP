@@ -46,6 +46,8 @@ for p in [str(BASE_DIR), str(SCRIPTS_DIR), str(CONTROL_DIR), str(MODEL_DIR)]:
 from hrp_portfolio_allocator import HRPPortfolioAllocator
 from dynamic_pov_engine import DynamicPOVEngine, NEPSE_HOURLY_VOLUME_FACTORS
 from portfolio_risk_lab import QuantRiskLab
+from multi_broker_router import MultiBrokerRouter
+from regulatory_compliance_guard import OTRThrottlingLimiter, SovereignPodManager
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] [RDLiveBridge] %(message)s")
 logger = logging.getLogger("RDLiveBridge")
@@ -432,3 +434,51 @@ class RDAgentLiveExecutionBridge:
             "risk_summary": risk_summary,
             "execution_blotter": blotter,
         }
+
+    def route_blotter_via_mbor(
+        self,
+        blotter: Dict[str, Any],
+        router: Optional[MultiBrokerRouter] = None,
+        otr_limiter: Optional[OTRThrottlingLimiter] = None,
+        sovereign_pod: Optional[SovereignPodManager] = None,
+    ) -> Dict[str, Any]:
+        """
+        Dispatches staged blotter tickets through the High-Availability Multi-Broker Router (MBOR),
+        enforcing OTR throttling limits and Sovereign Pod provenance sealing.
+        """
+        router = router or MultiBrokerRouter()
+        otr_limiter = otr_limiter or OTRThrottlingLimiter()
+        sovereign_pod = sovereign_pod or SovereignPodManager()
+
+        routed_tickets = []
+        for ticket in blotter.get("tickets", []):
+            sym = ticket["symbol"]
+            side = ticket["side"]
+            qty = ticket["quantity"]
+            price = ticket["limit_price"]
+
+            permit, msg = otr_limiter.check_throttle_permit()
+            if not permit:
+                logger.warning(f"Order on {sym} throttled: {msg}")
+                continue
+
+            order_rec = router.submit_order(
+                symbol=sym,
+                side=side,
+                quantity=qty,
+                limit_price=price,
+                client_code=ticket.get("client_code", "CLIENT_001"),
+            )
+            otr_limiter.record_order_action("NEW", volume=qty)
+            routed_tickets.append(order_rec)
+
+        scrubbed = sovereign_pod.filter_egress_payload(blotter)
+        provenance_seal = sovereign_pod.seal_blotter_provenance(scrubbed)
+
+        return {
+            "routed_count": len(routed_tickets),
+            "active_gateway": router.active_gateway_id,
+            "provenance_seal": provenance_seal,
+            "routed_tickets": routed_tickets,
+        }
+

@@ -27,3 +27,21 @@ models/
 runs/
 cloud_mirror/*/runs/
 cloud_mirror/**/runs/
+
+# Security & Secret Hardening (Zero-Leakage Policy)
+*.secret
+*.secrets
+*.cert
+*.crt
+*.pfx
+*.rsa
+id_rsa*
+*.credentials
+credentials.json
+secrets.yaml
+secrets.json
+.git-credentials
+*.p12
+*.kdb
+*.auth
+*.session

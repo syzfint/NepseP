@@ -17,22 +17,46 @@ from pathlib import Path
 import numpy as np
 
 BASE_DIR = Path(__file__).resolve().parents[1]
-BASELINE_OUTPUT = BASE_DIR / "BASELINE" / "baseline_output.json"
 SCRIPTS_DIR = BASE_DIR / "scripts"
 CONTROL_DIR = SCRIPTS_DIR / "00_control"
+ETL_DIR = SCRIPTS_DIR / "01_etl_and_ingestion"
+BASELINE_OUTPUT = BASE_DIR / "BASELINE" / "baseline_output.json"
 
-for p in [str(BASE_DIR), str(SCRIPTS_DIR), str(CONTROL_DIR)]:
+for p in [str(BASE_DIR), str(SCRIPTS_DIR), str(CONTROL_DIR), str(ETL_DIR)]:
     if p not in sys.path:
         sys.path.insert(0, p)
 
 from apex_engine import ApexEngine
+from nepse_websocket_floorsheet import NepseMicrostructureStreamer
 
 
-def test_regression_equivalence():
+def test_regression_equivalence(monkeypatch):
     assert BASELINE_OUTPUT.exists(), f"Missing baseline file at {BASELINE_OUTPUT}"
 
     with open(BASELINE_OUTPUT, "r", encoding="utf-8") as f:
         base = json.load(f)
+
+    # Deterministic test harness: Mock live websocket streamer with frozen baseline market status & depth
+    monkeypatch.setattr(
+        NepseMicrostructureStreamer,
+        "get_market_index_status",
+        lambda self: {
+            "isOpen": True,
+            "nepse_index": base["live_nepse_index"],
+            "nepse_change": base["live_nepse_change"],
+        }
+    )
+    imbalance_map = {c["symbol"]: c.get("order_book_imbalance", 0.05) for c in base.get("top_candidates", [])}
+    monkeypatch.setattr(
+        NepseMicrostructureStreamer,
+        "get_order_book_depth",
+        lambda self, symbol: {
+            "symbol": symbol,
+            "imbalance": imbalance_map.get(symbol, 0.05),
+            "total_buy": 1000,
+            "total_sell": 1000,
+        }
+    )
 
     # Execute new run through ApexEngine control wrapper
     engine = ApexEngine(environment="production")
