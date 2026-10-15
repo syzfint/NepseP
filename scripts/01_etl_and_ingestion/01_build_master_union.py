@@ -32,26 +32,29 @@ def build_market_master_union():
 
     ticker_files = glob.glob(os.path.join(RAW_DIR, "ticker_csvs", "*.csv"))
     daily_files = glob.glob(os.path.join(BASE_DIR, "nepse_data_all", "*.csv"))
-    print(f"Found {len(ticker_files)} ticker CSVs and {len(daily_files)} daily CSVs in nepse_data_all/")
+    scraper_stock_files = glob.glob(os.path.join(RAW_DIR, "nepse-historical-scraper-repo", "data", "stock", "unadjusted", "*.csv"))
+    scraper_index_files = glob.glob(os.path.join(RAW_DIR, "nepse-historical-scraper-repo", "data", "index", "unadjusted", "*.csv"))
+    all_ticker_files = ticker_files + scraper_stock_files + scraper_index_files
+    print(f"Found {len(ticker_files)} ticker CSVs, {len(scraper_stock_files)} scraper stocks, {len(scraper_index_files)} scraper indices, and {len(daily_files)} daily CSVs in nepse_data_all/")
 
     records = []
     total_raw_rows = 0
 
-    for fpath in ticker_files:
+    for fpath in all_ticker_files:
         fname = os.path.basename(fpath)
         ticker_name = fname.split(".")[0].split("_")[0].upper()
-        if not ticker_name or ticker_name in ["RAW", "NEPSE", "MARKET"]:
+        if not ticker_name or ticker_name in ["RAW", "MARKET"]:
             continue
 
         try:
             df = pd.read_csv(fpath)
             total_raw_rows += len(df)
             
-            date_col = next((c for c in df.columns if c.lower().strip() in ["published_date", "date"]), None)
-            open_col = next((c for c in df.columns if c.lower().strip() in ["open", "open price"]), None)
-            high_col = next((c for c in df.columns if c.lower().strip() in ["high", "max. price", "high price"]), None)
-            low_col = next((c for c in df.columns if c.lower().strip() in ["low", "min. price", "low price"]), None)
-            close_col = next((c for c in df.columns if c.lower().strip() in ["close", "close price"]), None)
+            date_col = next((c for c in df.columns if c.lower().strip() in ["published_date", "date", "time"]), None)
+            open_col = next((c for c in df.columns if c.lower().strip() in ["open", "open price", "open_price"]), None)
+            high_col = next((c for c in df.columns if c.lower().strip() in ["high", "max. price", "high price", "high_price"]), None)
+            low_col = next((c for c in df.columns if c.lower().strip() in ["low", "min. price", "low price", "low_price"]), None)
+            close_col = next((c for c in df.columns if c.lower().strip() in ["close", "close price", "close_price", "ltp"]), None)
             vol_col = next((c for c in df.columns if c.lower().strip() in ["traded_quantity", "total traded shares", "volume", "total_volume"]), None)
             
             if not date_col or not close_col:
