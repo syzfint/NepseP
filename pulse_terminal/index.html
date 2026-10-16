@@ -1830,6 +1830,127 @@
     font-size: 9.5px;
   }
 
+  /* CPCV Triple-Barrier Progress Bar */
+  .cpcv-bar-container {
+    width: 100%;
+    height: 5px;
+    background: #141b27;
+    border-radius: 2px;
+    overflow: hidden;
+    display: flex;
+    margin-top: 4px;
+  }
+  .cpcv-bar-target {
+    height: 100%;
+    background: #00E676;
+    transition: width 0.2s ease;
+  }
+  .cpcv-bar-stop {
+    height: 100%;
+    background: #FF1744;
+    transition: width 0.2s ease;
+  }
+  .cpcv-bar-time {
+    height: 100%;
+    background: #3b4d66;
+    transition: width 0.2s ease;
+  }
+
+  /* Deflated Sharpe Ratio (DSR) Badges */
+  .dsr-badge {
+    font-size: 8.5px;
+    font-weight: 800;
+    padding: 1px 5px;
+    border-radius: 2px;
+    letter-spacing: 0.3px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .dsr-high {
+    background: rgba(0, 229, 255, 0.15);
+    border: 1px solid rgba(0, 229, 255, 0.45);
+    color: #00E5FF;
+  }
+  .dsr-mid {
+    background: rgba(255, 179, 0, 0.15);
+    border: 1px solid rgba(255, 179, 0, 0.45);
+    color: #FFB300;
+  }
+  .dsr-low {
+    background: rgba(255, 23, 68, 0.15);
+    border: 1px solid rgba(255, 23, 68, 0.45);
+    color: #FF1744;
+  }
+
+  /* Multi-Level OFI Sparkbar */
+  .ofi-sparkbar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ofi-sparkbar-track {
+    width: 44px;
+    height: 5px;
+    background: #111722;
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .ofi-sparkbar-center {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 1px;
+    height: 100%;
+    background: #3a4759;
+  }
+  .ofi-sparkbar-pos {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    height: 100%;
+    background: #00E676;
+    border-radius: 0 1px 1px 0;
+  }
+  .ofi-sparkbar-neg {
+    position: absolute;
+    right: 50%;
+    top: 0;
+    height: 100%;
+    background: #FF1744;
+    border-radius: 1px 0 0 1px;
+  }
+
+  /* Hawkes Regime Badges */
+  .hawkes-sweep {
+    background: rgba(255, 23, 68, 0.18);
+    border: 1px solid #FF1744;
+    color: #FF1744;
+    padding: 2px 5px;
+    border-radius: 2px;
+    font-weight: 800;
+    font-size: 9px;
+  }
+  .hawkes-feedback {
+    background: rgba(255, 179, 0, 0.18);
+    border: 1px solid #FFB300;
+    color: #FFB300;
+    padding: 2px 5px;
+    border-radius: 2px;
+    font-weight: 700;
+    font-size: 9px;
+  }
+  .hawkes-organic {
+    background: rgba(110, 122, 142, 0.15);
+    border: 1px solid #303e54;
+    color: #8b949e;
+    padding: 2px 5px;
+    border-radius: 2px;
+    font-size: 9px;
+  }
+
   /* ========================================================================== */
   /* SCREEN [3]: RISK MONITOR & SCHUR-RA-HRP LAB                                 */
   /* ========================================================================== */
@@ -2718,7 +2839,7 @@
         <div class="dock-panel">
           <div class="dock-header">
             <span>CONVICTION RADAR</span>
-            <span style="color:#00E676; font-size:10px;">TOP ALPHA</span>
+            <span style="color:#00E676; font-size:10px;">CPCV & DSR VECTORS</span>
           </div>
           <div class="dock-body" id="alpha-leaderboard-dock">
             <!-- Dynamically populated top conviction setup cards -->
@@ -2729,7 +2850,7 @@
         <div class="dock-panel" style="position:relative;">
           <div class="dock-header">
             <span>CROSS-ASSET QUANT ALPHA SCREENER (ALL 353+ SECURITIES)</span>
-            <span style="color:var(--text-muted); font-size:10px;">CLICK ROW TO SELECT ASSET</span>
+            <span style="color:var(--text-muted); font-size:10px;">MULTI-LEVEL OFI & HAWKES SWEEP RATIO</span>
           </div>
           <div id="alpha-grid-view-container" style="flex:1; overflow:auto;">
             <table class="quant-table" id="alpha-table">
@@ -2739,8 +2860,8 @@
                   <th>LTP (NPR)</th>
                   <th>EXP 5D RET</th>
                   <th>GATE G4 SCORE</th>
-                  <th>HAWKES REGIME</th>
-                  <th>OFI FLOW</th>
+                  <th>HAWKES BRANCHING (n)</th>
+                  <th>MULTI-LEVEL OFI (Z)</th>
                   <th>SIGNAL</th>
                   <th>UNLOCK %</th>
                   <th>DAYS</th>
@@ -2755,62 +2876,74 @@
           <!-- Mode B: Interactive Scatter Canvas Container -->
           <div id="alpha-scatter-view-container" style="display:none; flex:1; width:100%; height:100%; position:relative; background:#090d14;">
             <canvas id="alphaScatterCanvasElement" style="position:absolute; top:0; left:0; width:100%; height:100%;"></canvas>
-            <div id="alpha-scatter-hud" style="position:absolute; bottom:8px; right:8px; background:rgba(15,20,29,0.85); border:1px solid var(--border-dim); padding:6px 10px; font-size:10px; color:var(--text-muted); border-radius:3px;">
+            <div id="alpha-scatter-hud" style="position:absolute; bottom:8px; right:8px; background:rgba(15,20,29,0.92); border:1px solid var(--border-dim); padding:6px 12px; font-size:10px; color:#00E5FF; border-radius:3px; pointer-events:none;">
               HOVER BUBBLE FOR ALPHA TELEMETRY • CLICK TO ENGAGE
             </div>
           </div>
         </div>
 
-        <!-- Right: Deep Asset Inspection Dock (310px) -->
+        <!-- Right: Deep Asset Inspection Dock (320px) -->
         <div class="dock-panel">
           <div class="dock-header">
             <span>ASSET ALPHA PROFILE</span>
             <span id="alpha-inspector-symbol" style="color:#00E5FF; font-weight:800;">NABIL</span>
           </div>
-          <div class="dock-body" id="alpha-inspector-dock">
-            <div style="background:#090d14; border:1px solid var(--border-dim); border-radius:4px; padding:10px;">
+          <div class="dock-body" id="alpha-inspector-dock" style="gap:8px; padding:8px;">
+            <!-- Header Card -->
+            <div style="background:#090d14; border:1px solid var(--border-dim); border-radius:4px; padding:8px 10px;">
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <span style="font-size:15px; font-weight:800; color:#f0f6fc;" id="alpha-insp-sym-title">NABIL</span>
                 <span id="alpha-insp-status-badge" class="badge-buy">STRONG BUY</span>
               </div>
-              <div style="font-size:10px; color:var(--text-muted); margin-top:2px;" id="alpha-insp-sector-title">COMMERCIAL BANKS</div>
-              <div style="font-size:18px; font-weight:800; color:#00E5FF; margin-top:6px;" id="alpha-insp-ltp-title">NPR 536.2</div>
-            </div>
-
-            <div style="background:#090d14; border:1px solid var(--border-dim); border-radius:4px; padding:10px; display:flex; flex-direction:column; gap:6px;">
-              <span style="font-size:10px; font-weight:800; color:var(--text-muted); text-transform:uppercase;">Gate G4 Component Radar</span>
-              <div class="card-hud-row">
-                <span class="card-hud-label">Base XGBoost Project</span>
-                <span class="card-hud-val" id="alpha-insp-xgb">+4.2%</span>
-              </div>
-              <div class="card-hud-row">
-                <span class="card-hud-label">Barrier Clearance</span>
-                <span class="card-hud-val" id="alpha-insp-barrier" style="color:#00E676;">0.84 PASS</span>
-              </div>
-              <div class="card-hud-row">
-                <span class="card-hud-label">Hawkes Jump Rate</span>
-                <span class="card-hud-val" id="alpha-insp-hawkes" style="color:#FFB300;">λ = 1.42</span>
-              </div>
-              <div class="card-hud-row">
-                <span class="card-hud-label">OFI Aggression Slope</span>
-                <span class="card-hud-val" id="alpha-insp-ofi" style="color:#00E5FF;">+0.380</span>
+              <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:2px;">
+                <span style="font-size:9.5px; color:var(--text-muted);" id="alpha-insp-sector-title">COMMERCIAL BANKS</span>
+                <span style="font-size:16px; font-weight:800; color:#00E5FF;" id="alpha-insp-ltp-title">NPR 536.2</span>
               </div>
             </div>
 
-            <div style="background:#090d14; border:1px solid var(--border-dim); border-radius:4px; padding:10px; display:flex; flex-direction:column; gap:6px;">
-              <span style="font-size:10px; font-weight:800; color:var(--text-muted); text-transform:uppercase;">Promoter Lock-in Shield</span>
-              <div class="card-hud-row">
-                <span class="card-hud-label">Promoter Overhang</span>
-                <span class="card-hud-val" id="alpha-insp-unlock-pct">0.0% (CLEARED)</span>
+            <!-- SHAP 5-Axis Spider Radar -->
+            <div style="background:#090d14; border:1px solid var(--border-dim); border-radius:4px; padding:6px 8px; display:flex; flex-direction:column; align-items:center;">
+              <div style="width:100%; display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+                <span style="font-size:9px; font-weight:800; color:var(--neon-cyan); text-transform:uppercase;">SHAP Feature Attribution Radar</span>
+                <span id="alpha-insp-dsr-badge" class="dsr-badge dsr-high">DSR 0.94</span>
               </div>
-              <div class="card-hud-row">
-                <span class="card-hud-label">Days to Expiry</span>
-                <span class="card-hud-val" id="alpha-insp-unlock-days" style="color:#00E676;">SAFE</span>
+              <canvas id="alphaShapRadarCanvas" width="280" height="175" style="width:280px; height:175px;"></canvas>
+            </div>
+
+            <!-- Exponential Promoter Lock-in Decay Surface -->
+            <div style="background:#090d14; border:1px solid var(--border-dim); border-radius:4px; padding:6px 8px; display:flex; flex-direction:column;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+                <span style="font-size:9px; font-weight:800; color:#FFB300; text-transform:uppercase;">Lock-in Price Impact Decay (ADV)</span>
+                <span id="alpha-insp-unlock-badge" style="font-size:8.5px; color:#00E676; font-weight:700;">SAFE (0% OVERHANG)</span>
+              </div>
+              <canvas id="alphaLockinDecayCanvas" width="280" height="85" style="width:280px; height:85px;"></canvas>
+            </div>
+
+            <!-- Almgren-Chriss Optimal Execution Vector -->
+            <div style="background:#090d14; border:1px solid var(--border-dim); border-radius:4px; padding:6px 8px; display:flex; flex-direction:column; gap:4px;">
+              <span style="font-size:9px; font-weight:800; color:#B388FF; text-transform:uppercase;">Almgren-Chriss Execution Vector</span>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px; font-size:9px;">
+                <div style="display:flex; justify-content:space-between; background:#0e131d; padding:3px 6px; border-radius:2px;">
+                  <span style="color:var(--text-muted);">Slices:</span>
+                  <span id="alpha-ac-slices" style="color:#fff; font-weight:700;">5 Slices</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; background:#0e131d; padding:3px 6px; border-radius:2px;">
+                  <span style="color:var(--text-muted);">TWAP Window:</span>
+                  <span id="alpha-ac-window" style="color:#fff; font-weight:700;">45 min</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; background:#0e131d; padding:3px 6px; border-radius:2px;">
+                  <span style="color:var(--text-muted);">Half-Life τ:</span>
+                  <span id="alpha-ac-halflife" style="color:#00E5FF; font-weight:700;">18.2 min</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; background:#0e131d; padding:3px 6px; border-radius:2px;">
+                  <span style="color:var(--text-muted);">Exp Impact:</span>
+                  <span id="alpha-ac-impact" style="color:#FFB300; font-weight:700;">14.2 bps</span>
+                </div>
               </div>
             </div>
 
             <button class="action-btn-primary" onclick="bridgeToTradingDesk(window.TERMINAL_STATE.activeSymbol)">
-              TRANSFER TO TRADING DESK [1] &rarr;
+              ROUTE TO TRADING DESK [1] &rarr;
             </button>
           </div>
         </div>
@@ -4913,7 +5046,7 @@
     const topConviction = [...items].sort((a,b) => (b.gate_g4_score || 0) - (a.gate_g4_score || 0)).slice(0, 10);
     topConviction.forEach(item => {
       const card = document.createElement('div');
-      card.style.cssText = 'background:#090d14; border:1px solid var(--border-dim); border-radius:4px; padding:8px; cursor:pointer; transition:all 0.15s;';
+      card.style.cssText = 'background:#090d14; border:1px solid var(--border-dim); border-radius:4px; padding:7px 8px; cursor:pointer; transition:all 0.15s; display:flex; flex-direction:column; gap:3px;';
       if (item.symbol === window.TERMINAL_STATE.activeSymbol) {
         card.style.borderColor = 'var(--neon-cyan)';
         card.style.background = 'rgba(0,229,255,0.08)';
@@ -4922,16 +5055,43 @@
       card.onmouseleave = () => { if (item.symbol !== window.TERMINAL_STATE.activeSymbol) card.style.borderColor = 'var(--border-dim)'; };
       card.onclick = () => window.selectSymbol(item.symbol);
 
+      const dsrVal = item.deflated_sharpe_ratio || 0.90;
+      const dsrCls = dsrVal >= 0.85 ? 'dsr-high' : (dsrVal >= 0.60 ? 'dsr-mid' : 'dsr-low');
+      const pTgt = item.cpcv_target_prob || Math.min(94, Math.round(item.gate_g4_score * 0.9));
+      const pStop = item.cpcv_stop_prob || Math.max(5, Math.round((100 - item.gate_g4_score) * 0.7));
+      const pTime = item.cpcv_time_prob || Math.max(2, 100 - pTgt - pStop);
+      const maxDd = item.cpcv_max_dd || -1.2;
+
+      const nBranch = item.hawkes_branching_ratio !== undefined ? item.hawkes_branching_ratio : 0.65;
+      const hawkesCls = nBranch >= 0.70 ? 'hawkes-sweep' : (nBranch >= 0.50 ? 'hawkes-feedback' : 'hawkes-organic');
+      const hawkesTxt = nBranch >= 0.70 ? '⚡ SWEEP' : (nBranch >= 0.50 ? '▲ FEEDBACK' : 'ORGANIC');
+
       card.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-weight:800; color:#00E5FF;">${item.symbol}</span>
-          <span class="badge-buy">G4 ${item.gate_g4_score.toFixed(1)}%</span>
+          <div style="display:flex; align-items:center; gap:5px;">
+            <span style="font-weight:800; color:#00E5FF; font-size:12px;">${item.symbol}</span>
+            <span class="dsr-badge ${dsrCls}">DSR ${dsrVal.toFixed(2)}</span>
+          </div>
+          <span class="badge-buy" style="font-size:9px; padding:1px 5px;">G4 ${item.gate_g4_score.toFixed(1)}%</span>
         </div>
-        <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted); margin-top:4px;">
+        <div style="display:flex; justify-content:space-between; font-size:9.5px; color:var(--text-muted);">
           <span>NPR ${item.ltp.toFixed(1)}</span>
-          <span style="color:#00E676; font-weight:700;">+${item.exp_return_pct.toFixed(1)}% 5D</span>
+          <span style="color:${item.exp_return_pct >= 0 ? '#00E676' : '#FF1744'}; font-weight:700;">${item.exp_return_pct >= 0 ? '+' : ''}${item.exp_return_pct.toFixed(1)}% 5D</span>
         </div>
-        <div class="progress-cell-bar"><div class="progress-cell-fill" style="width:${Math.min(100, item.gate_g4_score)}%;"></div></div>
+        <div class="cpcv-bar-container" title="CPCV Triple-Barrier: Target ${pTgt}% | Stop ${pStop}% | Time ${pTime}%">
+          <div class="cpcv-bar-target" style="width:${pTgt}%;"></div>
+          <div class="cpcv-bar-stop" style="width:${pStop}%;"></div>
+          <div class="cpcv-bar-time" style="width:${pTime}%;"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:8px; color:var(--text-muted); font-family:monospace;">
+          <span>P(Tgt) <b style="color:#00E676;">${pTgt}%</b></span>
+          <span>P(Stop) <b style="color:#FF1744;">${pStop}%</b></span>
+          <span>MaxDD <b style="color:#FFB300;">${maxDd}%</b></span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:8px; margin-top:1px;">
+          <span style="color:var(--text-muted);">Hawkes n=${nBranch.toFixed(2)}:</span>
+          <span class="${hawkesCls}">${hawkesTxt}</span>
+        </div>
       `;
       dock.appendChild(card);
     });
@@ -4950,7 +5110,17 @@
       const isBuy = item.status === 'BUY';
       const isSell = item.status === 'SELL';
       const badgeCls = isBuy ? 'badge-buy' : (isSell ? 'badge-sell' : 'badge-neutral');
-      const isAccum = item.hawkes_flag === 'ACCUMULATION_DETECTED';
+
+      const nBranch = item.hawkes_branching_ratio !== undefined ? item.hawkes_branching_ratio : 0.65;
+      const hawkesCls = nBranch >= 0.70 ? 'hawkes-sweep' : (nBranch >= 0.50 ? 'hawkes-feedback' : 'hawkes-organic');
+      const hawkesTxt = nBranch >= 0.70 ? '⚡ SWEEP' : (nBranch >= 0.50 ? '▲ FEEDBACK' : 'ORGANIC');
+
+      const ofiK5 = item.ofi_k5 !== undefined ? item.ofi_k5 : (item.ofi_ratio || 0.0);
+      const ofiZ = item.ofi_z_score !== undefined ? item.ofi_z_score : 0.0;
+      const zNorm = Math.min(1.0, Math.max(-1.0, ofiZ / 3.0));
+      const posW = zNorm > 0 ? (zNorm * 50) : 0;
+      const negW = zNorm < 0 ? (Math.abs(zNorm) * 50) : 0;
+      const zColor = ofiZ >= 1.0 ? '#00E676' : (ofiZ <= -1.0 ? '#FF1744' : '#8b949e');
 
       tr.innerHTML = `
         <td style="font-weight:800; color:#00E5FF;">${item.symbol}</td>
@@ -4959,13 +5129,24 @@
         <td>
           <div style="display:flex; align-items:center; gap:6px;">
             <span style="font-weight:700;">${item.gate_g4_score.toFixed(1)}%</span>
-            <div style="width:40px; height:3px; background:#1a2230; border-radius:2px; overflow:hidden;">
+            <div style="width:36px; height:3px; background:#1a2230; border-radius:2px; overflow:hidden;">
               <div style="width:${Math.min(100, item.gate_g4_score)}%; height:100%; background:${item.gate_g4_score >= 70 ? '#00E676' : '#00E5FF'};"></div>
             </div>
           </div>
         </td>
-        <td>${isAccum ? '<span class="badge-amber">▲ ACCUMULATION</span>' : '<span class="badge-neutral">NORMAL</span>'}</td>
-        <td style="color:${item.ofi_ratio > 0 ? '#00E676' : '#FF1744'}; font-weight:700;">${item.ofi_ratio ? (item.ofi_ratio > 0 ? '+' : '') + item.ofi_ratio.toFixed(2) : '0.00'}</td>
+        <td><span class="${hawkesCls}">${hawkesTxt} (${nBranch.toFixed(2)})</span></td>
+        <td>
+          <div class="ofi-sparkbar-wrap">
+            <div class="ofi-sparkbar-track">
+              <div class="ofi-sparkbar-center"></div>
+              ${posW > 0 ? `<div class="ofi-sparkbar-pos" style="width:${posW}%;"></div>` : ''}
+              ${negW > 0 ? `<div class="ofi-sparkbar-neg" style="width:${negW}%;"></div>` : ''}
+            </div>
+            <span style="font-weight:700; color:${zColor}; font-size:10px;">
+              ${ofiK5 >= 0 ? '+' : ''}${ofiK5.toFixed(2)} <span style="font-size:8px; opacity:0.85;">(${ofiZ >= 0 ? '+' : ''}${ofiZ.toFixed(1)}σ)</span>
+            </span>
+          </div>
+        </td>
         <td><span class="${badgeCls}">${item.status}</span></td>
         <td style="color:${item.promoter_unlock_30d_pct > 15 ? '#FF1744' : '#6e7a8e'};">${item.promoter_unlock_30d_pct ? item.promoter_unlock_30d_pct.toFixed(1) + '%' : '0.0%'}</td>
         <td>${item.days_to_promoter_unlock === 9999 ? 'CLEARED' : item.days_to_promoter_unlock + 'd'}</td>
@@ -4991,16 +5172,244 @@
     const badgeEl = document.getElementById('alpha-insp-status-badge');
     if (badgeEl) {
       badgeEl.className = item.status === 'BUY' ? 'badge-buy' : (item.status === 'SELL' ? 'badge-sell' : 'badge-neutral');
-      badgeEl.textContent = item.status;
+      badgeEl.textContent = item.status === 'BUY' ? 'STRONG BUY' : (item.status === 'SELL' ? 'SELL / HEDGE' : 'NEUTRAL');
     }
-    const xgbEl = document.getElementById('alpha-insp-xgb');
-    if (xgbEl) xgbEl.textContent = `${item.exp_return_pct >= 0 ? '+' : ''}${item.exp_return_pct.toFixed(1)}%`;
-    const ofiEl = document.getElementById('alpha-insp-ofi');
-    if (ofiEl) ofiEl.textContent = `${item.ofi_ratio >= 0 ? '+' : ''}${item.ofi_ratio.toFixed(3)}`;
-    const unlockEl = document.getElementById('alpha-insp-unlock-pct');
-    if (unlockEl) unlockEl.textContent = item.promoter_unlock_30d_pct > 0 ? `${item.promoter_unlock_30d_pct.toFixed(1)}% (LOCKED)` : '0.0% (CLEARED)';
-    const daysEl = document.getElementById('alpha-insp-unlock-days');
-    if (daysEl) daysEl.textContent = item.days_to_promoter_unlock === 9999 ? 'SAFE' : `${item.days_to_promoter_unlock} DAYS LEFT`;
+
+    const dsrEl = document.getElementById('alpha-insp-dsr-badge');
+    if (dsrEl) {
+      const dVal = item.deflated_sharpe_ratio || 0.92;
+      dsrEl.textContent = `DSR ${dVal.toFixed(2)}`;
+      dsrEl.className = `dsr-badge ${dVal >= 0.85 ? 'dsr-high' : 'dsr-mid'}`;
+    }
+
+    const unlockBadge = document.getElementById('alpha-insp-unlock-badge');
+    if (unlockBadge) {
+      if (item.promoter_unlock_30d_pct > 0 && item.days_to_promoter_unlock < 90) {
+        unlockBadge.textContent = `${item.promoter_unlock_30d_pct.toFixed(1)}% OVERHANG (${item.days_to_promoter_unlock}d)`;
+        unlockBadge.style.color = item.days_to_promoter_unlock < 30 ? '#FF1744' : '#FFB300';
+      } else {
+        unlockBadge.textContent = 'SAFE (0% OVERHANG)';
+        unlockBadge.style.color = '#00E676';
+      }
+    }
+
+    // Render SHAP 5-Axis Spider Radar Canvas
+    renderAlphaShapRadar(item.shap_radar || {
+      alpha_momentum: 0.35,
+      microstructure_ofi: 0.28,
+      hawkes_intensity: 0.22,
+      garch_regime: 0.18,
+      event_lockin_shield: 0.12
+    });
+
+    // Render Exponential Lock-in Decay Canvas
+    renderAlphaLockinDecay(item.lockin_decay_surface, item.days_to_promoter_unlock, item.promoter_unlock_30d_pct);
+
+    // Update Almgren-Chriss Routing Parameters
+    const ac = item.almgren_chriss || { slices: 5, twap_window_min: 45, half_life_min: 18.2, impact_bps: 14.2 };
+    const elSlices = document.getElementById('alpha-ac-slices');
+    if (elSlices) elSlices.textContent = `${ac.slices || 5} Slices`;
+    const elWin = document.getElementById('alpha-ac-window');
+    if (elWin) elWin.textContent = `${ac.twap_window_min || 45} min`;
+    const elHl = document.getElementById('alpha-ac-halflife');
+    if (elHl) elHl.textContent = `${ac.half_life_min || 18.2} min`;
+    const elImp = document.getElementById('alpha-ac-impact');
+    if (elImp) elImp.textContent = `${ac.impact_bps || 14.2} bps`;
+  }
+
+  function renderAlphaShapRadar(shap) {
+    const canvas = document.getElementById('alphaShapRadarCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const cx = w / 2;
+    const cy = h / 2 + 2;
+    const maxR = Math.min(cx, cy) - 26;
+
+    const axes = [
+      { key: 'alpha_momentum', label: 'Momentum (d=0.35)' },
+      { key: 'microstructure_ofi', label: 'Multi-OFI (K=5)' },
+      { key: 'hawkes_intensity', label: 'Hawkes λ(t)' },
+      { key: 'garch_regime', label: 'GARCH Vol' },
+      { key: 'event_lockin_shield', label: 'Lock-In Shield' }
+    ];
+    const n = axes.length;
+
+    // Background concentric pentagon webs (25%, 50%, 75%, 100%)
+    ctx.strokeStyle = '#1b2535';
+    ctx.lineWidth = 1;
+    [0.25, 0.50, 0.75, 1.0].forEach(level => {
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) {
+        const angle = -Math.PI / 2 + (i * 2 * Math.PI) / n;
+        const x = cx + Math.cos(angle) * (maxR * level);
+        const y = cy + Math.sin(angle) * (maxR * level);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.stroke();
+    });
+
+    // Axis rays and labels
+    ctx.fillStyle = '#6e7a8e';
+    ctx.font = '8px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    for (let i = 0; i < n; i++) {
+      const angle = -Math.PI / 2 + (i * 2 * Math.PI) / n;
+      const xEnd = cx + Math.cos(angle) * maxR;
+      const yEnd = cy + Math.sin(angle) * maxR;
+
+      ctx.strokeStyle = '#1b2535';
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(xEnd, yEnd);
+      ctx.stroke();
+
+      const labelDist = maxR + 14;
+      const lx = cx + Math.cos(angle) * labelDist;
+      const ly = cy + Math.sin(angle) * labelDist;
+      ctx.fillStyle = '#8b949e';
+      ctx.fillText(axes[i].label, lx, ly);
+    }
+
+    // Data polygon
+    const points = [];
+    for (let i = 0; i < n; i++) {
+      const angle = -Math.PI / 2 + (i * 2 * Math.PI) / n;
+      const rawVal = shap[axes[i].key] !== undefined ? shap[axes[i].key] : 0.2;
+      // Map [-0.5, +0.5] to [0.12, 0.95]
+      const normVal = Math.min(1.0, Math.max(0.12, 0.50 + rawVal * 0.9));
+      const px = cx + Math.cos(angle) * (maxR * normVal);
+      const py = cy + Math.sin(angle) * (maxR * normVal);
+      points.push({ x: px, y: py, val: rawVal });
+    }
+
+    // Fill polygon
+    ctx.beginPath();
+    points.forEach((p, idx) => {
+      if (idx === 0) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    });
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(0, 229, 255, 0.22)';
+    ctx.fill();
+    ctx.strokeStyle = '#00E5FF';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Vertices dots
+    points.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#00E5FF';
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+  }
+
+  function renderAlphaLockinDecay(decay_curve, days_unlock, unlock_pct) {
+    const canvas = document.getElementById('alphaLockinDecayCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const padLeft = 32;
+    const padRight = 16;
+    const padTop = 14;
+    const padBottom = 20;
+    const plotW = w - padLeft - padRight;
+    const plotH = h - padTop - padBottom;
+
+    const minShock = -8.0;
+    const maxShock = 0.5;
+
+    // Draw baseline (0% shock)
+    const yZero = padTop + plotH - ((0.0 - minShock) / (maxShock - minShock)) * plotH;
+    ctx.strokeStyle = '#253346';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padLeft, yZero);
+    ctx.lineTo(w - padRight, yZero);
+    ctx.stroke();
+
+    ctx.fillStyle = '#6e7a8e';
+    ctx.font = '8px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText('0.0%', padLeft - 4, yZero + 3);
+
+    const yMin = padTop + plotH - ((minShock - minShock) / (maxShock - minShock)) * plotH;
+    ctx.fillText(minShock.toFixed(0) + '%', padLeft - 4, yMin);
+
+    // Days labels
+    ctx.textAlign = 'center';
+    ctx.fillText('T-30d', padLeft, h - 6);
+    ctx.fillText('T-15d', padLeft + plotW / 2, h - 6);
+    ctx.fillText('T-0d', w - padRight, h - 6);
+
+    const curve = decay_curve || [
+      { day: 30, price_shock_pct: 0.0 },
+      { day: 25, price_shock_pct: -0.2 },
+      { day: 20, price_shock_pct: -0.6 },
+      { day: 15, price_shock_pct: -1.2 },
+      { day: 10, price_shock_pct: -2.4 },
+      { day: 5, price_shock_pct: -4.1 },
+      { day: 0, price_shock_pct: -6.5 }
+    ];
+
+    if (!unlock_pct || unlock_pct <= 0.0 || days_unlock >= 90) {
+      // Cleared safe line
+      ctx.strokeStyle = '#00E676';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(padLeft, yZero);
+      ctx.lineTo(w - padRight, yZero);
+      ctx.stroke();
+
+      ctx.fillStyle = '#00E676';
+      ctx.font = '9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('PROTECTED: NO OVERHANG (SAFE T+2)', padLeft + plotW / 2, yZero + 16);
+      return;
+    }
+
+    // Plot decay curve points
+    ctx.beginPath();
+    curve.forEach((pt, idx) => {
+      const d = pt.day;
+      const sh = pt.price_shock_pct;
+      const x = padLeft + ((30 - d) / 30.0) * plotW;
+      const y = padTop + plotH - ((sh - minShock) / (maxShock - minShock)) * plotH;
+      if (idx === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+
+    ctx.strokeStyle = '#FF1744';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Fill area under curve with translucent crimson
+    ctx.lineTo(w - padRight, yZero);
+    ctx.lineTo(padLeft, yZero);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255, 23, 68, 0.15)';
+    ctx.fill();
+
+    // Max shock label at Day 0
+    const lastShock = curve[curve.length - 1]?.price_shock_pct || -5.0;
+    ctx.fillStyle = '#FF1744';
+    ctx.font = '8.5px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(`Max Shock: ${lastShock}%`, w - padRight, padTop + 8);
   }
 
   function toggleAlphaView(mode) {
@@ -5024,7 +5433,7 @@
     }
   }
 
-  // 2D HTML5 Canvas Quant Scatter Map
+  // 2D HTML5 Canvas Quant Alpha Frontier & Scatter Opportunity Map
   function renderAlphaScatterCanvas() {
     const canvas = document.getElementById('alphaScatterCanvasElement');
     if (!canvas) return;
@@ -5040,24 +5449,41 @@
     const data = window.TERMINAL_STATE.alphaData || [];
     if (data.length === 0) return;
 
-    const padLeft = 50;
-    const padRight = 30;
-    const padTop = 30;
-    const padBottom = 40;
+    const padLeft = 55;
+    const padRight = 35;
+    const padTop = 35;
+    const padBottom = 45;
     const plotW = w - padLeft - padRight;
     const plotH = h - padTop - padBottom;
 
-    // X: Gate G4 Score (0 to 100)
-    // Y: 5D Expected Return (-10% to +15%)
-    const minY = -10;
-    const maxY = 15;
-    const getX = score => padLeft + (score / 100.0) * plotW;
+    // X: Multi-Level OFI Z-Score (-3.5 to +3.5)
+    // Y: 5D Expected Return (-8% to +14%)
+    const minX = -3.5;
+    const maxX = 3.5;
+    const minY = -8;
+    const maxY = 14;
+
+    const getX = z => padLeft + ((z - minX) / (maxX - minX)) * plotW;
     const getY = ret => padTop + plotH - ((ret - minY) / (maxY - minY)) * plotH;
+
+    // Shaded Top-Right Quadrant: ALPHA FRONTIER (OFI Z > 0 and Return > 0)
+    const xZero = getX(0);
+    const yZero = getY(0);
+    ctx.fillStyle = 'rgba(0, 230, 118, 0.05)';
+    ctx.fillRect(xZero, padTop, (w - padRight) - xZero, yZero - padTop);
+    ctx.strokeStyle = 'rgba(0, 230, 118, 0.25)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(xZero, padTop, (w - padRight) - xZero, yZero - padTop);
+
+    ctx.fillStyle = 'rgba(0, 230, 118, 0.7)';
+    ctx.font = '8.5px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText('★ ALPHA FRONTIER: HIGH OFI + HIGH EXP RETURN', w - padRight - 8, padTop + 14);
 
     // Draw grid
     ctx.strokeStyle = '#151c28';
     ctx.lineWidth = 1;
-    for (let xG = 0; xG <= 100; xG += 20) {
+    for (let xG = -3; xG <= 3; xG += 1) {
       const xPx = getX(xG);
       ctx.beginPath();
       ctx.moveTo(xPx, padTop);
@@ -5067,10 +5493,10 @@
       ctx.fillStyle = '#6e7a8e';
       ctx.font = '9px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText(xG + '%', xPx, h - padBottom + 16);
+      ctx.fillText((xG > 0 ? '+' : '') + xG + 'σ', xPx, h - padBottom + 16);
     }
 
-    for (let yG = -10; yG <= 15; yG += 5) {
+    for (let yG = -8; yG <= 14; yG += 4) {
       const yPx = getY(yG);
       ctx.beginPath();
       ctx.moveTo(padLeft, yPx);
@@ -5083,43 +5509,118 @@
       ctx.fillText((yG > 0 ? '+' : '') + yG + '%', padLeft - 6, yPx + 3);
     }
 
-    // Zero line
+    // Zero crosshairs
     ctx.strokeStyle = '#303e54';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(padLeft, getY(0));
-    ctx.lineTo(w - padRight, getY(0));
+    ctx.moveTo(padLeft, yZero);
+    ctx.lineTo(w - padRight, yZero);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(xZero, padTop);
+    ctx.lineTo(xZero, h - padBottom);
     ctx.stroke();
 
     // Axis Labels
     ctx.fillStyle = '#00E5FF';
     ctx.font = '10px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('GATE G4 PROBABILITY SCORE (0% - 100%)', padLeft + plotW / 2, h - 8);
+    ctx.fillText('MULTI-LEVEL ORDER FLOW IMBALANCE CROSS-SECTIONAL Z-SCORE (OFI-Z)', padLeft + plotW / 2, h - 8);
+
+    ctx.save();
+    ctx.translate(14, padTop + plotH / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('EXPECTED 5-DAY RETURN (%)', 0, 0);
+    ctx.restore();
+
+    window._alphaBubblePoints = [];
 
     // Render bubbles
     data.forEach(item => {
-      const x = getX(item.gate_g4_score || 50);
-      const y = getY(item.exp_return_pct || 0);
+      const z = item.ofi_z_score !== undefined ? item.ofi_z_score : 0;
+      const ret = item.exp_return_pct || 0;
+      const x = getX(z);
+      const y = getY(ret);
       const isSelected = item.symbol === window.TERMINAL_STATE.activeSymbol;
 
+      const g4 = item.gate_g4_score || 50;
+      const r = 3.5 + (g4 / 100.0) * 7.5;
+
+      const nBranch = item.hawkes_branching_ratio !== undefined ? item.hawkes_branching_ratio : 0.5;
+      let color = 'rgba(0, 229, 255, 0.70)';
+      if (nBranch >= 0.75) color = 'rgba(255, 23, 68, 0.85)';
+      else if (nBranch >= 0.50) color = 'rgba(255, 179, 0, 0.80)';
+
       ctx.beginPath();
-      ctx.arc(x, y, isSelected ? 8 : 4.5, 0, Math.PI * 2);
-      ctx.fillStyle = item.status === 'BUY' ? 'rgba(0, 230, 118, 0.7)' : (item.status === 'SELL' ? 'rgba(255, 23, 68, 0.7)' : 'rgba(0, 229, 255, 0.5)');
+      ctx.arc(x, y, isSelected ? r + 3 : r, 0, Math.PI * 2);
+      ctx.fillStyle = color;
       ctx.fill();
 
       if (isSelected) {
         ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2.5;
         ctx.stroke();
 
         ctx.fillStyle = '#fff';
-        ctx.font = '10px monospace';
+        ctx.font = 'bold 10px monospace';
         ctx.textAlign = 'center';
-        ctx.fillText(item.symbol, x, y - 11);
+        ctx.fillText(item.symbol, x, y - r - 6);
       }
+
+      window._alphaBubblePoints.push({ x, y, r: isSelected ? r + 3 : r, item });
     });
   }
+
+  // Interactive mouse events for Alpha Scatter Canvas
+  (function initAlphaScatterInteraction() {
+    const canvas = document.getElementById('alphaScatterCanvasElement');
+    if (!canvas) return;
+
+    canvas.onmousemove = function(e) {
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const points = window._alphaBubblePoints || [];
+      const hud = document.getElementById('alpha-scatter-hud');
+
+      let hovered = null;
+      for (let i = points.length - 1; i >= 0; i--) {
+        const p = points[i];
+        const dist = Math.hypot(mx - p.x, my - p.y);
+        if (dist <= p.r + 3) {
+          hovered = p.item;
+          break;
+        }
+      }
+
+      if (hovered && hud) {
+        canvas.style.cursor = 'pointer';
+        const ac = hovered.almgren_chriss || { slices: 5, twap_window_min: 45 };
+        hud.innerHTML = `<b>${hovered.symbol}</b> • G4: ${hovered.gate_g4_score.toFixed(1)}% • OFI Z: ${hovered.ofi_z_score >= 0 ? '+' : ''}${hovered.ofi_z_score.toFixed(1)}σ • Exp 5D: +${hovered.exp_return_pct.toFixed(1)}% • Hawkes: n=${hovered.hawkes_branching_ratio.toFixed(2)} (${hovered.hawkes_regime}) • AC: ${ac.slices} Slices (TWAP ${ac.twap_window_min}m) • <span style="color:#00E676;">CLICK TO ENGAGE</span>`;
+      } else if (hud) {
+        canvas.style.cursor = 'default';
+        hud.textContent = 'HOVER BUBBLE FOR ALPHA TELEMETRY • CLICK TO ENGAGE';
+      }
+    };
+
+    canvas.onclick = function(e) {
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const points = window._alphaBubblePoints || [];
+
+      for (let i = points.length - 1; i >= 0; i--) {
+        const p = points[i];
+        const dist = Math.hypot(mx - p.x, my - p.y);
+        if (dist <= p.r + 3) {
+          window.selectSymbol(p.item.symbol);
+          renderAlphaScatterCanvas();
+          break;
+        }
+      }
+    };
+  })();
 
   function filterAlphaGrid(query) {
     if (!window.TERMINAL_STATE.alphaData) return;
