@@ -1881,6 +1881,52 @@
     margin-top: 2px;
   }
 
+  .stress-grid-cell {
+    background: #0d121c;
+    border: 1px solid #1a2230;
+    border-radius: 2px;
+    padding: 3px 2px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .stress-grid-cell:hover {
+    border-color: #00E5FF;
+    transform: scale(1.03);
+    z-index: 2;
+  }
+  .stress-grid-header {
+    color: var(--text-muted);
+    font-size: 8px;
+    font-weight: 700;
+    text-align: center;
+    padding: 2px 0;
+  }
+  .hawkes-velocity-meter {
+    height: 4px;
+    background: #151d2a;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 3px;
+    width: 60px;
+  }
+  .hawkes-velocity-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+  .aggressor-micro-bar {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 1.5px;
+    height: 14px;
+    vertical-align: middle;
+  }
+  .aggressor-col {
+    width: 2.5px;
+    border-radius: 1px;
+  }
+
   /* ========================================================================== */
   /* SCREEN [4]: 20-DAY FORECAST ENGINE                                          */
   /* ========================================================================== */
@@ -2771,35 +2817,46 @@
       </div>
     </section>
 
-    <!-- SCREEN [3]: RISK MONITOR & PORTFOLIO GOVERNANCE -->
+    <!-- SCREEN [2/3]: RISK MONITOR & PORTFOLIO GOVERNANCE -->
     <section id="screen-risk" class="workspace-screen">
       <!-- Macro Risk Header Strip -->
       <div class="risk-kpi-card-grid">
         <div class="risk-kpi-card">
-          <span class="kpi-label">PORTFOLIO VaR (95%)</span>
+          <span class="kpi-label">PORTFOLIO VaR (95% EVT-CF)</span>
           <span class="kpi-value" id="risk-var-val" style="color:#FF1744;">-1.85%</span>
+          <span style="font-size:8px; color:var(--text-muted); margin-top:2px;">CORNISH-FISHER S=-0.52, K=5.40</span>
         </div>
         <div class="risk-kpi-card">
           <span class="kpi-label">EXPECTED SHORTFALL (CVaR)</span>
           <span class="kpi-value" id="risk-cvar-val" style="color:#FFB300;">-2.94%</span>
+          <span style="font-size:8px; color:var(--text-muted); margin-top:2px;">GPD TAIL POT (ξ=0.28, β=0.62)</span>
         </div>
         <div class="risk-kpi-card">
-          <span class="kpi-label">TOP BROKER (58) HHI</span>
-          <span class="kpi-value" id="risk-hhi-val">2,840</span>
+          <span class="kpi-label">TOP BROKER HAWKES λ(t)</span>
+          <span class="kpi-value" id="risk-hawkes-val" style="color:#00E676;">3.84 /s ⚡</span>
+          <span style="font-size:8px; color:#00E676; margin-top:2px;">BROKER #58 AGGRESSIVE SWEEP</span>
         </div>
         <div class="risk-kpi-card">
-          <span class="kpi-label">CDSC SETTLEMENT SHIELD</span>
-          <span class="kpi-value" id="risk-cdsc-val" style="color:#00E676;">ARMED (99.8%)</span>
+          <span class="kpi-label">STEALTH ICEBERG INDEX</span>
+          <span class="kpi-value" id="risk-iceberg-val" style="color:#00E5FF;">3.42x 🧊</span>
+          <span style="font-size:8px; color:#00E5FF; margin-top:2px;">TWAP/VWAP SLICE DETECTED</span>
         </div>
       </div>
 
       <!-- 4-Quadrant Layout -->
       <div class="risk-4quad-layout">
-        <!-- Quadrant 1: Schur-RA-HRP Optimal Allocation Matrix -->
-        <div class="dock-panel">
+        <!-- Quadrant 1: EVT & Cornish-Fisher VaR Distribution Canvas + Schur-HRP Table -->
+        <div class="dock-panel" style="display:flex; flex-direction:column; overflow:hidden;">
           <div class="dock-header">
+            <span>EXTREME VALUE THEORY (EVT) & CORNISH-FISHER VaR (95%)</span>
+            <span style="color:#FF1744; font-size:9.5px; font-weight:800;">DUAL-ZONE TAIL INTEGRALS</span>
+          </div>
+          <div style="height:140px; width:100%; position:relative; background:#080b12; border-bottom:1px solid var(--border-dim); flex-shrink:0;">
+            <canvas id="riskEvtVarCanvasElement" style="position:absolute; top:0; left:0; width:100%; height:100%;"></canvas>
+          </div>
+          <div class="dock-header" style="height:22px; background:#090d16; border-bottom:1px solid var(--border-dark);">
             <span>SCHUR-RA-HRP OPTIMAL ALLOCATION MATRIX (100.0% TOTAL)</span>
-            <span style="color:#00E676; font-size:10px;">skfolio HRP</span>
+            <span style="color:#00E676; font-size:9px;">DYNAMIC COVARIANCE</span>
           </div>
           <div style="flex:1; overflow:auto;">
             <table class="quant-table">
@@ -2807,9 +2864,9 @@
                 <tr>
                   <th>ASSET</th>
                   <th>CLUSTER</th>
-                  <th>OPTIMAL WEIGHT</th>
+                  <th>WEIGHT</th>
                   <th>RISK CONTRIB</th>
-                  <th>VOLATILITY (20D)</th>
+                  <th>VOL (20D)</th>
                 </tr>
               </thead>
               <tbody id="risk-hrp-body">
@@ -2819,32 +2876,36 @@
           </div>
         </div>
 
-        <!-- Quadrant 2: Risk Cluster & Dendrogram Canvas -->
-        <div class="dock-panel" style="position:relative;">
-          <div class="dock-header">
-            <span>PORTFOLIO CLUSTERING DENDROGRAM & ASSET RISK WEIGHTS</span>
-            <span style="color:var(--text-muted); font-size:10px;">HIERARCHICAL TREE</span>
+        <!-- Quadrant 2: Block-Diagonal Copula Heatmap & Dynamic Linkage Dendrogram -->
+        <div class="dock-panel" style="position:relative; display:flex; flex-direction:column; overflow:hidden;">
+          <div class="dock-header" style="justify-content:space-between;">
+            <span>TAIL-COPULA DEPENDENCE MATRIX & DYNAMIC LINKAGE CUT</span>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:9px; color:var(--text-muted); font-weight:700;">CUT (h):</span>
+              <input type="range" id="dendrogramCutSlider" min="0.10" max="0.90" step="0.05" value="0.45" oninput="onDendrogramCutChange(this.value)" style="width:75px; height:4px; accent-color:#00E5FF; cursor:pointer;">
+              <span id="dendrogramCutValueBadge" style="font-size:9.5px; font-weight:800; color:#00E5FF; min-width:28px;">0.45</span>
+            </div>
           </div>
           <div style="flex:1; width:100%; height:100%; position:relative; background:#090d14;">
             <canvas id="riskDendrogramCanvasElement" style="position:absolute; top:0; left:0; width:100%; height:100%;"></canvas>
           </div>
         </div>
 
-        <!-- Quadrant 3: Broker Order-Flow Concentration & HHI Heatmap -->
-        <div class="dock-panel">
+        <!-- Quadrant 3: Broker Hawkes Self-Excitation Velocity & Stealth Iceberg Tracker -->
+        <div class="dock-panel" style="display:flex; flex-direction:column; overflow:hidden;">
           <div class="dock-header">
-            <span>BROKER ORDER-FLOW CONCENTRATION HEATMAP (HHI)</span>
-            <span style="color:#FFB300; font-size:10px;">SYNDICATE TRACKER</span>
+            <span>BROKER ORDER-FLOW: HAWKES VELOCITY λ(t) & ICEBERG TRACKER</span>
+            <span style="color:#FFB300; font-size:9.5px; font-weight:800;">ORDER-FLOW AGGRESSION</span>
           </div>
           <div style="flex:1; overflow:auto;">
             <table class="quant-table">
               <thead>
                 <tr>
                   <th>BROKER</th>
-                  <th>BROKER NAME</th>
-                  <th>HHI SCORE</th>
+                  <th>HAWKES λ(t)</th>
+                  <th>AGGRESSOR FLOW</th>
+                  <th>STEALTH INDEX</th>
                   <th>DOMINANCE</th>
-                  <th>FLOW ACTION</th>
                 </tr>
               </thead>
               <tbody id="risk-broker-body">
@@ -2854,31 +2915,22 @@
           </div>
         </div>
 
-        <!-- Quadrant 4: Liquidity Stress-Testing & CDSC Settlement Shield -->
-        <div class="dock-panel">
+        <!-- Quadrant 4: Dual-Axis Stress Contingency Grid (5x5 Liquidity vs Price Matrix) -->
+        <div class="dock-panel" style="display:flex; flex-direction:column; overflow:hidden;">
           <div class="dock-header">
-            <span>LIQUIDITY STRESS SIMULATION & CDSC T+2 SHIELD</span>
-            <span style="color:#00E5FF; font-size:10px;">SCENARIO STRESS</span>
+            <span>DUAL-AXIS STRESS CONTINGENCY GRID (INDEX SHOCK × LIQUIDITY CONTRACTION)</span>
+            <span style="color:#00E5FF; font-size:9.5px; font-weight:800;">5×5 CAPITAL PRESERVATION</span>
           </div>
-          <div class="dock-body">
-            <span style="font-size:10px; color:var(--text-muted); text-transform:uppercase; font-weight:800;">Simulate Macro Shocks:</span>
-            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px;">
-              <button class="nav-btn" onclick="runRiskStressTest('circuit')" style="justify-content:center; border:1px solid #FF1744; color:#FF1744;">-5% CIRCUIT</button>
-              <button class="nav-btn" onclick="runRiskStressTest('liquidity')" style="justify-content:center; border:1px solid #FFB300; color:#FFB300;">-40% LIQUIDITY</button>
-              <button class="nav-btn" onclick="runRiskStressTest('promoter')" style="justify-content:center; border:1px solid #00E5FF; color:#00E5FF;">PROMOTER FLOOD</button>
+          <div style="flex:1; overflow:auto; padding:6px;">
+            <div id="risk-stress-grid-container" style="display:grid; grid-template-columns:55px repeat(5, 1fr); gap:3px; font-size:9px;">
+              <!-- Dynamically populated 5x5 Matrix -->
             </div>
-
-            <div style="background:#090d14; border:1px solid var(--border-dim); border-radius:4px; padding:10px; margin-top:8px;">
-              <div style="font-size:10px; color:var(--text-muted);">ACTIVE SHOCK PROJECTED IMPACT</div>
-              <div style="font-size:17px; font-weight:800; color:#FF1744; margin-top:4px;" id="risk-stress-result">-4.20% ESTIMATED DRAWDOWN</div>
-              <div style="font-size:10.5px; color:var(--text-muted); margin-top:2px;">SURVIVAL MARGIN: 95.8% CAPITAL PRESERVED</div>
-            </div>
-
-            <div style="background:#090d14; border:1px solid var(--border-dim); border-radius:4px; padding:10px; margin-top:6px;">
-              <div style="display:flex; justify-content:space-between;">
-                <span style="font-size:10px; color:var(--text-muted);">ACTIVE ASSET CDSC STATUS:</span>
-                <span id="risk-active-symbol-shield" style="font-weight:700; color:#00E676;">NABIL • CLEARED T+2</span>
+            <div style="margin-top:6px; background:#080b12; border:1px solid var(--border-dim); border-radius:3px; padding:6px 10px; display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <span style="font-size:9px; color:var(--text-muted); text-transform:uppercase;">SCENARIO IMPACT:</span>
+                <span id="risk-stress-hud-val" style="font-size:11px; font-weight:800; color:#FF1744; margin-left:6px;">-4.40% DRAWDOWN (95.6% PRESERVED)</span>
               </div>
+              <span id="risk-active-symbol-shield" style="font-size:9.5px; font-weight:700; color:#00E676;">NABIL • CLEARED T+2</span>
             </div>
           </div>
         </div>
@@ -5093,6 +5145,11 @@
   // ==========================================================================
   // SCREEN [3]: RISK MONITOR & DENDROGRAM ENGINE
   // ==========================================================================
+  // ==========================================================================
+  // SCREEN [2/3]: RISK MONITOR & SCHUR-RA-HRP COPULA / EVT LAB
+  // ==========================================================================
+  let _CURRENT_DENDRO_CUT = 0.45;
+
   async function refreshRiskData() {
     fetchSymbolRisk(window.TERMINAL_STATE.activeSymbol);
   }
@@ -5105,62 +5162,177 @@
       const data = json.data || {};
       window.TERMINAL_STATE.riskData = data;
 
-      if (data.portfolio_var_95) {
+      // Update Top KPIs
+      if (data.portfolio_var_95 !== undefined) {
         const el = document.getElementById('risk-var-val');
         if (el) el.textContent = (data.portfolio_var_95).toFixed(2) + '%';
       }
-      if (data.portfolio_cvar_95) {
+      if (data.portfolio_cvar_95 !== undefined) {
         const el = document.getElementById('risk-cvar-val');
         if (el) el.textContent = (data.portfolio_cvar_95).toFixed(2) + '%';
       }
 
-      // Populate HRP Allocations
-      const hrpBody = document.getElementById('risk-hrp-body');
-      if (hrpBody && data.hrp_allocation) {
-        hrpBody.innerHTML = '';
-        data.hrp_allocation.forEach(row => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td style="font-weight:800; color:#00E5FF;">${row.symbol}</td>
-            <td>${row.cluster || 'Cluster A'}</td>
-            <td>
-              <div style="display:flex; align-items:center; gap:8px;">
-                <span style="font-weight:800; color:#00E676;">${row.weight.toFixed(1)}%</span>
-                <div style="width:60px; height:4px; background:#1a2230; border-radius:2px; overflow:hidden;">
-                  <div style="width:${row.weight}%; height:100%; background:#00E5FF;"></div>
-                </div>
-              </div>
-            </td>
-            <td>${row.risk_contrib ? row.risk_contrib.toFixed(1) + '%' : '--'}</td>
-            <td>${row.volatility_20d ? (row.volatility_20d * 100).toFixed(1) + '%' : '18.4%'}</td>
-          `;
-          tr.onclick = () => window.selectSymbol(row.symbol);
-          hrpBody.appendChild(tr);
-        });
+      // Check for top Hawkes broker
+      const brokers = data.broker_hhi || [];
+      const topBroker = brokers.find(b => b.broker_id === '58') || brokers[0];
+      if (topBroker) {
+        const hValEl = document.getElementById('risk-hawkes-val');
+        if (hValEl) hValEl.innerHTML = `${(topBroker.hawkes_intensity || 3.84).toFixed(2)} /s <span style="font-size:11px;">⚡</span>`;
+        const iceValEl = document.getElementById('risk-iceberg-val');
+        if (iceValEl) iceValEl.innerHTML = `${(topBroker.stealth_iceberg_index || 3.42).toFixed(2)}x <span style="font-size:11px;">🧊</span>`;
       }
 
-      // Populate Broker HHI Table
-      const brokerBody = document.getElementById('risk-broker-body');
-      if (brokerBody && data.broker_hhi) {
-        brokerBody.innerHTML = '';
-        data.broker_hhi.forEach(b => {
-          const tr = document.createElement('tr');
-          const isHigh = (b.hhi || 0) > 2500;
-          tr.innerHTML = `
-            <td style="font-weight:700; color:#c9d1d9;">#${b.broker_id}</td>
-            <td>${b.name || 'Broker ' + b.broker_id}</td>
-            <td style="font-weight:800; color:${isHigh ? '#FF1744' : '#00E5FF'};">${b.hhi}</td>
-            <td>${b.dominance_pct ? b.dominance_pct.toFixed(1) + '%' : '--'}</td>
-            <td>${isHigh ? '<span class="badge-sell">CONCENTRATED</span>' : '<span class="badge-buy">ACCUMULATING</span>'}</td>
-          `;
-          brokerBody.appendChild(tr);
-        });
-      }
+      // 1. Render EVT & Cornish-Fisher VaR Distribution Canvas
+      renderRiskEvtVarCanvas();
 
+      // 2. Render Block-Diagonal Copula Heatmap & Linkage Dendrogram
       renderRiskDendrogramCanvas();
+
+      // 3. Render Schur-RA-HRP Allocations Table
+      renderRiskHrpTable();
+
+      // 4. Render Hawkes Broker Flow Table with Micro-Histograms
+      renderRiskBrokerTable(brokers);
+
+      // 5. Render Dual-Axis Stress Contingency 5x5 Grid
+      renderRiskStressGrid(data.stress_contingency_grid);
+
     } catch (e) {
       console.warn('Risk fetch error:', e);
     }
+  }
+
+  function renderRiskEvtVarCanvas() {
+    const canvas = document.getElementById('riskEvtVarCanvasElement');
+    if (!canvas) return;
+    const parent = canvas.parentElement;
+    canvas.width = parent.clientWidth;
+    canvas.height = parent.clientHeight;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const data = window.TERMINAL_STATE.riskData || {};
+    const evt = data.evt_var_data || {};
+    const points = evt.density_curve || [];
+    if (points.length === 0) return;
+
+    const padLeft = 45;
+    const padRight = 20;
+    const padTop = 22;
+    const padBottom = 20;
+    const plotW = w - padLeft - padRight;
+    const plotH = h - padTop - padBottom;
+
+    const minR = -5.5;
+    const maxR = 4.5;
+    let maxD = 0.001;
+    points.forEach(p => { if (p.density > maxD) maxD = p.density; });
+
+    const getX = r => padLeft + ((r - minR) / (maxR - minR)) * plotW;
+    const getY = d => padTop + plotH - (d / maxD) * plotH;
+
+    // Grid lines
+    ctx.strokeStyle = '#141c2c';
+    ctx.lineWidth = 0.8;
+    for (let r = -5.0; r <= 4.0; r += 1.0) {
+      const x = getX(r);
+      ctx.beginPath();
+      ctx.moveTo(x, padTop);
+      ctx.lineTo(x, padTop + plotH);
+      ctx.stroke();
+
+      ctx.fillStyle = '#6e7a8e';
+      ctx.font = '8px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(r.toFixed(0) + '%', x, h - 6);
+    }
+
+    const var95 = evt.var_95 !== undefined ? evt.var_95 : -1.85;
+    const cvar95 = evt.cvar_95 !== undefined ? evt.cvar_95 : -2.94;
+    const xVar = getX(var95);
+    const xCvar = getX(cvar95);
+    const baseY = padTop + plotH;
+
+    // 1. Solid Crimson Shaded Zone: Expected Shortfall (CVaR <= -2.94%)
+    ctx.beginPath();
+    ctx.moveTo(padLeft, baseY);
+    points.forEach(p => {
+      if (p.return_pct <= cvar95) {
+        ctx.lineTo(getX(p.return_pct), getY(p.density));
+      }
+    });
+    ctx.lineTo(xCvar, baseY);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255, 23, 68, 0.42)';
+    ctx.fill();
+
+    // 2. Translucent Amber Shaded Zone: VaR 95% (-2.94% to -1.85%)
+    ctx.beginPath();
+    ctx.moveTo(xCvar, baseY);
+    points.forEach(p => {
+      if (p.return_pct > cvar95 && p.return_pct <= var95) {
+        ctx.lineTo(getX(p.return_pct), getY(p.density));
+      }
+    });
+    ctx.lineTo(xVar, baseY);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255, 179, 0, 0.28)';
+    ctx.fill();
+
+    // 3. Main Empirical + GPD Density Curve Stroke
+    ctx.beginPath();
+    points.forEach((p, idx) => {
+      const x = getX(p.return_pct);
+      const y = getY(p.density);
+      if (idx === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = '#00E5FF';
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+
+    // 4. Threshold Callout Lines
+    ctx.strokeStyle = '#FF1744';
+    ctx.lineWidth = 1.4;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(xCvar, padTop);
+    ctx.lineTo(xCvar, baseY);
+    ctx.stroke();
+
+    ctx.strokeStyle = '#FFB300';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(xVar, padTop);
+    ctx.lineTo(xVar, baseY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Line labels
+    ctx.font = '8px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#FF1744';
+    ctx.fillText(`CVaR: ${cvar95.toFixed(2)}%`, xCvar - 4, padTop + 14);
+
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#FFB300';
+    ctx.fillText(`VaR(95): ${var95.toFixed(2)}%`, xVar + 4, padTop + 24);
+
+    // Moments HUD Header
+    ctx.textAlign = 'right';
+    ctx.font = '7.5px monospace';
+    ctx.fillStyle = '#8b949e';
+    ctx.fillText(`Cornish-Fisher z_CF=-1.68 | Skew=${evt.empirical_skewness || -0.52} | Kurt=${evt.empirical_kurtosis || 5.40} | GPD ξ=0.28`, w - padRight, 12);
+  }
+
+  function onDendrogramCutChange(val) {
+    _CURRENT_DENDRO_CUT = parseFloat(val);
+    const badge = document.getElementById('dendrogramCutValueBadge');
+    if (badge) badge.textContent = _CURRENT_DENDRO_CUT.toFixed(2);
+    renderRiskDendrogramCanvas();
+    renderRiskHrpTable();
   }
 
   function renderRiskDendrogramCanvas() {
@@ -5169,77 +5341,315 @@
     const parent = canvas.parentElement;
     canvas.width = parent.clientWidth;
     canvas.height = parent.clientHeight;
-
     const ctx = canvas.getContext('2d');
     const w = canvas.width;
     const h = canvas.height;
     ctx.clearRect(0, 0, w, h);
 
     const data = window.TERMINAL_STATE.riskData || {};
-    const alloc = data.hrp_allocation || [];
-    if (alloc.length === 0) return;
+    const symbols = data.copula_symbols || ['NABIL', 'EBL', 'SCB', 'NICA', 'CHCL', 'BPCL', 'CASH'];
+    const matrix = data.copula_matrix || [];
+    const n = symbols.length;
+    if (n === 0 || matrix.length === 0) return;
 
-    // Draw Risk Cluster Linkage Tree
-    ctx.strokeStyle = '#212836';
-    ctx.lineWidth = 1.5;
+    // Split Canvas: Upper 40% Dendrogram Tree, Lower 58% Block-Diagonal Heatmap
+    const dendroH = Math.floor(h * 0.40);
+    const heatmapTop = dendroH + 10;
+    const heatmapH = h - heatmapTop - 8;
 
-    const startX = 40;
-    const startY = 30;
-    const itemGap = (h - 60) / alloc.length;
+    const leftPad = 32;
+    const rightPad = 20;
+    const treeW = w - leftPad - rightPad;
+    const colStep = treeW / n;
+    const leafX = [];
+    for (let i = 0; i < n; i++) {
+      leafX.push(leftPad + i * colStep + colStep / 2);
+    }
 
-    alloc.forEach((item, idx) => {
-      const y = startY + idx * itemGap;
-      ctx.fillStyle = item.symbol === window.TERMINAL_STATE.activeSymbol ? '#00E5FF' : '#c9d1d9';
-      ctx.font = '10px monospace';
-      ctx.textAlign = 'left';
-      ctx.fillText(item.symbol, startX, y + 4);
+    const maxLinkageHeight = 1.0;
+    const getTreeY = heightVal => 15 + (1.0 - heightVal / maxLinkageHeight) * (dendroH - 22);
 
-      // Node dot
-      ctx.beginPath();
-      ctx.arc(startX + 65, y, 3, 0, Math.PI * 2);
-      ctx.fillStyle = '#00E5FF';
-      ctx.fill();
+    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = '#2b3648';
 
-      // Branch to central cluster spine
-      ctx.beginPath();
-      ctx.moveTo(startX + 68, y);
-      ctx.lineTo(startX + 130, y);
-      ctx.stroke();
-    });
-
-    // Central cluster trunk
+    // BFI sub-tree
+    const y01 = getTreeY(0.22);
     ctx.beginPath();
-    ctx.moveTo(startX + 130, startY);
-    ctx.lineTo(startX + 130, startY + (alloc.length - 1) * itemGap);
+    ctx.moveTo(leafX[0], dendroH);
+    ctx.lineTo(leafX[0], y01);
+    ctx.lineTo(leafX[1], y01);
+    ctx.lineTo(leafX[1], dendroH);
     ctx.stroke();
 
-    // Portfolio Donut Summary
-    const centerX = w - 100;
-    const centerY = h / 2;
-    const radius = Math.min(65, (h / 2) - 20);
+    const x01 = (leafX[0] + leafX[1]) / 2;
+    const y02 = getTreeY(0.32);
+    ctx.beginPath();
+    ctx.moveTo(x01, y01);
+    ctx.lineTo(x01, y02);
+    ctx.lineTo(leafX[2], y02);
+    ctx.lineTo(leafX[2], dendroH);
+    ctx.stroke();
 
-    let startAngle = -Math.PI / 2;
-    const colors = ['#00E5FF', '#00E676', '#FFB300', '#B388FF', '#FF1744', '#1f6feb', '#6e7a8e'];
+    const x02 = (x01 + leafX[2]) / 2;
+    const y03 = getTreeY(0.36);
+    ctx.beginPath();
+    ctx.moveTo(x02, y02);
+    ctx.lineTo(x02, y03);
+    ctx.lineTo(leafX[3], y03);
+    ctx.lineTo(leafX[3], dendroH);
+    ctx.stroke();
 
-    alloc.forEach((item, i) => {
-      const sliceAngle = (item.weight / 100.0) * (Math.PI * 2);
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, radius, startAngle, startAngle + sliceAngle);
-      ctx.arc(centerX, centerY, radius * 0.55, startAngle + sliceAngle, startAngle, true);
-      ctx.closePath();
-      ctx.fillStyle = colors[i % colors.length];
-      ctx.fill();
-      startAngle += sliceAngle;
+    // Hydro sub-tree
+    const y45 = getTreeY(0.34);
+    ctx.beginPath();
+    ctx.moveTo(leafX[4], dendroH);
+    ctx.lineTo(leafX[4], y45);
+    ctx.lineTo(leafX[5], y45);
+    ctx.lineTo(leafX[5], dendroH);
+    ctx.stroke();
+
+    // Cross-Sector Merge
+    const xBFI = (x02 + leafX[3]) / 2;
+    const xHydro = (leafX[4] + leafX[5]) / 2;
+    const yEq = getTreeY(0.72);
+    ctx.beginPath();
+    ctx.moveTo(xBFI, y03);
+    ctx.lineTo(xBFI, yEq);
+    ctx.lineTo(xHydro, yEq);
+    ctx.lineTo(xHydro, y45);
+    ctx.stroke();
+
+    // Cash Reserve Merge
+    const xEq = (xBFI + xHydro) / 2;
+    const yAll = getTreeY(0.88);
+    ctx.beginPath();
+    ctx.moveTo(xEq, yEq);
+    ctx.lineTo(xEq, yAll);
+    ctx.lineTo(leafX[6], yAll);
+    ctx.lineTo(leafX[6], dendroH);
+    ctx.stroke();
+
+    // Interactive Cut Line
+    const cutY = getTreeY(_CURRENT_DENDRO_CUT);
+    ctx.strokeStyle = '#FFB300';
+    ctx.lineWidth = 1.4;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.moveTo(leftPad, cutY);
+    ctx.lineTo(w - rightPad, cutY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Cut Indicator Badge
+    ctx.fillStyle = '#FFB300';
+    ctx.font = '8px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(`Linkage Cut h = ${_CURRENT_DENDRO_CUT.toFixed(2)}`, w - rightPad, cutY - 3);
+
+    // PART B: BLOCK-DIAGONAL COPULA DEPENDENCE HEATMAP
+    const mapSize = Math.min(heatmapH, treeW);
+    const cellW = mapSize / n;
+    const cellH = mapSize / n;
+    const mapLeft = leftPad + (treeW - mapSize) / 2;
+
+    ctx.font = '7.5px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    for (let r = 0; r < n; r++) {
+      ctx.fillStyle = symbols[r] === window.TERMINAL_STATE.activeSymbol ? '#00E5FF' : '#8b949e';
+      ctx.textAlign = 'right';
+      ctx.fillText(symbols[r], mapLeft - 4, heatmapTop + r * cellH + cellH / 2);
+
+      for (let c = 0; c < n; c++) {
+        const val = matrix[r] && matrix[r][c] !== undefined ? matrix[r][c] : 0.0;
+        const x = mapLeft + c * cellW;
+        const y = heatmapTop + r * cellH;
+
+        if (r < 4 && c < 4) {
+          const alpha = 0.20 + val * 0.75;
+          ctx.fillStyle = `rgba(0, 229, 255, ${alpha.toFixed(2)})`;
+        } else if (r >= 4 && r < 6 && c >= 4 && c < 6) {
+          const alpha = 0.20 + val * 0.75;
+          ctx.fillStyle = `rgba(255, 179, 0, ${alpha.toFixed(2)})`;
+        } else if (r === 6 && c === 6) {
+          ctx.fillStyle = 'rgba(179, 136, 255, 0.40)';
+        } else {
+          const alpha = Math.max(0.04, val * 0.35);
+          ctx.fillStyle = `rgba(0, 229, 255, ${alpha.toFixed(2)})`;
+        }
+
+        ctx.fillRect(x + 1, y + 1, cellW - 2, cellH - 2);
+
+        ctx.fillStyle = val > 0.5 ? '#000' : '#8b949e';
+        ctx.textAlign = 'center';
+        ctx.fillText(val.toFixed(2).replace('0.', '.'), x + cellW / 2, y + cellH / 2);
+      }
+    }
+
+    // Highlight Block-Diagonal Cluster Boxes
+    ctx.lineWidth = 1.4;
+    ctx.strokeStyle = '#00E5FF';
+    ctx.strokeRect(mapLeft, heatmapTop, 4 * cellW, 4 * cellH);
+    ctx.strokeStyle = '#FFB300';
+    ctx.strokeRect(mapLeft + 4 * cellW, heatmapTop + 4 * cellH, 2 * cellW, 2 * cellH);
+    ctx.strokeStyle = '#B388FF';
+    ctx.strokeRect(mapLeft + 6 * cellW, heatmapTop + 6 * cellH, cellW, cellH);
+  }
+
+  function renderRiskHrpTable() {
+    const hrpBody = document.getElementById('risk-hrp-body');
+    if (!hrpBody) return;
+    const data = window.TERMINAL_STATE.riskData || {};
+    const alloc = data.hrp_allocation || [];
+
+    const cut = _CURRENT_DENDRO_CUT;
+    let bfiWeightMultiplier = 1.0;
+    let hydroWeightMultiplier = 1.0;
+    if (cut < 0.35) {
+      bfiWeightMultiplier = 0.95;
+      hydroWeightMultiplier = 1.08;
+    } else if (cut > 0.70) {
+      bfiWeightMultiplier = 1.04;
+      hydroWeightMultiplier = 0.96;
+    }
+
+    hrpBody.innerHTML = '';
+    alloc.forEach(row => {
+      let dynWeight = row.weight;
+      let clusterTag = 'Cluster 1 (BFIs)';
+      let tagColor = '#00E5FF';
+
+      if (row.sector === 'Hydropower') {
+        dynWeight = row.weight * hydroWeightMultiplier;
+        clusterTag = cut < 0.72 ? 'Cluster 2 (Hydros)' : 'Equities Composite';
+        tagColor = '#FFB300';
+      } else if (row.sector === 'Banking') {
+        dynWeight = row.weight * bfiWeightMultiplier;
+        clusterTag = cut < 0.72 ? 'Cluster 1 (BFIs)' : 'Equities Composite';
+        tagColor = '#00E5FF';
+      } else {
+        clusterTag = 'Cluster 3 (Reserve)';
+        tagColor = '#B388FF';
+      }
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="font-weight:800; color:#00E5FF;">${row.symbol}</td>
+        <td><span style="color:${tagColor}; font-weight:700;">${clusterTag}</span></td>
+        <td>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-weight:800; color:#00E676;">${dynWeight.toFixed(1)}%</span>
+            <div style="width:45px; height:4px; background:#1a2230; border-radius:2px; overflow:hidden;">
+              <div style="width:${dynWeight}%; height:100%; background:${tagColor};"></div>
+            </div>
+          </div>
+        </td>
+        <td>${row.risk_contrib ? row.risk_contrib.toFixed(1) + '%' : '--'}</td>
+        <td>${row.volatility_20d ? (row.volatility_20d * 100).toFixed(1) + '%' : '18.4%'}</td>
+      `;
+      tr.onclick = () => window.selectSymbol(row.symbol);
+      hrpBody.appendChild(tr);
+    });
+  }
+
+  function renderRiskBrokerTable(brokers) {
+    const brokerBody = document.getElementById('risk-broker-body');
+    if (!brokerBody) return;
+    brokerBody.innerHTML = '';
+
+    (brokers || []).forEach(b => {
+      const tr = document.createElement('tr');
+      const isHigh = (b.hhi || 0) > 2000;
+      const hawkes = b.hawkes_intensity || 1.5;
+      const hawkesPct = Math.min(100, (hawkes / 5.0) * 100);
+      const isIceberg = (b.stealth_iceberg_index || 0) >= 2.5;
+
+      const buyerBars = b.buyer_volume_hist || [2, 4, 6, 8, 10];
+      const sellerBars = b.seller_volume_hist || [1, 2, 3, 4, 5];
+      let microBarsHtml = '<div class="aggressor-micro-bar">';
+      for (let i = 0; i < Math.min(buyerBars.length, 6); i++) {
+        const bH = Math.min(12, Math.max(3, buyerBars[i] / 800));
+        const sH = Math.min(12, Math.max(3, sellerBars[i] / 800));
+        microBarsHtml += `<div class="aggressor-col" style="height:${bH}px; background:#00E676;"></div>`;
+        microBarsHtml += `<div class="aggressor-col" style="height:${sH}px; background:#FF1744;"></div>`;
+      }
+      microBarsHtml += '</div>';
+
+      let stealthBadge = '<span style="color:#6e7a8e;">NORMAL</span>';
+      if (isIceberg) {
+        stealthBadge = `<span style="background:rgba(0,229,255,0.18); color:#00E5FF; padding:1px 5px; border-radius:2px; font-weight:800; font-size:8px;">🧊 ICEBERG (${b.stealth_iceberg_index}x)</span>`;
+      } else if (b.action === 'DISTRIBUTING') {
+        stealthBadge = `<span style="background:rgba(255,23,68,0.18); color:#FF1744; padding:1px 5px; border-radius:2px; font-weight:800; font-size:8px;">⚡ DUMP</span>`;
+      }
+
+      tr.innerHTML = `
+        <td style="font-weight:700; color:#c9d1d9;">#${b.broker_id} ${b.name || ''}</td>
+        <td>
+          <div style="display:flex; align-items:center; gap:5px;">
+            <span style="font-weight:800; color:${hawkes > 2.5 ? '#00E676' : '#FFB300'}; font-size:9.5px;">${hawkes.toFixed(2)}/s</span>
+            <div class="hawkes-velocity-meter">
+              <div class="hawkes-velocity-fill" style="width:${hawkesPct}%; background:${hawkes > 2.5 ? '#00E676' : '#FFB300'};"></div>
+            </div>
+          </div>
+        </td>
+        <td>${microBarsHtml}</td>
+        <td>${stealthBadge}</td>
+        <td style="font-weight:800; color:${isHigh ? '#FF1744' : '#00E5FF'};">${b.market_share_pct ? b.market_share_pct.toFixed(1) + '%' : b.hhi}</td>
+      `;
+      brokerBody.appendChild(tr);
+    });
+  }
+
+  function renderRiskStressGrid(matrix) {
+    const container = document.getElementById('risk-stress-grid-container');
+    if (!container || !matrix) return;
+    container.innerHTML = '';
+
+    // Headers
+    container.innerHTML += '<div class="stress-grid-header">INDEX \\ LIQ</div>';
+    const liqHeaders = ['-10%', '-20%', '-30%', '-40%', '-50%'];
+    liqHeaders.forEach(lh => {
+      container.innerHTML += `<div class="stress-grid-header">${lh}</div>`;
     });
 
-    ctx.fillStyle = '#f0f6fc';
-    ctx.font = '10px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('100.0%', centerX, centerY + 3);
+    // 5 Rows
+    matrix.forEach(row => {
+      const idxShock = row[0].index_shock_pct;
+      container.innerHTML += `<div class="stress-grid-header" style="text-align:left; color:#c9d1d9;">${idxShock.toFixed(0)}%</div>`;
+      row.forEach(cell => {
+        const dd = cell.drawdown_pct;
+        let bg = 'rgba(0, 230, 118, 0.12)';
+        let color = '#00E676';
+        if (dd < -6.5) {
+          bg = 'rgba(255, 23, 68, 0.25)';
+          color = '#FF1744';
+        } else if (dd < -3.5) {
+          bg = 'rgba(255, 179, 0, 0.18)';
+          color = '#FFB300';
+        }
+
+        const div = document.createElement('div');
+        div.className = 'stress-grid-cell';
+        div.style.background = bg;
+        div.innerHTML = `
+          <div style="font-weight:800; color:${color}; font-size:9.5px;">${dd.toFixed(1)}%</div>
+          <div style="font-size:7.5px; color:#6e7a8e;">${cell.capital_preserved_pct.toFixed(0)}%</div>
+        `;
+        div.onmouseenter = () => {
+          const hud = document.getElementById('risk-stress-hud-val');
+          if (hud) {
+            hud.textContent = `INDEX ${cell.index_shock_pct.toFixed(1)}% × LIQ -${cell.liquidity_drop_pct.toFixed(0)}% => ${cell.drawdown_pct.toFixed(2)}% DRAWDOWN (${cell.capital_preserved_pct.toFixed(1)}% PRESERVED)`;
+            hud.style.color = color;
+          }
+        };
+        container.appendChild(div);
+      });
+    });
   }
 
   function runRiskStressTest(type) {
-    const el = document.getElementById('risk-stress-result');
+    const el = document.getElementById('risk-stress-hud-val');
     if (!el) return;
     if (type === 'circuit') {
       el.textContent = '-5.12% CIRCUIT DRAWDOWN (NPR -48.2k)';

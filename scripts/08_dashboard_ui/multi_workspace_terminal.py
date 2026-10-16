@@ -181,14 +181,180 @@ def get_risk_monitor_data(symbol: Optional[str] = None) -> Dict[str, Any]:
         {"symbol": "CASH", "sector": "Sovereign T-Bills", "weight": 6.5, "volatility_20d": 0.010, "cluster": "Risk-Free Reserve", "risk_contrib": 6.0}
     ]
 
-    # Broker HHI Concentration Heatmap
-    broker_hhi = [
-        {"broker_id": "58", "name": "Naasa Securities", "hhi": 2840, "hhi_score": 0.284, "market_share_pct": 21.4, "dominance_pct": 21.4, "action": "ACCUMULATING"},
-        {"broker_id": "45", "name": "Imperial Securities", "hhi": 2150, "hhi_score": 0.215, "market_share_pct": 16.2, "dominance_pct": 16.2, "action": "ACCUMULATING"},
-        {"broker_id": "34", "name": "Vision Securities", "hhi": 1800, "hhi_score": 0.180, "market_share_pct": 13.8, "dominance_pct": 13.8, "action": "NEUTRAL"},
-        {"broker_id": "28", "name": "Shree Krishna Securities", "hhi": 1450, "hhi_score": 0.145, "market_share_pct": 10.5, "dominance_pct": 10.5, "action": "DISTRIBUTING"},
-        {"broker_id": "94", "name": "KBL Securities", "hhi": 1200, "hhi_score": 0.120, "market_share_pct": 8.9, "dominance_pct": 8.9, "action": "NEUTRAL"}
+    # 1. Copula Tail-Dependence Matrix & Block-Diagonal Hierarchical Ordering
+    copula_symbols = ["NABIL", "EBL", "SCB", "NICA", "CHCL", "BPCL", "CASH"]
+    # Re-ordered block-diagonal tail-copula matrix lambda_L (lower crash co-dependence)
+    copula_matrix = [
+        [1.00, 0.84, 0.79, 0.73, 0.28, 0.25, 0.01],
+        [0.84, 1.00, 0.81, 0.76, 0.26, 0.24, 0.01],
+        [0.79, 0.81, 1.00, 0.71, 0.24, 0.22, 0.01],
+        [0.73, 0.76, 0.71, 1.00, 0.31, 0.29, 0.02],
+        [0.28, 0.26, 0.24, 0.31, 1.00, 0.78, 0.01],
+        [0.25, 0.24, 0.22, 0.29, 0.78, 1.00, 0.01],
+        [0.01, 0.01, 0.01, 0.02, 0.01, 0.01, 1.00]
     ]
+    copula_distance_matrix = [
+        [round(math.sqrt(max(0.0, 1.0 - copula_matrix[i][j])), 4) for j in range(len(copula_symbols))]
+        for i in range(len(copula_symbols))
+    ]
+    dendrogram_tree = {
+        "leaves": copula_symbols,
+        "default_cut_height": 0.45,
+        "cut_height_min": 0.10,
+        "cut_height_max": 0.90,
+        "clusters_at_cut": [
+            {"cluster_id": "Cluster 1 (BFIs)", "color": "#00E5FF", "symbols": ["NABIL", "EBL", "SCB", "NICA"], "weight": 57.2},
+            {"cluster_id": "Cluster 2 (Hydros)", "color": "#FFB300", "symbols": ["CHCL", "BPCL"], "weight": 36.3},
+            {"cluster_id": "Cluster 3 (Reserve)", "color": "#B388FF", "symbols": ["CASH"], "weight": 6.5}
+        ]
+    }
+
+    # 2. Broker HHI & Hawkes Self-Excitation Velocity & Stealth Iceberg Tracking
+    broker_hhi = [
+        {
+            "broker_id": "58",
+            "name": "Naasa Securities",
+            "hhi": 2840,
+            "hhi_score": 0.284,
+            "market_share_pct": 21.4,
+            "dominance_pct": 21.4,
+            "action": "ACCUMULATING",
+            "hawkes_intensity": 3.84,
+            "hawkes_baseline_mu": 0.45,
+            "branching_ratio": 0.704,
+            "buyer_volume_hist": [450, 680, 1200, 1850, 2400, 3100, 4200, 5600, 7100, 9400],
+            "seller_volume_hist": [320, 410, 380, 450, 510, 620, 590, 710, 800, 950],
+            "stealth_iceberg_index": 3.42,
+            "stealth_flag": "ICEBERG_TWAP_DETECTED",
+            "flow_status": "AGGRESSIVE_BUYER_SWEEP"
+        },
+        {
+            "broker_id": "45",
+            "name": "Imperial Securities",
+            "hhi": 2150,
+            "hhi_score": 0.215,
+            "market_share_pct": 16.2,
+            "dominance_pct": 16.2,
+            "action": "ACCUMULATING",
+            "hawkes_intensity": 2.72,
+            "hawkes_baseline_mu": 0.38,
+            "branching_ratio": 0.626,
+            "buyer_volume_hist": [210, 340, 560, 890, 1200, 1650, 2100, 2900, 3400, 4100],
+            "seller_volume_hist": [180, 220, 310, 400, 480, 550, 620, 700, 780, 890],
+            "stealth_iceberg_index": 2.85,
+            "stealth_flag": "ICEBERG_VWAP_DETECTED",
+            "flow_status": "AGGRESSIVE_BUYER_SWEEP"
+        },
+        {
+            "broker_id": "34",
+            "name": "Vision Securities",
+            "hhi": 1800,
+            "hhi_score": 0.180,
+            "market_share_pct": 13.8,
+            "dominance_pct": 13.8,
+            "action": "NEUTRAL",
+            "hawkes_intensity": 1.45,
+            "hawkes_baseline_mu": 0.32,
+            "branching_ratio": 0.409,
+            "buyer_volume_hist": [350, 420, 390, 410, 450, 480, 510, 530, 560, 600],
+            "seller_volume_hist": [380, 400, 420, 440, 460, 490, 520, 540, 570, 610],
+            "stealth_iceberg_index": 1.12,
+            "stealth_flag": "NORMAL_BLOCKS",
+            "flow_status": "BALANCED_TWO_WAY"
+        },
+        {
+            "broker_id": "28",
+            "name": "Shree Krishna Securities",
+            "hhi": 1450,
+            "hhi_score": 0.145,
+            "market_share_pct": 10.5,
+            "dominance_pct": 10.5,
+            "action": "DISTRIBUTING",
+            "hawkes_intensity": 2.15,
+            "hawkes_baseline_mu": 0.30,
+            "branching_ratio": 0.551,
+            "buyer_volume_hist": [150, 180, 210, 230, 260, 280, 300, 320, 350, 380],
+            "seller_volume_hist": [450, 680, 920, 1350, 1800, 2400, 3100, 4000, 4800, 5600],
+            "stealth_iceberg_index": 1.48,
+            "stealth_flag": "DIRECT_DUMP",
+            "flow_status": "AGGRESSIVE_SELLER_DUMP"
+        },
+        {
+            "broker_id": "94",
+            "name": "KBL Securities",
+            "hhi": 1200,
+            "hhi_score": 0.120,
+            "market_share_pct": 8.9,
+            "dominance_pct": 8.9,
+            "action": "NEUTRAL",
+            "hawkes_intensity": 0.98,
+            "hawkes_baseline_mu": 0.25,
+            "branching_ratio": 0.333,
+            "buyer_volume_hist": [220, 240, 260, 280, 300, 310, 330, 350, 370, 390],
+            "seller_volume_hist": [200, 210, 230, 250, 270, 290, 310, 330, 340, 360],
+            "stealth_iceberg_index": 0.95,
+            "stealth_flag": "NORMAL_BLOCKS",
+            "flow_status": "PASSIVE_PROVISION"
+        }
+    ]
+
+    # 3. Extreme Value Theory (EVT) & Cornish-Fisher Tail Expansion
+    skew = -0.52
+    kurt = 5.40
+    z_gauss = -1.6449
+    z_cf = z_gauss + (skew / 6.0) * (z_gauss**2 - 1.0) + (kurt / 24.0) * (z_gauss**3 - 3.0 * z_gauss) - (skew**2 / 36.0) * (2.0 * z_gauss**3 - 5.0 * z_gauss)
+    mu_port = 0.08
+    sigma_port = 1.15
+    evt_var_95 = -1.85
+    evt_cvar_95 = -2.94
+    evt_var_99 = -3.12
+
+    # GPD density points spanning -5.5% to +4.5% returns
+    density_points = []
+    ret_grid = np.linspace(-5.5, 4.5, 75)
+    for r in ret_grid:
+        if r > -1.25:
+            d = (1.0 / (sigma_port * math.sqrt(2 * math.pi))) * math.exp(-0.5 * ((r - mu_port) / sigma_port)**2)
+        else:
+            y = (-r) - 1.25
+            d = (1.0 / 0.62) * ((1.0 + 0.28 * y / 0.62)**(-1.0 / 0.28 - 1.0)) * 0.38
+        density_points.append({"return_pct": round(float(r), 2), "density": round(float(d), 5)})
+
+    evt_var_data = {
+        "empirical_skewness": skew,
+        "empirical_kurtosis": kurt,
+        "gaussian_z95": round(z_gauss, 4),
+        "cornish_fisher_z95": round(z_cf, 4),
+        "var_95_gaussian": -1.81,
+        "var_95_cornish_fisher": -2.48,
+        "var_95": evt_var_95,
+        "cvar_95": evt_cvar_95,
+        "var_99": evt_var_99,
+        "gpd_threshold_u": -1.25,
+        "gpd_shape_xi": 0.28,
+        "gpd_scale_beta": 0.62,
+        "density_curve": density_points
+    }
+
+    # 4. Dual-Axis Stress Contingency Grid (5x5 Sensitivity Matrix)
+    index_shocks = [-2.0, -4.0, -6.0, -8.0, -10.0]
+    liq_drops = [10.0, 20.0, 30.0, 40.0, 50.0]
+    stress_matrix = []
+    beta_p = 0.88
+    gamma_l = 0.045
+    for idx_s in index_shocks:
+        row = []
+        for liq_c in liq_drops:
+            dd = round(beta_p * idx_s - gamma_l * liq_c - (abs(idx_s) * liq_c * 0.0035), 2)
+            preservation = round(100.0 + dd, 2)
+            row.append({
+                "index_shock_pct": idx_s,
+                "liquidity_drop_pct": liq_c,
+                "drawdown_pct": dd,
+                "capital_preserved_pct": preservation,
+                "risk_tier": "CRITICAL" if dd < -8.0 else ("ELEVATED" if dd < -5.0 else "MANAGED")
+            })
+        stress_matrix.append(row)
 
     # CDSC Demat & Promoter Lock-in Shield
     cdsc_shield = [
@@ -199,7 +365,6 @@ def get_risk_monitor_data(symbol: Optional[str] = None) -> Dict[str, Any]:
         {"symbol": "CHCL", "status": "CLEARED", "days_to_unlock": 9999, "overhang_pct": 0.0, "risk_level": "SAFE"}
     ]
 
-    # If specific symbol requested, compute stock-level risk metrics
     active_sym = symbol or "NABIL"
     sym_risk = {
         "symbol": active_sym,
@@ -216,14 +381,20 @@ def get_risk_monitor_data(symbol: Optional[str] = None) -> Dict[str, Any]:
 
     return {
         "active_symbol": active_sym,
-        "portfolio_var_95": -1.85,
-        "portfolio_cvar_95": -2.94,
-        "portfolio_var_99": -3.12,
+        "portfolio_var_95": evt_var_95,
+        "portfolio_cvar_95": evt_cvar_95,
+        "portfolio_var_99": evt_var_99,
         "sovereign_rf_91d": rf_val,
         "interbank_rate": ib_val,
         "term_spread_364_28": term_spread,
         "hrp_allocation": hrp_allocation,
+        "copula_matrix": copula_matrix,
+        "copula_symbols": copula_symbols,
+        "copula_distance_matrix": copula_distance_matrix,
+        "dendrogram_tree": dendrogram_tree,
         "broker_hhi": broker_hhi,
+        "evt_var_data": evt_var_data,
+        "stress_contingency_grid": stress_matrix,
         "cdsc_shield": cdsc_shield,
         "symbol_risk_profile": sym_risk,
         "stress_test_oil_shock": -2.45,
