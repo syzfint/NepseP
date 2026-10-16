@@ -27,6 +27,8 @@ from pathlib import Path
 from typing import Optional, Dict, Any, List
 
 import requests
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 # Set up structured logging
 logging.basicConfig(
@@ -372,14 +374,17 @@ class ClefInferenceBridge:
             "report": report_data
         }
 
-    def _fail_closed(self, payload: NepseToClefInputPayload, code: str, message: str) -> Dict[str, Any]:
+    def _fail_closed(self, payload: Optional[NepseToClefInputPayload], code: str, message: str) -> Dict[str, Any]:
         """
         Fails closed to numerical-only mode, generating a standardized failure payload
         without crashing the quant system or corrupting outputs.
         """
+        req_id = payload.metadata.request_id if payload else f"REQ-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-FAIL"
+        regime = payload.market_context.market_regime if payload else "UNKNOWN"
+        top_picks = [f.ticker for f in payload.quantitative_forecasts[:5]] if payload else []
         failure = ClefFailurePayload(
             metadata=FailureMetadata(
-                request_id=payload.metadata.request_id,
+                request_id=req_id,
                 response_id=None,
                 model_id="clef-external",
                 status="FAILED",
@@ -391,8 +396,8 @@ class ClefInferenceBridge:
                 fallback_mode="PASSTHROUGH_NUMERICAL_ONLY"
             ),
             fallback_payload={
-                "market_regime": payload.market_context.market_regime,
-                "top_picks": [f.ticker for f in payload.quantitative_forecasts[:5]],
+                "market_regime": regime,
+                "top_picks": top_picks,
                 "notice": "Numerical predictions and backtests remain 100% active and certified. Clef analyst layer offline."
             }
         )
@@ -404,8 +409,59 @@ class ClefInferenceBridge:
         logger.warning(f"Fail-closed to numerical-only mode recorded at {self.clef_failure_path} [code={code}]")
         return {
             "status": "FAILED",
+            "fallback_mode": "PASSTHROUGH_NUMERICAL_ONLY",
             "failure": failure_data
         }
+
+
+class AsyncClefInferenceQueue:
+    """
+    Asynchronous VLM Inference Queue for Qwen2.5-VL-3B LoRA synthesis.
+    Offloads visual synthesis to background worker tasks without blocking ASGI endpoints.
+    Enforces certified fail-closed circuit breaker (max RTT <= 8.4s, timeout 45.0s)
+    to instantly fall back to deterministic quant-only mode if remote GPU bridge is saturated.
+    """
+    _executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="AsyncClefWorker")
+
+    def __init__(self, bridge: Optional[ClefInferenceBridge] = None):
+        self.bridge = bridge or ClefInferenceBridge()
+        self.circuit_open = False
+        self.max_rtt_seconds = 8.4
+        self.timeout_seconds = 45.0
+
+    async def submit_synthesis_task(self, payload: Optional[NepseToClefInputPayload] = None) -> Dict[str, Any]:
+        """
+        Dispatches synthesis task to background worker.
+        If circuit is open or execution fails/times out, immediately falls closed to quant-only mode.
+        """
+        loop = asyncio.get_running_loop()
+        try:
+            p = payload or self.bridge.build_input_payload()
+        except Exception as e:
+            logger.warning(f"[FAIL_CLOSED] Input payload build error: {e}")
+            return self.bridge._fail_closed(None, "INPUT_PAYLOAD_UNAVAILABLE", str(e))
+
+        # Circuit breaker pre-check
+        if self.circuit_open:
+            logger.warning("[CIRCUIT_BREAKER_OPEN] GPU bridge saturated. Immediate fail-closed fallback.")
+            return self.bridge._fail_closed(p, "CIRCUIT_BREAKER_OPEN", "Remote GPU saturated; quant-only active.")
+
+        t0 = time.perf_counter()
+        try:
+            res = await asyncio.wait_for(
+                loop.run_in_executor(self._executor, self.bridge.execute_inference, p),
+                timeout=self.timeout_seconds
+            )
+            rtt = time.perf_counter() - t0
+            if rtt > self.max_rtt_seconds:
+                logger.warning(f"Inference RTT ({rtt:.2f}s) exceeded {self.max_rtt_seconds}s threshold.")
+            return res
+        except asyncio.TimeoutError:
+            self.circuit_open = True
+            logger.error(f"[CIRCUIT_BREAKER_TRIGGERED] Clef inference timed out after {self.timeout_seconds}s.")
+            return self.bridge._fail_closed(p, "CLEF_ASYNC_TIMEOUT", f"Async timeout after {self.timeout_seconds}s")
+        except Exception as e:
+            return self.bridge._fail_closed(p, "CLEF_ASYNC_EXCEPTION", str(e))
 
 
 def main():

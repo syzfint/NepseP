@@ -7,7 +7,7 @@ NEPSE PULSE TERMINAL — HEADLESS GRAPHICS & WEBSOCKET ENGINE
 Institutional backend powering the zero-dependency NEPSE Pulse Terminal:
 1. Headless in-memory chart rendering to Base64 (Candlesticks, Bloomberg Spread, Treemap, Chronos ICP).
 2. Real-Time NEPSE Market Session Guardian:
-   - Sunday-Thursday 11:00 AM - 3:00 PM NPT: LIVE continuous ticks, depth stream, watchlist flash.
+   - Monday-Friday 11:00 AM - 3:00 PM NPT: LIVE continuous ticks, depth stream, watchlist flash.
    - Off-hours / Weekends / Holidays: STRICTLY FROZEN settled closing data, NO hallucinated ticks.
    - Simulation Replay toggle available for off-hours developer inspection.
 3. Zero-Trust Seqlock Telemetry & WebSocket streaming (/ws/pulse).

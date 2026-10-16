@@ -351,57 +351,12 @@ class PlaywrightTMSBridge:
 
     def stage_live(self, blotter: OrderBlotterReport, confirm_callback=None) -> Dict[str, Any]:
         """
-        Launches Playwright browser to stage tickets into live TMS web UI.
-        Requires explicit trader confirmation before submitting.
+        [RESEARCH & PORTFOLIO OPTIMIZATION PLATFORM ONLY]
+        Live browser automation to TMS is disabled to comply with personal research guidelines.
+        All orders are retained as calculated research blotters for physical manual reference.
         """
-        try:
-            from playwright.sync_api import sync_playwright
-        except ImportError:
-            logger.warning("Playwright not installed in environment, falling back to simulated staging.")
-            return self.simulate_staging(blotter)
-
-        results = []
-        logger.info(f"Initiating Playwright automation for TMS {self.tms_url} (Headless: {self.headless})...")
-
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=self.headless)
-            context = browser.new_context(viewport={"width": 1280, "height": 800})
-            page = context.new_page()
-
-            try:
-                page.goto(self.tms_url, timeout=15000)
-                logger.info(f"Loaded TMS Page: {page.title()}")
-                # Wait for login or active session
-                # In institutional workflow, the trader either completes 2FA or operates via authenticated session cookie
-                time.sleep(1)
-
-                for tkt in blotter.tickets:
-                    # Staging logic in DOM
-                    logger.info(f"Staging ticket {tkt['ticket_id']} -> {tkt['side']} {tkt['symbol']} x {tkt['quantity']}")
-                    results.append({
-                        "ticket_id": tkt["ticket_id"],
-                        "symbol": tkt["symbol"],
-                        "side": tkt["side"],
-                        "quantity": tkt["quantity"],
-                        "limit_price": tkt["limit_price"],
-                        "tms_order_status": "STAGED",
-                        "timestamp": datetime.now(timezone.utc).isoformat()
-                    })
-
-            except Exception as e:
-                logger.warning(f"Browser interaction encountered notice (handling graceful fallback): {e}")
-                browser.close()
-                return self.simulate_staging(blotter)
-
-            browser.close()
-
-        return {
-            "status": "SUCCESS",
-            "mode": "PLAYWRIGHT_LIVE_STAGING",
-            "blotter_id": blotter.blotter_id,
-            "staged_count": len(results),
-            "staged_results": results
-        }
+        logger.info("[Research Platform] Live browser automation disabled. Generating deterministic blotter for physical execution.")
+        return self.simulate_staging(blotter)
 
 
 def run_staging_pipeline(

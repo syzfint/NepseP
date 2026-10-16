@@ -20,9 +20,9 @@ Operational Constraints:
 4. Order State Acknowledgment Timeout (5,000 ms):
    Freezes subsequent slice submissions and triggers automated reconciliation queries
    if any child order does not receive a verified 'MATCHED' or 'PENDING' ACK within 5,000 ms.
-5. Adverse Selection Defense (Syndicate-Cluster VPIN):
-   If single-stock VPIN OR Syndicate Cluster VPIN crosses 0.70 (predatory insider sweep),
-   temporarily pauses execution slices.
+5. Adverse Selection Defense (Correlated Broker Accumulation & Calibrated VPIN):
+   Evaluates VPIN against empirical historical CDF (threshold: CDF(VPIN) >= 0.90) and correlated
+   broker accumulation intensity to detect toxic informed sweeps and pause execution slices.
 """
 
 import sys

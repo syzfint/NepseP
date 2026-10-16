@@ -4377,6 +4377,7 @@
       // -----------------------------------------------------------------------
       // COMPONENT 5: PERSISTENT WEBSOCKET INGESTION PIPELINE
       // -----------------------------------------------------------------------
+      let lastMsgSeq = 0;
       function initSocket() {
         DOM.metricWsStatus.textContent = 'CONNECTING...';
         DOM.metricWsStatus.className = 'metric-value neu';
@@ -4391,13 +4392,24 @@
         }
 
         ws.onopen = function () {
+          reconnectAttempts = 0;
           window.terminalSocket = ws;
           DOM.metricWsStatus.textContent = 'ESTABLISHED (TCP)';
           DOM.metricWsStatus.className = 'metric-value pos';
           logEvent('SOCKET', 'Low-Latency Zero-Copy Data Pipe Online', 'info');
 
-          // Send subscription handshake
-          ws.send(JSON.stringify({ action: 'SUBSCRIBE', symbol: activeSymbol, timeframe: activeTimeframe }));
+          // Transmit RESYNC_STATE if reconnecting with known sequence count, else standard SUBSCRIBE
+          if (lastMsgSeq > 0) {
+            ws.send(JSON.stringify({ 
+              action: 'RESYNC_STATE', 
+              last_seq: lastMsgSeq, 
+              symbol: activeSymbol, 
+              timeframe: activeTimeframe 
+            }));
+            logEvent('RESYNC', `Sent RESYNC_STATE frame (last_seq: ${lastMsgSeq})`, 'neu');
+          } else {
+            ws.send(JSON.stringify({ action: 'SUBSCRIBE', symbol: activeSymbol, timeframe: activeTimeframe }));
+          }
 
           // Start Heartbeat Ping Loop
           startPingLoop();
@@ -4417,6 +4429,13 @@
           } catch (err) {
             logEvent('PARSE_ERR', 'Malformed JSON payload received', 'err');
             return;
+          }
+
+          // Monotonic Message Sequence Counter: S_t = S_{t-1} + 1
+          if (payload.seq !== undefined && payload.seq !== null) {
+            lastMsgSeq = payload.seq;
+          } else {
+            lastMsgSeq++;
           }
 
           // ROUTING MATRIX
@@ -4477,8 +4496,16 @@
         };
       }
 
+      let reconnectAttempts = 0;
       function scheduleReconnect() {
-        setTimeout(initSocket, 2000);
+        // Exponential Backoff with Jitter: T_retry = min(T_max, T_base * 2^k + rand(0, jitter))
+        const tBase = 100;
+        const tMax = 10000;
+        const jitter = Math.random() * 200;
+        const delay = Math.min(tMax, tBase * Math.pow(2, reconnectAttempts) + jitter);
+        reconnectAttempts++;
+        logEvent('SOCKET', `Reconnecting in ${Math.round(delay)}ms (attempt ${reconnectAttempts})...`, 'warn');
+        setTimeout(initSocket, delay);
       }
 
       function startPingLoop() {
@@ -5320,21 +5347,41 @@
     const h = canvas.height;
     ctx.clearRect(0, 0, w, h);
 
+    const p2_5 = data.p2_5_curve || [];
     const p10 = data.p10_curve || [];
+    const p25 = data.p25_curve || [];
     const p50 = data.p50_curve || [];
+    const p75 = data.p75_curve || [];
     const p90 = data.p90_curve || [];
-    const n = Math.max(p10.length, p50.length, p90.length);
+    const p97_5 = data.p97_5_curve || [];
+    const mcPaths = data.mc_paths || [];
+    const events = data.calendar_events || [];
+    const kde = data.terminal_kde || null;
+
+    const n = Math.max(p50.length, p10.length, p90.length);
     if (n === 0) return;
 
+    // Evaluate bounds across all percentiles and paths
     let minY = Math.min(...p10, ...p50, ...p90);
     let maxY = Math.max(...p10, ...p50, ...p90);
-    const pad = (maxY - minY) * 0.15 || 10;
+    if (p2_5.length) minY = Math.min(minY, ...p2_5);
+    if (p97_5.length) maxY = Math.max(maxY, ...p97_5);
+    if (mcPaths.length) {
+      mcPaths.forEach(path => {
+        if (path.length) {
+          minY = Math.min(minY, ...path);
+          maxY = Math.max(maxY, ...path);
+        }
+      });
+    }
+
+    const pad = (maxY - minY) * 0.12 || 10;
     minY -= pad;
     maxY += pad;
 
     const padLeft = 65;
-    const padRight = 35;
-    const padTop = 35;
+    const padRight = 85; // Reserved for Terminal Value KDE
+    const padTop = 38;
     const padBottom = 40;
     const plotW = w - padLeft - padRight;
     const plotH = h - padTop - padBottom;
@@ -5342,11 +5389,12 @@
     const getX = i => padLeft + (i / (n - 1)) * plotW;
     const getY = val => padTop + plotH - ((val - minY) / (maxY - minY)) * plotH;
 
-    // Grid lines
+    // 1. Background Grid Lines & Y-Axis Labels
     ctx.strokeStyle = '#151c28';
     ctx.lineWidth = 1;
-    for (let g = 0; g <= 4; g++) {
-      const yVal = minY + (g / 4) * (maxY - minY);
+    ctx.setLineDash([]);
+    for (let g = 0; g <= 5; g++) {
+      const yVal = minY + (g / 5) * (maxY - minY);
       const yPx = getY(yVal);
       ctx.beginPath();
       ctx.moveTo(padLeft, yPx);
@@ -5359,50 +5407,157 @@
       ctx.fillText(yVal.toFixed(1), padLeft - 8, yPx + 3);
     }
 
-    // Shaded Confidence Corridor
+    // 2. Multi-Band Shaded Confidence Intervals (Fan Chart)
+    // Band A: 95% Tail Boundary (P2.5 -> P97.5) - Faint 8% Outer Haze
+    if (p2_5.length === n && p97_5.length === n) {
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) {
+        const x = getX(i);
+        const y = getY(p97_5[i]);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      for (let i = n - 1; i >= 0; i--) {
+        ctx.lineTo(getX(i), getY(p2_5[i]));
+      }
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(0, 229, 255, 0.08)';
+      ctx.fill();
+
+      // Outer boundary lines
+      ctx.setLineDash([2, 4]);
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(0, 229, 255, 0.35)';
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) {
+        if (i === 0) ctx.moveTo(getX(i), getY(p97_5[i])); else ctx.lineTo(getX(i), getY(p97_5[i]));
+      }
+      ctx.stroke();
+
+      ctx.strokeStyle = 'rgba(255, 23, 68, 0.35)';
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) {
+        if (i === 0) ctx.moveTo(getX(i), getY(p2_5[i])); else ctx.lineTo(getX(i), getY(p2_5[i]));
+      }
+      ctx.stroke();
+    }
+
+    // Band B: 80% Outer Interval (P10 -> P90) - 22% Translucency Gradient
     ctx.beginPath();
     for (let i = 0; i < n; i++) {
       const x = getX(i);
       const y = getY(p90[i]);
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
     for (let i = n - 1; i >= 0; i--) {
-      const x = getX(i);
-      const y = getY(p10[i]);
-      ctx.lineTo(x, y);
+      ctx.lineTo(getX(i), getY(p10[i]));
     }
     ctx.closePath();
-    ctx.fillStyle = 'rgba(0, 229, 255, 0.08)';
+    ctx.fillStyle = 'rgba(0, 180, 216, 0.20)';
     ctx.fill();
 
-    // P90 Line (Green Upside)
+    // Band C: 50% Core Interval (P25 -> P75) - Deep Solid Teal Shading
+    if (p25.length === n && p75.length === n) {
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) {
+        const x = getX(i);
+        const y = getY(p75[i]);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      for (let i = n - 1; i >= 0; i--) {
+        ctx.lineTo(getX(i), getY(p25[i]));
+      }
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(0, 229, 255, 0.35)';
+      ctx.fill();
+
+      // Core Interval borders
+      ctx.strokeStyle = 'rgba(0, 229, 255, 0.65)';
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([4, 2]);
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) {
+        if (i === 0) ctx.moveTo(getX(i), getY(p75[i])); else ctx.lineTo(getX(i), getY(p75[i]));
+      }
+      ctx.stroke();
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) {
+        if (i === 0) ctx.moveTo(getX(i), getY(p25[i])); else ctx.lineTo(getX(i), getY(p25[i]));
+      }
+      ctx.stroke();
+    }
+
+    // 3. Monte Carlo / Patch-Transformer "Spaghetti" Path Overlays
+    if (mcPaths && mcPaths.length > 0) {
+      ctx.lineWidth = 0.6;
+      ctx.setLineDash([]);
+      ctx.strokeStyle = 'rgba(0, 229, 255, 0.12)';
+      mcPaths.forEach(path => {
+        if (path.length < n) return;
+        ctx.beginPath();
+        for (let i = 0; i < n; i++) {
+          const x = getX(i);
+          const y = getY(path[i]);
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      });
+    }
+
+    // 4. Event-Driven Non-Linear Volatility Kinks & Markers (D+5, D+12)
+    events.forEach(ev => {
+      const idx = ev.day - 1;
+      if (idx >= 0 && idx < n) {
+        const x = getX(idx);
+        ctx.strokeStyle = 'rgba(255, 179, 0, 0.55)';
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(x, padTop);
+        ctx.lineTo(x, padTop + plotH);
+        ctx.stroke();
+
+        // Event pill badge
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#1a1608';
+        ctx.strokeStyle = '#FFB300';
+        ctx.lineWidth = 1;
+        const badgeW = 105;
+        const badgeH = 16;
+        ctx.fillRect(x - badgeW / 2, padTop - 22, badgeW, badgeH);
+        ctx.strokeRect(x - badgeW / 2, padTop - 22, badgeW, badgeH);
+
+        ctx.fillStyle = '#FFB300';
+        ctx.font = '8.5px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(`⚡ ${ev.label}`, x, padTop - 11);
+      }
+    });
+
+    // 5. P90 Line (Green Upside Target)
     ctx.beginPath();
     ctx.strokeStyle = '#00E676';
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 1.6;
     ctx.setLineDash([4, 4]);
     for (let i = 0; i < n; i++) {
       const x = getX(i);
       const y = getY(p90[i]);
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
     ctx.stroke();
 
-    // P10 Line (Red Downside)
+    // 6. P10 Line (Red Downside Floor)
     ctx.beginPath();
     ctx.strokeStyle = '#FF1744';
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 1.6;
     ctx.setLineDash([4, 4]);
     for (let i = 0; i < n; i++) {
       const x = getX(i);
       const y = getY(p10[i]);
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
     ctx.stroke();
 
-    // P50 Median Line (Solid Cyan)
+    // 7. P50 Median Line (Solid Cyan)
     ctx.beginPath();
     ctx.strokeStyle = '#00E5FF';
     ctx.lineWidth = 2.5;
@@ -5410,12 +5565,11 @@
     for (let i = 0; i < n; i++) {
       const x = getX(i);
       const y = getY(p50[i]);
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
     ctx.stroke();
 
-    // Points on P50 Curve & X labels
+    // Points on P50 Curve & X-axis labels
     for (let i = 0; i < n; i++) {
       const x = getX(i);
       const y = getY(p50[i]);
@@ -5433,12 +5587,83 @@
       ctx.fillText('D+' + (i + 1), x, h - padBottom + 16);
     }
 
-    // Interactive Mouse Tracking on Canvas
+    // 8. Terminal Value Violin / KDE Density Plot (D+20) along Right Y-Axis
+    const kdeBaseX = w - padRight + 12;
+    const kdeWidth = padRight - 22;
+
+    // Draw KDE Axis Divider
+    ctx.strokeStyle = '#212836';
+    ctx.lineWidth = 1.2;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(kdeBaseX, padTop);
+    ctx.lineTo(kdeBaseX, padTop + plotH);
+    ctx.stroke();
+
+    ctx.fillStyle = '#6e7a8e';
+    ctx.font = '8px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('D+20 KDE', kdeBaseX + 4, padTop - 8);
+
+    if (kde && kde.grid_prices && kde.norm_density) {
+      const gp = kde.grid_prices;
+      const nd = kde.norm_density;
+
+      ctx.beginPath();
+      for (let k = 0; k < gp.length; k++) {
+        const yPx = getY(gp[k]);
+        const xPx = kdeBaseX + nd[k] * kdeWidth;
+        if (k === 0) ctx.moveTo(kdeBaseX, yPx);
+        else ctx.lineTo(xPx, yPx);
+      }
+      ctx.lineTo(kdeBaseX, getY(gp[gp.length - 1]));
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(0, 229, 255, 0.22)';
+      ctx.fill();
+
+      ctx.strokeStyle = '#00E5FF';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      for (let k = 0; k < gp.length; k++) {
+        const yPx = getY(gp[k]);
+        const xPx = kdeBaseX + nd[k] * kdeWidth;
+        if (k === 0) ctx.moveTo(kdeBaseX, yPx);
+        else ctx.lineTo(xPx, yPx);
+      }
+      ctx.stroke();
+
+      // Key Target Markers on KDE Curve
+      if (kde.targets) {
+        const tgts = [
+          { val: kde.targets.p90, col: '#00E676', lbl: 'P90' },
+          { val: kde.targets.p50, col: '#00E5FF', lbl: 'P50' },
+          { val: kde.targets.p10, col: '#FF1744', lbl: 'P10' }
+        ];
+        tgts.forEach(t => {
+          const yPx = getY(t.val);
+          ctx.strokeStyle = t.col;
+          ctx.lineWidth = 1;
+          ctx.setLineDash([2, 2]);
+          ctx.beginPath();
+          ctx.moveTo(w - padRight, yPx);
+          ctx.lineTo(kdeBaseX + kdeWidth, yPx);
+          ctx.stroke();
+
+          ctx.fillStyle = t.col;
+          ctx.font = '8px monospace';
+          ctx.textAlign = 'left';
+          ctx.fillText(`${t.lbl} ${t.val.toFixed(0)}`, kdeBaseX + 4, yPx - 2);
+        });
+      }
+    }
+
+    // 9. Interactive Crosshair HUD
     canvas.onmousemove = function(e) {
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       if (mouseX < padLeft || mouseX > w - padRight) {
-        document.getElementById('forecast-crosshair-hud').style.display = 'none';
+        const hud = document.getElementById('forecast-crosshair-hud');
+        if (hud) hud.style.display = 'none';
         return;
       }
 
@@ -5447,14 +5672,19 @@
       const curP50 = p50[idx];
       const curP10 = p10[idx];
       const curP90 = p90[idx];
+      const curP25 = p25[idx] || curP10;
+      const curP75 = p75[idx] || curP90;
 
       const hud = document.getElementById('forecast-crosshair-hud');
       if (hud) {
         hud.style.display = 'block';
         hud.style.left = (getX(idx) - 80) + 'px';
-        document.getElementById('forecast-hud-date').textContent = `SESSION D+${idx + 1}`;
-        document.getElementById('forecast-hud-px').textContent = `NPR ${curP50.toFixed(1)}`;
-        document.getElementById('forecast-hud-corridor').textContent = `P10: ${curP10.toFixed(1)} ~ P90: ${curP90.toFixed(1)}`;
+        document.getElementById('forecast-hud-date').textContent = `SESSION D+${idx + 1} (${data.corridor_dates ? data.corridor_dates[idx] : ''})`;
+        document.getElementById('forecast-hud-px').textContent = `NPR ${curP50.toFixed(1)} (Median)`;
+        document.getElementById('forecast-hud-corridor').innerHTML = `
+          <div>Core 50%: ${curP25.toFixed(1)} ~ ${curP75.toFixed(1)}</div>
+          <div>Outer 80%: ${curP10.toFixed(1)} ~ ${curP90.toFixed(1)}</div>
+        `;
       }
     };
     canvas.onmouseleave = function() {
@@ -5510,25 +5740,43 @@
     }
   };
 
+  // =========================================================================
+  // OPEN DESKTOP INTEROPERABILITY: FINOS FDC3 STANDARD SPECIFICATION
+  // =========================================================================
+  window.fdc3 = window.fdc3 || {
+    currentChannel: 'default',
+    contextListeners: [],
+    broadcast: function(context) {
+      if (context && context.type === 'fdc3.instrument' && context.id && context.id.ticker) {
+        const targetSym = context.id.ticker.toUpperCase();
+        console.log(`[FDC3] Instrument context broadcast: ${targetSym} on channel [${this.currentChannel}]`);
+        if (typeof window.selectActiveSymbol === 'function') {
+          window.selectActiveSymbol(targetSym);
+        } else if (window.terminalSocket && window.terminalSocket.readyState === WebSocket.OPEN) {
+          window.terminalSocket.send(JSON.stringify({ action: 'SWITCH_WORKSPACE_SYMBOL', symbol: targetSym }));
+        }
+      }
+      this.contextListeners.forEach(fn => fn(context));
+    },
+    addContextListener: function(handler) {
+      this.contextListeners.push(handler);
+      return { unsubscribe: () => { this.contextListeners = this.contextListeners.filter(h => h !== handler); } };
+    },
+    raiseIntent: function(intent, context) {
+      if (intent === 'ViewChart' && context && context.id && context.id.ticker) {
+        this.broadcast(context);
+        if (typeof window.switchWorkspaceScreen === 'function') window.switchWorkspaceScreen(1);
+      }
+    }
+  };
+
   function initGlobalTerminalSocket() {
+    // Enforce single-pane WebSocket routing: reuse primary terminalSocket
     if (window.terminalSocket && window.terminalSocket.readyState === WebSocket.OPEN) {
       globalWs = window.terminalSocket;
-      return;
+    } else {
+      setTimeout(initGlobalTerminalSocket, 250);
     }
-    const loc = window.location;
-    const wsUrl = (loc.protocol === 'https:' ? 'wss://' : 'ws://') + loc.host + '/ws/pulse';
-    try {
-      globalWs = new WebSocket(wsUrl);
-      globalWs.onmessage = function(event) {
-        try {
-          const payload = JSON.parse(event.data);
-          window.handleWorkspaceMessage(payload);
-        } catch (err) {}
-      };
-      globalWs.onclose = function() {
-        setTimeout(initGlobalTerminalSocket, 3000);
-      };
-    } catch (err) {}
   }
   initGlobalTerminalSocket();
 

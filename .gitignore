@@ -58,3 +58,4 @@ secrets.json
 broker_tokens/
 auth_tokens/
 .strix/
+*.pid

@@ -82,6 +82,7 @@ def build_market_master_union():
             })
 
             sub_df = sub_df.dropna(subset=["date", "close"])
+            sub_df = sub_df[sub_df["close"] > 0]
             records.append(sub_df)
 
         except Exception as e:
@@ -126,6 +127,7 @@ def build_market_master_union():
 
             sub_df["security_type"] = sub_df["ticker"].apply(classify_security)
             sub_df = sub_df.dropna(subset=["date", "close"])
+            sub_df = sub_df[sub_df["close"] > 0]
             records.append(sub_df)
 
         except Exception as e:
@@ -141,7 +143,7 @@ def build_market_master_union():
 
         # 1. Pre-merge unique date-ticker pairs count
         raw_unique_count = con.execute("""
-            SELECT COUNT(DISTINCT (ticker, date)) FROM raw_sources WHERE date IS NOT NULL AND ticker IS NOT NULL
+            SELECT COUNT(DISTINCT (ticker, date)) FROM raw_sources WHERE date IS NOT NULL AND ticker IS NOT NULL AND close > 0
         """).fetchone()[0]
 
         # 2. Window ranking deduplication on composite key (ticker, date)
@@ -150,13 +152,23 @@ def build_market_master_union():
             SELECT 
                 ticker, 
                 CAST(date AS DATE) AS date, 
-                open, high, low, close, volume, security_type,
+                CASE WHEN open <= 0 THEN close ELSE open END AS open,
+                GREATEST(open, high, low, close) AS high,
+                CASE 
+                    WHEN LEAST(open, high, low, close) <= 0 THEN 
+                        LEAST(CASE WHEN open > 0 THEN open ELSE close END, 
+                              CASE WHEN high > 0 THEN high ELSE close END, 
+                              CASE WHEN low > 0 THEN low ELSE close END, 
+                              close)
+                    ELSE LEAST(open, high, low, close)
+                END AS low,
+                close, volume, security_type,
                 ROW_NUMBER() OVER (
                     PARTITION BY ticker, date 
                     ORDER BY priority ASC, volume DESC, close DESC
                 ) AS rank
             FROM raw_sources
-            WHERE date IS NOT NULL AND ticker IS NOT NULL
+            WHERE date IS NOT NULL AND ticker IS NOT NULL AND close > 0
         )
         SELECT ticker, date, open, high, low, close, volume, security_type
         FROM deduplicated

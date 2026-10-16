@@ -90,7 +90,8 @@ class DuckDBLakehouseLoader:
             WHERE ticker = '{ticker.upper().strip()}' {date_filter}
             ORDER BY date ASC
         """
-        df = self.con.execute(query).df()
+        with connection_manager.acquire() as con:
+            df = con.execute(query).df()
         if df.empty or not adjusted or len(df) < 5:
             return df
 
@@ -134,8 +135,44 @@ class DuckDBLakehouseLoader:
             HAVING cnt >= {min_trading_days}
             ORDER BY cnt DESC
         """
-        df = self.con.execute(query).df()
+        with connection_manager.acquire() as con:
+            df = con.execute(query).df()
         return df["ticker"].tolist()
+
+    @classmethod
+    def query_hive_partitioned_floorsheet(
+        cls,
+        partition_root: Path,
+        year: Optional[int] = None,
+        month: Optional[int] = None,
+        symbol: Optional[str] = None
+    ) -> pd.DataFrame:
+        """
+        Zero-copy columnar query over 12+ years of Hive-partitioned tick floorsheets:
+        root/year=YYYY/month=MM/symbol=TICKER.parquet.
+        Leverages DuckDBConnectionManager read-only pool for zero-lock concurrency.
+        """
+        p_root = str(partition_root).replace("\\", "/")
+        filters = []
+        if year is not None:
+            filters.append(f"year = {int(year)}")
+        if month is not None:
+            filters.append(f"month = {int(month)}")
+        if symbol is not None:
+            filters.append(f"symbol = '{symbol.upper().strip()}'")
+
+        where_clause = f"WHERE {' AND '.join(filters)}" if filters else ""
+        query = f"""
+            SELECT *
+            FROM read_parquet('{p_root}/*/*/*.parquet', hive_partitioning = 1)
+            {where_clause}
+        """
+        try:
+            with connection_manager.acquire() as con:
+                return con.execute(query).df()
+        except Exception as e:
+            logger.warning(f"Hive partition query failed or path empty: {e}")
+            return pd.DataFrame()
 
 
 def main():
