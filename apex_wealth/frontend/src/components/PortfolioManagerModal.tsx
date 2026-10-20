@@ -59,12 +59,69 @@ export const PortfolioManagerModal: React.FC<PortfolioManagerModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  // Bulk Import Form
-  const [importText, setImportText] = useState(
-    "NABIL, 200, 1240\nNICA, 500, 880\nCHDC, 300, 1600"
-  );
+  // Bulk Import Form (starts empty — no prefilled demo rows)
+  const [importText, setImportText] = useState("");
+  const [selectedModalLotIds, setSelectedModalLotIds] = useState<string[]>([]);
 
   if (!isOpen) return null;
+
+  const toggleModalLotSelection = (lotId: string) => {
+    setSelectedModalLotIds((prev) =>
+      prev.includes(lotId) ? prev.filter((id) => id !== lotId) : [...prev, lotId]
+    );
+  };
+
+  const toggleSelectAllModalLots = () => {
+    const allIds = taxLots.map((l) => l.lot_id);
+    const allSelected = allIds.length > 0 && allIds.every((id) => selectedModalLotIds.includes(id));
+    setSelectedModalLotIds(allSelected ? [] : allIds);
+  };
+
+  const handleModalBatchRemove = async () => {
+    if (selectedModalLotIds.length === 0) return;
+    setIsSubmitting(true);
+    setFeedback(null);
+    try {
+      const res = await fetch(`${apiBase}/api/v1/pms/portfolio/batch_remove`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lot_ids: selectedModalLotIds,
+          clear_all: false,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setFeedback(`✓ Removed ${data.removed_count} selected stock lots!`);
+        setSelectedModalLotIds([]);
+        onRefresh();
+      }
+    } catch {
+      setFeedback("Network error removing selected lots.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleModalClearAll = async () => {
+    if (!window.confirm("Wipe all holdings and reset vault back to 0?")) return;
+    setIsSubmitting(true);
+    setFeedback(null);
+    try {
+      const res = await fetch(`${apiBase}/api/v1/pms/portfolio/clear_all`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        setFeedback("✓ All holdings wiped. Vault is now at 0.");
+        setSelectedModalLotIds([]);
+        onRefresh();
+      }
+    } catch {
+      setFeedback("Network error clearing holdings.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleAddPosition = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,12 +160,12 @@ export const PortfolioManagerModal: React.FC<PortfolioManagerModalProps> = ({
   };
 
   const handleDeleteLot = async (lotId: string) => {
-    if (!window.confirm("Remove this stock holding lot from your portfolio?")) return;
     try {
       const res = await fetch(`${apiBase}/api/v1/pms/portfolio/lot/${lotId}`, {
         method: "DELETE",
       });
       if (res.ok) {
+        setSelectedModalLotIds((prev) => prev.filter((id) => id !== lotId));
         onRefresh();
       }
     } catch {}
@@ -119,21 +176,35 @@ export const PortfolioManagerModal: React.FC<PortfolioManagerModalProps> = ({
     setFeedback(null);
     try {
       const lines = importText
-        .split("\n")
+        .split(/\r?\n/)
         .map((l) => l.trim())
         .filter(Boolean);
 
-      const items = lines.map((line) => {
-        const parts = line.split(",").map((p) => p.trim());
-        return {
-          symbol: parts[0] || "NABIL",
-          quantity: parseInt(parts[1] || "100", 10),
-          purchase_price: parseFloat(parts[2] || "1000"),
-          is_promoter_locked: false,
-        };
-      });
+      if (lines.length === 0) {
+        setFeedback("Please paste at least one line (e.g. NABIL, 500, 485).");
+        setIsSubmitting(false);
+        return;
+      }
 
-      const res = await fetch(`${apiBase}/api/v1/pms/portfolio/import`, {
+      const items = lines
+        .map((line) => {
+          const parts = line
+            .split(/[,\t;|]+/)
+            .map((p) => p.trim())
+            .filter(Boolean);
+          return {
+            symbol: (parts[0] || "").toUpperCase(),
+            quantity: parseInt(parts[1] || "0", 10),
+            purchase_price: parseFloat(parts[2] || "0"),
+            ltp: parts[3] ? parseFloat(parts[3]) : null,
+            holding_days: parts[4] ? parseInt(parts[4], 10) : 180,
+            sub_account_id: parts[5] || accountId || subAccounts[0]?.account_id,
+            is_promoter_locked: false,
+          };
+        })
+        .filter((it) => it.symbol && it.quantity > 0 && it.purchase_price > 0);
+
+      const res = await fetch(`${apiBase}/api/v1/pms/portfolio/batch_add`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ items }),
@@ -141,7 +212,8 @@ export const PortfolioManagerModal: React.FC<PortfolioManagerModalProps> = ({
 
       if (res.ok) {
         const data = await res.json();
-        setFeedback(`✓ Successfully imported ${data.imported_count} stock positions!`);
+        setFeedback(`✓ Successfully imported ${data.added_count} stock positions!`);
+        setImportText("");
         onRefresh();
       } else {
         setFeedback("Failed to parse or import rows.");
@@ -166,17 +238,17 @@ export const PortfolioManagerModal: React.FC<PortfolioManagerModalProps> = ({
         <div className="p-6 border-b border-slate-800 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-white tracking-tight">
-              My Portfolio Manager
+              My Portfolio Manager (Batch Add & Remove)
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              View, add, edit, or import your stocks across all 4 broker accounts
+              View, batch remove, add, or bulk import your stocks across all 4 broker accounts
             </p>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+            className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -186,34 +258,43 @@ export const PortfolioManagerModal: React.FC<PortfolioManagerModalProps> = ({
         <div className="flex border-b border-slate-800 bg-slate-950/60 px-6 pt-3 gap-2">
           <button
             type="button"
-            onClick={() => { setActiveTab("view"); setFeedback(null); }}
-            className={`pb-3 px-4 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 ${
+            onClick={() => {
+              setActiveTab("view");
+              setFeedback(null);
+            }}
+            className={`pb-3 px-4 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 cursor-pointer ${
               activeTab === "view"
                 ? "border-blue-500 text-blue-400"
                 : "border-transparent text-slate-400 hover:text-slate-200"
             }`}
           >
             <FileText className="w-4 h-4" />
-            Current Holdings ({taxLots.length} Lots)
+            Current Holdings & Batch Remove ({taxLots.length} Lots)
           </button>
 
           <button
             type="button"
-            onClick={() => { setActiveTab("add"); setFeedback(null); }}
-            className={`pb-3 px-4 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 ${
+            onClick={() => {
+              setActiveTab("add");
+              setFeedback(null);
+            }}
+            className={`pb-3 px-4 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 cursor-pointer ${
               activeTab === "add"
                 ? "border-blue-500 text-blue-400"
                 : "border-transparent text-slate-400 hover:text-slate-200"
             }`}
           >
             <Plus className="w-4 h-4" />
-            Add New Stock
+            Add Single Stock
           </button>
 
           <button
             type="button"
-            onClick={() => { setActiveTab("import"); setFeedback(null); }}
-            className={`pb-3 px-4 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 ${
+            onClick={() => {
+              setActiveTab("import");
+              setFeedback(null);
+            }}
+            className={`pb-3 px-4 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 cursor-pointer ${
               activeTab === "import"
                 ? "border-blue-500 text-blue-400"
                 : "border-transparent text-slate-400 hover:text-slate-200"
@@ -231,51 +312,113 @@ export const PortfolioManagerModal: React.FC<PortfolioManagerModalProps> = ({
           </div>
         )}
 
-        {/* Tab 1: Current Holdings Table */}
+        {/* Tab 1: Current Holdings Table & Batch Remove */}
         {activeTab === "view" && (
           <div className="p-6 overflow-y-auto flex-1 space-y-3">
-            <div className="text-xs text-slate-400 flex justify-between items-center mb-1">
-              <span>Stocks registered in your Demat accounts:</span>
+            <div className="text-xs text-slate-400 flex flex-wrap justify-between items-center gap-2 mb-2">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={toggleSelectAllModalLots}
+                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold cursor-pointer"
+                >
+                  {taxLots.length > 0 && selectedModalLotIds.length === taxLots.length
+                    ? "Deselect All"
+                    : `Select All (${taxLots.length})`}
+                </button>
+                {selectedModalLotIds.length > 0 && (
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={handleModalBatchRemove}
+                    className="px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold cursor-pointer"
+                  >
+                    Delete Selected ({selectedModalLotIds.length})
+                  </button>
+                )}
+                {taxLots.length > 0 && (
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={handleModalClearAll}
+                    className="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-600 hover:text-white text-rose-400 border border-rose-500/30 text-xs font-bold cursor-pointer"
+                  >
+                    Wipe All Holdings
+                  </button>
+                )}
+              </div>
               <span className="text-slate-300 font-mono">
                 Total shares: {taxLots.reduce((acc, l) => acc + l.quantity, 0).toLocaleString()}
               </span>
             </div>
 
-            <div className="space-y-2">
-              {taxLots.map((lot) => (
-                <div
-                  key={lot.lot_id}
-                  className="p-3.5 rounded-2xl bg-[#1E2638] border border-slate-700/60 flex items-center justify-between text-xs"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-white text-sm font-mono">{lot.symbol}</span>
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-slate-900 text-slate-300">
-                        {lot.quantity} shares
-                      </span>
-                      <span className="text-slate-400">@ NPR {lot.purchase_price.toFixed(0)}</span>
-                      {lot.is_promoter_locked && (
-                        <span className="inline-flex items-center gap-1 text-[10px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/30">
-                          <Lock className="w-2.5 h-2.5" /> Promoter Lock
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-[11px] text-slate-400 font-mono">
-                      BOID: {lot.boid_id} · {lot.tax_bracket_label} ({lot.holding_days} days held)
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteLot(lot.lot_id)}
-                    className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors"
-                    title="Remove this holding lot"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+            {taxLots.length === 0 ? (
+              <div className="p-8 rounded-2xl bg-[#1E2638]/50 border border-slate-800 text-center space-y-2">
+                <div className="text-sm font-bold text-slate-200">
+                  0 Stock Holdings in Portfolio
                 </div>
-              ))}
-            </div>
+                <p className="text-xs text-slate-400">
+                  Your portfolio is completely clean. Switch to the{" "}
+                  <strong>Bulk Import (CSV / Text)</strong> tab or use the{" "}
+                  <strong>Batch Add Mode</strong> spreadsheet on the main grid to feed your holdings.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {taxLots.map((lot) => {
+                  const isChecked = selectedModalLotIds.includes(lot.lot_id);
+                  return (
+                    <div
+                      key={lot.lot_id}
+                      className={`p-3.5 rounded-2xl border flex items-center justify-between text-xs ${
+                        isChecked
+                          ? "bg-rose-500/10 border-rose-500/40"
+                          : "bg-[#1E2638] border-slate-700/60"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleModalLotSelection(lot.lot_id)}
+                          className="w-4 h-4 accent-rose-600 cursor-pointer"
+                        />
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-white text-sm font-mono">
+                              {lot.symbol}
+                            </span>
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-slate-900 text-slate-300">
+                              {lot.quantity} shares
+                            </span>
+                            <span className="text-slate-400">
+                              @ NPR {lot.purchase_price.toFixed(0)}
+                            </span>
+                            {lot.is_promoter_locked && (
+                              <span className="inline-flex items-center gap-1 text-[10px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/30">
+                                <Lock className="w-2.5 h-2.5" /> Promoter Lock
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-slate-400 font-mono">
+                            BOID: {lot.boid_id} · {lot.tax_bracket_label} ({lot.holding_days} days held)
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteLot(lot.lot_id)}
+                        className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors cursor-pointer"
+                        title="Remove this holding lot"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

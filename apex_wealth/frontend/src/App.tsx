@@ -125,99 +125,28 @@ interface KRICommentItem {
   text: string;
 }
 
-const DEFAULT_FALLBACK_LOTS: TaxLotItem[] = [
-  {
-    lot_id: "lot-nabil-1",
-    boid_id: "1301010000482910",
-    sub_account_id: "a1111111-0000-0000-0000-000000000001",
-    broker_code: "58",
-    symbol: "NABIL",
-    quantity: 1200,
-    purchase_price: 1310.0,
-    purchase_date: "2026-03-24",
-    holding_days: 210,
-    tax_bracket_label: "7.5% STCGT",
+interface BatchAddRowDraft {
+  id: string;
+  sub_account_id: string;
+  symbol: string;
+  quantity: string;
+  purchase_price: string;
+  ltp: string;
+  holding_days: string;
+  is_promoter_locked: boolean;
+}
+
+const createEmptyBatchRows = (count = 5, defaultAccount = "Personal"): BatchAddRowDraft[] =>
+  Array.from({ length: count }, (_, idx) => ({
+    id: `row-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 6)}`,
+    sub_account_id: defaultAccount,
+    symbol: "",
+    quantity: "",
+    purchase_price: "",
+    ltp: "",
+    holding_days: "400",
     is_promoter_locked: false,
-  },
-  {
-    lot_id: "lot-nabil-2",
-    boid_id: "1301010000482910",
-    sub_account_id: "a1111111-0000-0000-0000-000000000001",
-    broker_code: "58",
-    symbol: "NABIL",
-    quantity: 2800,
-    purchase_price: 980.0,
-    purchase_date: "2025-04-28",
-    holding_days: 540,
-    tax_bracket_label: "5.0% LTCGT",
-    is_promoter_locked: false,
-  },
-  {
-    lot_id: "lot-scb-1",
-    boid_id: "1301010000482910",
-    sub_account_id: "a1111111-0000-0000-0000-000000000001",
-    broker_code: "58",
-    symbol: "SCB",
-    quantity: 4200,
-    purchase_price: 515.0,
-    purchase_date: "2025-06-27",
-    holding_days: 480,
-    tax_bracket_label: "5.0% LTCGT",
-    is_promoter_locked: false,
-  },
-  {
-    lot_id: "lot-chdc-1",
-    boid_id: "1301060001928374",
-    sub_account_id: "a2222222-0000-0000-0000-000000000002",
-    broker_code: "45",
-    symbol: "CHDC",
-    quantity: 5500,
-    purchase_price: 1340.0,
-    purchase_date: "2025-08-16",
-    holding_days: 430,
-    tax_bracket_label: "5.0% LTCGT",
-    is_promoter_locked: false,
-  },
-  {
-    lot_id: "lot-nica-1",
-    boid_id: "1301060001928374",
-    sub_account_id: "a2222222-0000-0000-0000-000000000002",
-    broker_code: "45",
-    symbol: "NICA",
-    quantity: 6000,
-    purchase_price: 940.0,
-    purchase_date: "2025-09-25",
-    holding_days: 390,
-    tax_bracket_label: "5.0% LTCGT",
-    is_promoter_locked: false,
-  },
-  {
-    lot_id: "lot-nric-1",
-    boid_id: "1301120004455667",
-    sub_account_id: "a3333333-0000-0000-0000-000000000003",
-    broker_code: "34",
-    symbol: "NRIC",
-    quantity: 9500,
-    purchase_price: 690.0,
-    purchase_date: "2025-07-27",
-    holding_days: 450,
-    tax_bracket_label: "5.0% LTCGT",
-    is_promoter_locked: false,
-  },
-  {
-    lot_id: "lot-upper-1",
-    boid_id: "1301120004455667",
-    sub_account_id: "a3333333-0000-0000-0000-000000000003",
-    broker_code: "34",
-    symbol: "UPPER",
-    quantity: 10000,
-    purchase_price: 100.0,
-    purchase_date: "2023-11-01",
-    holding_days: 1084,
-    tax_bracket_label: "5.0% LTCGT",
-    is_promoter_locked: true,
-  },
-];
+  }));
 
 export const App: React.FC = () => {
   // Navigation & Theme State
@@ -232,12 +161,28 @@ export const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
+  // Portfolio Grid Mode: "batch_add" | "single_add" | "batch_remove"
+  const [gridOperationMode, setGridOperationMode] = useState<"batch_add" | "single_add" | "batch_remove">("batch_add");
+  const [showBatchPasteBox, setShowBatchPasteBox] = useState<boolean>(false);
+
   // Quick Inline Add State inside Grid View
-  const [quickSymbol, setQuickSymbol] = useState<string>("NABIL");
-  const [quickQty, setQuickQty] = useState<string>("250");
-  const [quickPrice, setQuickPrice] = useState<string>("1245");
-  const [quickAccount, setQuickAccount] = useState<string>("");
+  const [quickSymbol, setQuickSymbol] = useState<string>("");
+  const [quickQty, setQuickQty] = useState<string>("");
+  const [quickPrice, setQuickPrice] = useState<string>("");
+  const [quickLtp, setQuickLtp] = useState<string>("");
+  const [quickHoldingDays, setQuickHoldingDays] = useState<string>("400");
+  const [quickAccount, setQuickAccount] = useState<string>("Personal");
   const [gridFeedback, setGridFeedback] = useState<string | null>(null);
+
+  // Batch Add Mode State (Multi-Row Spreadsheet + Fast Paste)
+  const [batchAddRows, setBatchAddRows] = useState<BatchAddRowDraft[]>(() => createEmptyBatchRows(5, "Personal"));
+  const [batchPasteText, setBatchPasteText] = useState<string>("");
+  const [isSubmittingBatchAdd, setIsSubmittingBatchAdd] = useState<boolean>(false);
+  const [isSubmittingBatchRemove, setIsSubmittingBatchRemove] = useState<boolean>(false);
+  const [isWipingAll, setIsWipingAll] = useState<boolean>(false);
+
+  // Batch Remove Mode State (Multi-Select Lot IDs)
+  const [selectedLotIds, setSelectedLotIds] = useState<string[]>([]);
 
   // Cash Balance Inline Edit State
   const [editingCashAccountId, setEditingCashAccountId] = useState<string | null>(null);
@@ -249,23 +194,8 @@ export const App: React.FC = () => {
   const [calcRightPct, setCalcRightPct] = useState<string>("10");
   const [calcPaidUpPrice, setCalcPaidUpPrice] = useState<string>("100");
 
-  // Executive KRI Commentary State (Screen 4 Corporater style)
-  const [kriComments, setKriComments] = useState<KRICommentItem[]>([
-    {
-      id: "c1",
-      author: "A. Acharya",
-      role: "Portfolio Principal",
-      date: "Oct 20, 2026",
-      text: "Rebalanced commercial bank overweight into long-term CGT brackets (5.0%). Dual-band hysteresis suppressed unnecessary churn down to 7.9%/yr while preserving NPR 41,831 in tax-loss harvest shields.",
-    },
-    {
-      id: "c2",
-      author: "Risk & Clearing Desk",
-      role: "Automated CDSC Shield",
-      date: "Oct 20, 2026",
-      text: "Mandatory 3-year promoter lock-in on UPPER (10,000 shares) expires in 11 days. Target portfolio weight remains clamped at w=0.0% until supply shock clears.",
-    },
-  ]);
+  // Executive KRI Commentary State (Clean slate — user feeds notes)
+  const [kriComments, setKriComments] = useState<KRICommentItem[]>([]);
   const [newCommentText, setNewCommentText] = useState<string>("");
 
   const [livePrices, setLivePrices] = useState<Record<string, number>>({
@@ -380,6 +310,9 @@ export const App: React.FC = () => {
       });
       if (res.ok) {
         await fetchPmsState(toxicSimulated);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setGridFeedback(err.detail || "Cannot execute rebalance on an empty portfolio.");
       }
     } catch {
     } finally {
@@ -389,7 +322,7 @@ export const App: React.FC = () => {
 
   const handleQuickAddStock = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!quickSymbol || !quickQty || !quickPrice) return;
+    if (!quickSymbol.trim() || !quickQty || !quickPrice) return;
     setGridFeedback(null);
     try {
       const res = await fetch(`${apiBase}/api/v1/pms/portfolio/add_position`, {
@@ -399,8 +332,10 @@ export const App: React.FC = () => {
           symbol: quickSymbol.trim().toUpperCase(),
           quantity: parseInt(quickQty, 10),
           purchase_price: parseFloat(quickPrice),
+          ltp: quickLtp ? parseFloat(quickLtp) : undefined,
+          holding_days: quickHoldingDays ? parseInt(quickHoldingDays, 10) : 400,
           sub_account_id:
-            quickAccount || vault.sub_account_summaries?.[0]?.account_id || "1",
+            quickAccount || vault.sub_account_summaries?.[0]?.account_id || "Personal",
           is_promoter_locked: false,
         }),
       });
@@ -408,6 +343,10 @@ export const App: React.FC = () => {
         setGridFeedback(
           `✓ Added ${quickQty} shares of ${quickSymbol.toUpperCase()} @ NPR ${quickPrice} into portfolio!`
         );
+        setQuickSymbol("");
+        setQuickQty("");
+        setQuickPrice("");
+        setQuickLtp("");
         await fetchPmsState(toxicSimulated);
       }
     } catch {
@@ -415,12 +354,172 @@ export const App: React.FC = () => {
     }
   };
 
+  // Batch Add Handlers
+  const handleAddBatchRows = (count = 1) => {
+    const defaultAcc = quickAccount || vault.sub_account_summaries?.[0]?.account_id || "Personal";
+    setBatchAddRows((prev) => [...prev, ...createEmptyBatchRows(count, defaultAcc)]);
+  };
+
+  const handleUpdateBatchRow = (id: string, field: keyof BatchAddRowDraft, value: any) => {
+    setBatchAddRows((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, [field]: value } : r))
+    );
+  };
+
+  const handleRemoveBatchRow = (id: string) => {
+    setBatchAddRows((prev) => (prev.length > 1 ? prev.filter((r) => r.id !== id) : prev));
+  };
+
+  const handleApplyAccountToAllBatchRows = (accountId: string) => {
+    setBatchAddRows((prev) => prev.map((r) => ({ ...r, sub_account_id: accountId })));
+  };
+
+  const handleParsePasteIntoBatchRows = () => {
+    if (!batchPasteText.trim()) return;
+    const defaultAcc = quickAccount || vault.sub_account_summaries?.[0]?.account_id || "Personal";
+    const lines = batchPasteText
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0 && !l.toLowerCase().startsWith("symbol"));
+
+    const parsedRows: BatchAddRowDraft[] = [];
+    for (let i = 0; i < lines.length; i++) {
+      const parts = lines[i].split(/[\t,;]+|\s{2,}/).map((p) => p.trim()).filter(Boolean);
+      const tokens = parts.length >= 3 ? parts : lines[i].split(/\s+/).map((p) => p.trim()).filter(Boolean);
+      if (tokens.length >= 3) {
+        const sym = tokens[0].toUpperCase();
+        const qty = tokens[1].replace(/,/g, "");
+        const price = tokens[2].replace(/,/g, "");
+        const ltp = tokens[3] && !isNaN(Number(tokens[3].replace(/,/g, ""))) ? tokens[3].replace(/,/g, "") : "";
+        const days = tokens[4] && !isNaN(Number(tokens[4])) ? tokens[4] : "400";
+        const acc = tokens[5] || (tokens[3] && isNaN(Number(tokens[3])) ? tokens[3] : defaultAcc);
+        parsedRows.push({
+          id: `paste-${Date.now()}-${i}`,
+          sub_account_id: acc,
+          symbol: sym,
+          quantity: qty,
+          purchase_price: price,
+          ltp,
+          holding_days: days,
+          is_promoter_locked: false,
+        });
+      }
+    }
+    if (parsedRows.length > 0) {
+      setBatchAddRows(parsedRows);
+      setBatchPasteText("");
+      setGridFeedback(`✓ Parsed ${parsedRows.length} rows into the Batch Add table. Review and click "Commit Batch Add"!`);
+    } else {
+      setGridFeedback("Could not parse lines. Format each line as: SYMBOL, QUANTITY, BUY_PRICE [, LTP, HOLDING_DAYS, ACCOUNT]");
+    }
+  };
+
+  const handleCommitBatchAdd = async () => {
+    const validItems = batchAddRows
+      .map((r) => ({
+        sub_account_id: r.sub_account_id || "Personal",
+        symbol: r.symbol.trim().toUpperCase(),
+        quantity: parseInt(r.quantity, 10),
+        purchase_price: parseFloat(r.purchase_price),
+        ltp: r.ltp.trim() ? parseFloat(r.ltp) : undefined,
+        holding_days: r.holding_days.trim() ? parseInt(r.holding_days, 10) : 400,
+        is_promoter_locked: Boolean(r.is_promoter_locked),
+      }))
+      .filter((it) => it.symbol && it.quantity > 0 && it.purchase_price > 0);
+
+    if (validItems.length === 0) {
+      setGridFeedback("Please fill at least 1 row with a valid Stock Symbol, Quantity > 0, and Buy Price > 0.");
+      return;
+    }
+
+    setIsSubmittingBatch(true);
+    setGridFeedback(null);
+    try {
+      const res = await fetch(`${apiBase}/api/v1/pms/portfolio/batch_add`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: validItems }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setGridFeedback(`✓ ${data.message || `Batch-added ${validItems.length} positions into portfolio!`}`);
+        setBatchAddRows(createEmptyBatchRows(5, validItems[0].sub_account_id));
+        await fetchPmsState(toxicSimulated);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setGridFeedback(err.detail || "Failed to batch-add positions.");
+      }
+    } catch {
+      setGridFeedback("Network error while batch-adding positions.");
+    } finally {
+      setIsSubmittingBatch(false);
+    }
+  };
+
+  // Single & Batch Remove Handlers
   const handleDeleteLot = async (lotId: string) => {
     try {
       const res = await fetch(`${apiBase}/api/v1/pms/portfolio/lot/${lotId}`, {
         method: "DELETE",
       });
       if (res.ok) {
+        setSelectedLotIds((prev) => prev.filter((id) => id !== lotId));
+        await fetchPmsState(toxicSimulated);
+      }
+    } catch {}
+  };
+
+  const toggleSelectLot = (lotId: string) => {
+    setSelectedLotIds((prev) =>
+      prev.includes(lotId) ? prev.filter((id) => id !== lotId) : [...prev, lotId]
+    );
+  };
+
+  const handleBatchRemoveSelected = async () => {
+    if (selectedLotIds.length === 0) return;
+    try {
+      const res = await fetch(`${apiBase}/api/v1/pms/portfolio/batch_remove`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lot_ids: selectedLotIds }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setGridFeedback(`✓ Removed ${data.removed_count ?? selectedLotIds.length} selected holding(s).`);
+        setSelectedLotIds([]);
+        await fetchPmsState(toxicSimulated);
+      }
+    } catch {
+      setGridFeedback("Error batch-removing selected holdings.");
+    }
+  };
+
+  const handleClearAccountLots = async (subAccountId: string, accountLabel: string) => {
+    try {
+      const res = await fetch(`${apiBase}/api/v1/pms/portfolio/batch_remove`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sub_account_id: subAccountId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setGridFeedback(`✓ Cleared ${data.removed_count ?? 0} holding(s) from ${accountLabel}.`);
+        setSelectedLotIds([]);
+        await fetchPmsState(toxicSimulated);
+      }
+    } catch {}
+  };
+
+  const handleWipeAllData = async () => {
+    try {
+      const res = await fetch(`${apiBase}/api/v1/pms/portfolio/clear_all`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reset_cash: true }),
+      });
+      if (res.ok) {
+        setSelectedLotIds([]);
+        setGridFeedback("✓ All portfolio holdings, cash balances, and execution logs have been wiped to 0.");
         await fetchPmsState(toxicSimulated);
       }
     } catch {}
@@ -445,16 +544,16 @@ export const App: React.FC = () => {
   const vault = pmsState?.vault || {
     vault_name: "Sovereign Himalaya Multi-Family & Institutional Vault",
     symbols: Object.keys(livePrices),
-    x_gross: { NABIL: 4600, NICA: 6000, SCB: 4200, CHDC: 5500, UPPER: 10000, NRIC: 9500, HDL: 4500 },
-    x_settlement_lock: { NABIL: 0, NICA: 0, SCB: 400, CHDC: 300, UPPER: 0, NRIC: 500, HDL: 0 },
-    x_promoter_lock: { NABIL: 0, NICA: 0, SCB: 0, CHDC: 0, UPPER: 10000, NRIC: 0, HDL: 0 },
-    x_available: { NABIL: 4600, NICA: 6000, SCB: 3800, CHDC: 5200, UPPER: 0, NRIC: 9000, HDL: 4500 },
-    total_cash: 23100000,
-    unsettled_cash_t2: 3140000,
-    available_cash: 19960000,
-    total_equity_market_value: 71899000,
-    nav_total: 94999000,
-    r_lock_ratio: 0.0496,
+    x_gross: {},
+    x_settlement_lock: {},
+    x_promoter_lock: {},
+    x_available: {},
+    total_cash: 0,
+    unsettled_cash_t2: 0,
+    available_cash: 0,
+    total_equity_market_value: 0,
+    nav_total: 0,
+    r_lock_ratio: 0.0,
     sub_account_summaries: [
       {
         account_id: "a1111111-0000-0000-0000-000000000001",
@@ -463,10 +562,10 @@ export const App: React.FC = () => {
         broker_code: "58",
         tms_client_code: "TMS58-NP-99401",
         boid_id: "1301010000482910",
-        cash_balance: 4250000,
-        unsettled_cash_locked: 650000,
-        available_cash: 3600000,
-        available_equity: 18400000,
+        cash_balance: 0,
+        unsettled_cash_locked: 0,
+        available_cash: 0,
+        available_equity: 0,
       },
       {
         account_id: "a2222222-0000-0000-0000-000000000002",
@@ -475,10 +574,10 @@ export const App: React.FC = () => {
         broker_code: "45",
         tms_client_code: "TMS45-FAM-21084",
         boid_id: "1301060001928374",
-        cash_balance: 5800000,
-        unsettled_cash_locked: 920000,
-        available_cash: 4880000,
-        available_equity: 24600000,
+        cash_balance: 0,
+        unsettled_cash_locked: 0,
+        available_cash: 0,
+        available_equity: 0,
       },
       {
         account_id: "a3333333-0000-0000-0000-000000000003",
@@ -487,10 +586,10 @@ export const App: React.FC = () => {
         broker_code: "34",
         tms_client_code: "TMS34-CORP-77012",
         boid_id: "1301120004455667",
-        cash_balance: 9400000,
-        unsettled_cash_locked: 1180000,
-        available_cash: 8220000,
-        available_equity: 36200000,
+        cash_balance: 0,
+        unsettled_cash_locked: 0,
+        available_cash: 0,
+        available_equity: 0,
       },
       {
         account_id: "a4444444-0000-0000-0000-000000000004",
@@ -499,24 +598,24 @@ export const App: React.FC = () => {
         broker_code: "49",
         tms_client_code: "TMS49-INST-55190",
         boid_id: "1301170008877665",
-        cash_balance: 3650000,
-        unsettled_cash_locked: 390000,
-        available_cash: 3260000,
-        available_equity: 15800000,
+        cash_balance: 0,
+        unsettled_cash_locked: 0,
+        available_cash: 0,
+        available_equity: 0,
       },
     ] as SubAccountSummary[],
   };
 
   const health = pmsState?.health_gauge || {
-    score: 94,
+    score: 100,
     status: "Optimal",
-    cvar_1d_pct: 1.82,
+    cvar_1d_pct: 0.0,
     vpin: 0.18,
     hawkes_intensity: 0.04,
-    cdsc_t2_lockup_pct: 12.4,
-    var_99_pct: 1.54,
+    cdsc_t2_lockup_pct: 0.0,
+    var_99_pct: 0.0,
     var_max_pct: 3.5,
-    s_locked_ratio: 0.08,
+    s_locked_ratio: 0.0,
     microstructure_penalty_applied: false,
     penalty_points: 0,
     slicing_engine_paused: false,
@@ -524,12 +623,12 @@ export const App: React.FC = () => {
 
   const rebalanceCard = pmsState?.rebalance_card || {
     layman_cta_copy:
-      "Your portfolio has drifted +3.2%. Click to rebalance 3 stocks across your 4 accounts in 1 tap.",
-    estimated_tax_harvest_savings_npr: 41831.5,
-    projected_health_score_delta: 6,
-    post_trade_health_score: Math.min(100, (health?.score || 94) + 6),
+      "Your portfolio is currently empty (0 holdings). Use Batch Add or Quick Add to feed your holdings and generate your live Schur-RA-HRP rebalance plan.",
+    estimated_tax_harvest_savings_npr: 0,
+    projected_health_score_delta: 0,
+    post_trade_health_score: 100,
     execution_plans: [] as ParentExecutionPlanItem[],
-    rebalance_executed_count: 1,
+    rebalance_executed_count: 0,
   };
 
   const allocationRings = pmsState?.allocation_rings || {
@@ -560,9 +659,9 @@ export const App: React.FC = () => {
     deadband_corridor_pct: 2.5,
   };
 
-  const taxLots: TaxLotItem[] = pmsState?.tax_lots?.length
+  const taxLots: TaxLotItem[] = Array.isArray(pmsState?.tax_lots)
     ? pmsState.tax_lots
-    : DEFAULT_FALLBACK_LOTS;
+    : [];
   const activityFeed: ActivityFeedItem[] = pmsState?.activity_feed || [];
   const alerts: TriHorizonAlertItem[] = pmsState?.tri_horizon_alerts || [];
 
@@ -580,7 +679,7 @@ export const App: React.FC = () => {
     }
 
     const unrealizedPnl = totalMarketVal - totalCost;
-    const returnPct = totalCost > 0 ? (unrealizedPnl / totalCost) * 100 : 14.82;
+    const returnPct = totalCost > 0 ? (unrealizedPnl / totalCost) * 100 : 0.0;
     return {
       totalCost,
       totalMarketVal,
@@ -821,11 +920,23 @@ export const App: React.FC = () => {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setIsPortfolioManagerOpen(true)}
+              onClick={() => {
+                setActiveModule("grid");
+                setGridOperationMode("batch_add");
+              }}
               className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>Add / Import Portfolio</span>
+              <span>Batch Add / Remove Stocks</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsPortfolioManagerOpen(true)}
+              className="px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white font-bold text-xs flex items-center gap-1.5 border border-white/20 transition-colors cursor-pointer"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">CSV / Cash Manager</span>
             </button>
 
             <button
@@ -1158,6 +1269,41 @@ export const App: React.FC = () => {
              ================================================================= */}
           {activeModule === "dashboard" && (
             <div className="space-y-6">
+              {taxLots.length === 0 && (
+                <div className="p-5 rounded-xl border-2 border-emerald-500/50 bg-emerald-500/10 flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 text-sm font-extrabold text-emerald-600 dark:text-emerald-400">
+                      <Sparkles className="w-4 h-4" />
+                      <span>Clean Slate Active — 0 Preloaded Holdings in Vault</span>
+                    </div>
+                    <p className={`text-xs mt-1 ${mutedText}`}>
+                      All demo data has been removed. Feed your own stocks using the Multi-Row Batch Add Spreadsheet, Fast Text Paste, or MeroShare CSV Import.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveModule("grid");
+                        setGridOperationMode("batch_add");
+                      }}
+                      className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Open Batch Add Spreadsheet</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsPortfolioManagerOpen(true)}
+                      className="px-4 py-2 rounded-lg bg-[#0062A8] hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>Import CSV / Update Cash</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Vibrant Action Tiles Row (Inspired by Screenshot 1) */}
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -1409,102 +1555,479 @@ export const App: React.FC = () => {
           )}
 
           {/* =================================================================
-              VIEW 2: TRISKELL-STYLE GROUPED PORTFOLIO GRID & INLINE EDITOR
-              (Directly modeled after Screenshot 2 & Screenshot 3)
+              VIEW 2: TRISKELL-STYLE GROUPED PORTFOLIO GRID & BATCH ADD / REMOVE
              ================================================================= */}
           {activeModule === "grid" && (
             <div className="space-y-5">
-              {/* Inline Quick-Add Bar at the top of the Grid */}
-              <form
-                onSubmit={handleQuickAddStock}
-                className={`p-4 rounded-xl border ${cardBg} flex flex-wrap items-end gap-3`}
-              >
-                <div>
-                  <label className={`block text-[10px] font-bold uppercase ${mutedText} mb-1`}>
-                    Stock Ticker
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={quickSymbol}
-                    onChange={(e) => setQuickSymbol(e.target.value)}
-                    placeholder="e.g. NABIL"
-                    className={`px-3 py-1.5 rounded-lg border text-xs font-mono-tabular w-28 ${subCardBg}`}
-                  />
-                </div>
-                <div>
-                  <label className={`block text-[10px] font-bold uppercase ${mutedText} mb-1`}>
-                    Quantity (Shares)
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    value={quickQty}
-                    onChange={(e) => setQuickQty(e.target.value)}
-                    className={`px-3 py-1.5 rounded-lg border text-xs font-mono-tabular w-28 ${subCardBg}`}
-                  />
-                </div>
-                <div>
-                  <label className={`block text-[10px] font-bold uppercase ${mutedText} mb-1`}>
-                    Purchase Price (NPR)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={quickPrice}
-                    onChange={(e) => setQuickPrice(e.target.value)}
-                    className={`px-3 py-1.5 rounded-lg border text-xs font-mono-tabular w-32 ${subCardBg}`}
-                  />
-                </div>
-                <div>
-                  <label className={`block text-[10px] font-bold uppercase ${mutedText} mb-1`}>
-                    Target Sub-Account
-                  </label>
-                  <select
-                    value={quickAccount}
-                    onChange={(e) => setQuickAccount(e.target.value)}
-                    className={`px-3 py-1.5 rounded-lg border text-xs ${subCardBg}`}
+              {/* Mode Switcher Toolbar: Batch Add vs Single Add vs Batch Remove */}
+              <div className={`p-3.5 rounded-xl border ${cardBg} flex flex-wrap items-center justify-between gap-3`}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setGridOperationMode("batch_add")}
+                    className={`px-3.5 py-2 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer ${
+                      gridOperationMode === "batch_add"
+                        ? "bg-emerald-600 text-white shadow-sm"
+                        : `${subCardBg} hover:border-emerald-500/50`
+                    }`}
                   >
-                    {vault.sub_account_summaries?.map((acc: SubAccountSummary) => (
-                      <option key={acc.account_id} value={acc.account_id}>
-                        {acc.account_label}
-                      </option>
-                    ))}
-                  </select>
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Batch Add Mode (Multi-Row Feed)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setGridOperationMode("single_add")}
+                    className={`px-3.5 py-2 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer ${
+                      gridOperationMode === "single_add"
+                        ? "bg-[#0062A8] text-white shadow-sm"
+                        : `${subCardBg} hover:border-blue-500/50`
+                    }`}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Quick Single Add</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setGridOperationMode("batch_remove")}
+                    className={`px-3.5 py-2 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer ${
+                      gridOperationMode === "batch_remove"
+                        ? "bg-rose-600 text-white shadow-sm"
+                        : `${subCardBg} hover:border-rose-500/50`
+                    }`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>
+                      Batch Remove Mode{" "}
+                      {selectedLotIds.length > 0 ? `(${selectedLotIds.length} Selected)` : ""}
+                    </span>
+                  </button>
                 </div>
 
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>+ Add Position to Grid</span>
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsPortfolioManagerOpen(true)}
+                    className="px-3.5 py-2 rounded-lg bg-[#0062A8] hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Bulk CSV / Cash Manager</span>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => setIsPortfolioManagerOpen(true)}
-                  className="px-3.5 py-1.5 rounded-lg bg-[#0062A8] hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer ml-auto"
-                >
-                  <Upload className="w-3.5 h-3.5" />
-                  <span>Bulk CSV Import</span>
-                </button>
-              </form>
+                  <button
+                    type="button"
+                    disabled={isWipingAll}
+                    onClick={handleWipeAllData}
+                    className="px-3.5 py-2 rounded-lg bg-rose-600/15 hover:bg-rose-600 hover:text-white text-rose-500 border border-rose-500/30 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                    title="Wipe all holdings, locks, and cash back to 0"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{isWipingAll ? "Wiping..." : "Wipe All Data (0 Slate)"}</span>
+                  </button>
+                </div>
+              </div>
 
-              {gridFeedback && (
-                <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-300 text-xs font-bold">
-                  {gridFeedback}
+              {/* ===============================================================
+                  MODE A: MULTI-ROW BATCH ADD SPREADSHEET + FAST TEXT PASTE
+                 =============================================================== */}
+              {gridOperationMode === "batch_add" && (
+                <div className={`p-4 rounded-xl border-2 border-emerald-500/40 ${cardBg} space-y-4`}>
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <div>
+                      <div className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+                        <Plus className="w-4 h-4" />
+                        <span>Batch Add Stocks — Multi-Row Portfolio Feeder</span>
+                      </div>
+                      <p className={`text-xs ${mutedText} mt-0.5`}>
+                        Enter multiple stock lots below or paste rows from Excel/MeroShare, then click{" "}
+                        <strong>Commit Batch Add</strong> to feed them all at once.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleAddBatchRows(1)}
+                        className={`px-3 py-1.5 rounded-lg border text-xs font-bold cursor-pointer ${subCardBg} hover:border-emerald-500`}
+                      >
+                        + Add 1 Row
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddBatchRows(5)}
+                        className={`px-3 py-1.5 rounded-lg border text-xs font-bold cursor-pointer ${subCardBg} hover:border-emerald-500`}
+                      >
+                        + Add 5 Rows
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowBatchPasteBox((v) => !v)}
+                        className="px-3 py-1.5 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-300 border border-amber-500/30 text-xs font-bold cursor-pointer"
+                      >
+                        {showBatchPasteBox ? "Hide Fast Paste Box" : "⚡ Paste Multi-Line Text / CSV"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Optional Fast Paste Textarea */}
+                  {showBatchPasteBox && (
+                    <div className={`p-3.5 rounded-xl border ${subCardBg} space-y-2.5`}>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold">
+                          Paste lines in format:{" "}
+                          <code className="text-emerald-500">
+                            SYMBOL, QUANTITY, BUY_PRICE [, LTP, HOLDING_DAYS, SUB_ACCOUNT_ID]
+                          </code>
+                        </span>
+                        <span className={`text-[11px] ${mutedText}`}>
+                          Supports comma, tab, or space separated lines
+                        </span>
+                      </div>
+                      <textarea
+                        rows={4}
+                        value={batchPasteText}
+                        onChange={(e) => setBatchPasteText(e.target.value)}
+                        placeholder={`NABIL, 500, 485, 518, 400, sub-personal-01\nHDL, 300, 1290, 1345, 220, sub-family-02\nUPPER, 1000, 195, 198, 750, sub-corp-03`}
+                        className={`w-full p-2.5 rounded-lg border text-xs font-mono-tabular ${cardBg} focus:outline-none focus:border-emerald-500`}
+                      />
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={handleParsePasteIntoBatchRows}
+                          className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold cursor-pointer"
+                        >
+                          Load Pasted Lines into Batch Spreadsheet ↓
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Multi-Row Batch Entry Spreadsheet */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs border-collapse">
+                      <thead>
+                        <tr className={`border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold uppercase tracking-wider ${mutedText}`}>
+                          <th className="py-2 px-2 text-left">#</th>
+                          <th className="py-2 px-2 text-left">Target Sub-Account</th>
+                          <th className="py-2 px-2 text-left">Ticker Symbol *</th>
+                          <th className="py-2 px-2 text-left">Quantity (Shares) *</th>
+                          <th className="py-2 px-2 text-left">Buy Price (NPR) *</th>
+                          <th className="py-2 px-2 text-left">Live LTP (Optional)</th>
+                          <th className="py-2 px-2 text-left">Holding Days</th>
+                          <th className="py-2 px-2 text-center">Promoter Lock</th>
+                          <th className="py-2 px-2 text-center">Row</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200/50 dark:divide-slate-800/50">
+                        {batchAddRows.map((row, idx) => (
+                          <tr key={row.rowId}>
+                            <td className="py-2 px-2 font-mono-tabular font-bold text-slate-400">
+                              {idx + 1}
+                            </td>
+                            <td className="py-2 px-2">
+                              <select
+                                value={row.subAccountId}
+                                onChange={(e) =>
+                                  handleUpdateBatchRow(row.rowId, "subAccountId", e.target.value)
+                                }
+                                className={`px-2.5 py-1.5 rounded-lg border text-xs w-full ${subCardBg}`}
+                              >
+                                {vault.sub_account_summaries?.map((acc: SubAccountSummary) => (
+                                  <option key={acc.account_id} value={acc.account_id}>
+                                    {acc.account_label}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="text"
+                                value={row.symbol}
+                                onChange={(e) =>
+                                  handleUpdateBatchRow(
+                                    row.rowId,
+                                    "symbol",
+                                    e.target.value.toUpperCase()
+                                  )
+                                }
+                                placeholder="e.g. NABIL"
+                                className={`px-2.5 py-1.5 rounded-lg border text-xs font-mono-tabular uppercase w-28 ${subCardBg}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="number"
+                                min="1"
+                                value={row.quantity}
+                                onChange={(e) =>
+                                  handleUpdateBatchRow(row.rowId, "quantity", e.target.value)
+                                }
+                                placeholder="e.g. 500"
+                                className={`px-2.5 py-1.5 rounded-lg border text-xs font-mono-tabular w-28 ${subCardBg}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                value={row.purchasePrice}
+                                onChange={(e) =>
+                                  handleUpdateBatchRow(row.rowId, "purchasePrice", e.target.value)
+                                }
+                                placeholder="e.g. 485"
+                                className={`px-2.5 py-1.5 rounded-lg border text-xs font-mono-tabular w-28 ${subCardBg}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={row.ltp}
+                                onChange={(e) =>
+                                  handleUpdateBatchRow(row.rowId, "ltp", e.target.value)
+                                }
+                                placeholder="Auto / Market"
+                                className={`px-2.5 py-1.5 rounded-lg border text-xs font-mono-tabular w-28 ${subCardBg}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="number"
+                                min="0"
+                                value={row.holdingDays}
+                                onChange={(e) =>
+                                  handleUpdateBatchRow(row.rowId, "holdingDays", e.target.value)
+                                }
+                                className={`px-2.5 py-1.5 rounded-lg border text-xs font-mono-tabular w-24 ${subCardBg}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2 text-center">
+                              <input
+                                type="checkbox"
+                                checked={row.isPromoterLocked}
+                                onChange={(e) =>
+                                  handleUpdateBatchRow(
+                                    row.rowId,
+                                    "isPromoterLocked",
+                                    e.target.checked
+                                  )
+                                }
+                                className="w-4 h-4 accent-rose-600 cursor-pointer"
+                                title="Check if 3-Year Mandatory Promoter Lock-in applies"
+                              />
+                            </td>
+                            <td className="py-2 px-2 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveBatchRow(row.rowId)}
+                                className="p-1.5 rounded bg-rose-500/10 hover:bg-rose-500/25 text-rose-500 cursor-pointer"
+                                title="Remove this input row"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-200 dark:border-slate-800">
+                    <div className={`text-xs ${mutedText}`}>
+                      Ready rows:{" "}
+                      <strong className="text-emerald-500">
+                        {
+                          batchAddRows.filter(
+                            (r) =>
+                              r.symbol.trim() &&
+                              Number(r.quantity) > 0 &&
+                              Number(r.purchasePrice) > 0
+                          ).length
+                        }{" "}
+                        valid stock lots
+                      </strong>{" "}
+                      (empty rows are automatically ignored)
+                    </div>
+                    <button
+                      type="button"
+                      disabled={isSubmittingBatchAdd}
+                      onClick={handleCommitBatchAdd}
+                      className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs flex items-center gap-2 shadow-md cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>
+                        {isSubmittingBatchAdd
+                          ? "Feeding Batch into Institutional Engine..."
+                          : "Commit Batch Add to Portfolio"}
+                      </span>
+                    </button>
+                  </div>
                 </div>
               )}
 
-              {/* Triskell-Style Grouped RAG Portfolio Table */}
+              {/* ===============================================================
+                  MODE B: QUICK SINGLE ADD BAR
+                 =============================================================== */}
+              {gridOperationMode === "single_add" && (
+                <form
+                  onSubmit={handleQuickAddStock}
+                  className={`p-4 rounded-xl border ${cardBg} flex flex-wrap items-end gap-3`}
+                >
+                  <div>
+                    <label className={`block text-[10px] font-bold uppercase ${mutedText} mb-1`}>
+                      Stock Ticker
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={quickSymbol}
+                      onChange={(e) => setQuickSymbol(e.target.value)}
+                      placeholder="e.g. NABIL"
+                      className={`px-3 py-1.5 rounded-lg border text-xs font-mono-tabular w-28 ${subCardBg}`}
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-[10px] font-bold uppercase ${mutedText} mb-1`}>
+                      Quantity (Shares)
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      value={quickQty}
+                      onChange={(e) => setQuickQty(e.target.value)}
+                      className={`px-3 py-1.5 rounded-lg border text-xs font-mono-tabular w-28 ${subCardBg}`}
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-[10px] font-bold uppercase ${mutedText} mb-1`}>
+                      Purchase Price (NPR)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={quickPrice}
+                      onChange={(e) => setQuickPrice(e.target.value)}
+                      className={`px-3 py-1.5 rounded-lg border text-xs font-mono-tabular w-32 ${subCardBg}`}
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-[10px] font-bold uppercase ${mutedText} mb-1`}>
+                      Target Sub-Account
+                    </label>
+                    <select
+                      value={quickAccount}
+                      onChange={(e) => setQuickAccount(e.target.value)}
+                      className={`px-3 py-1.5 rounded-lg border text-xs ${subCardBg}`}
+                    >
+                      {vault.sub_account_summaries?.map((acc: SubAccountSummary) => (
+                        <option key={acc.account_id} value={acc.account_id}>
+                          {acc.account_label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Add Single Position</span>
+                  </button>
+                </form>
+              )}
+
+              {/* ===============================================================
+                  MODE C: BATCH REMOVE CONTROL DECK (Multi-Select, Account Clear, Wipe)
+                 =============================================================== */}
+              {(gridOperationMode === "batch_remove" || selectedLotIds.length > 0) && (
+                <div className={`p-4 rounded-xl border-2 border-rose-500/40 ${cardBg} space-y-3`}>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-extrabold text-rose-500 flex items-center gap-2">
+                        <Trash2 className="w-4 h-4" />
+                        <span>
+                          Batch Remove Mode — {selectedLotIds.length} of {filteredLots.length} Lots Selected
+                        </span>
+                      </div>
+                      <p className={`text-xs ${mutedText} mt-0.5`}>
+                        Tick checkboxes on individual stock rows or group headers below, or clear an entire sub-account in one click.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={toggleSelectAllVisibleLots}
+                        className={`px-3 py-1.5 rounded-lg border text-xs font-bold cursor-pointer ${subCardBg}`}
+                      >
+                        {selectedLotIds.length === filteredLots.length && filteredLots.length > 0
+                          ? "Deselect All"
+                          : `Select All Visible (${filteredLots.length})`}
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={selectedLotIds.length === 0 || isSubmittingBatchRemove}
+                        onClick={handleBatchRemoveSelected}
+                        className={`px-4 py-1.5 rounded-lg font-extrabold text-xs flex items-center gap-1.5 cursor-pointer ${
+                          selectedLotIds.length > 0
+                            ? "bg-rose-600 hover:bg-rose-500 text-white shadow-sm"
+                            : "bg-slate-700/30 text-slate-500 cursor-not-allowed"
+                        }`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>
+                          {isSubmittingBatchRemove
+                            ? "Removing..."
+                            : `Batch Delete Selected (${selectedLotIds.length})`}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Quick Per-Account Clear Strip */}
+                  <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                    <span className={`text-[11px] font-bold uppercase ${mutedText}`}>
+                      1-Click Clear By Sub-Account:
+                    </span>
+                    {vault.sub_account_summaries?.map((acc: SubAccountSummary) => (
+                      <button
+                        key={acc.account_id}
+                        type="button"
+                        onClick={() => handleClearAccountLots(acc.account_id, acc.account_label)}
+                        className="px-2.5 py-1 rounded-md bg-rose-500/10 hover:bg-rose-600 hover:text-white text-rose-500 border border-rose-500/25 text-[11px] font-bold transition-colors cursor-pointer"
+                      >
+                        Clear {acc.account_type} (#{acc.broker_code})
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {gridFeedback && (
+                <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-300 text-xs font-bold flex items-center justify-between">
+                  <span>{gridFeedback}</span>
+                  <button
+                    type="button"
+                    onClick={() => setGridFeedback(null)}
+                    className="text-[11px] underline ml-4 cursor-pointer"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              )}
+
+              {/* Triskell-Style Grouped RAG Portfolio Table with Multi-Select Checkboxes */}
               <div className={`rounded-xl border ${cardBg} overflow-hidden`}>
                 <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <Table className="w-4 h-4 text-[#0062A8]" />
                     <span className="text-xs font-extrabold uppercase tracking-wider">
-                      Master Multi-Account Portfolio Grid (Grouped by Legal Entity & BOID)
+                      Master Multi-Account Portfolio Grid ({taxLots.length} Active Lots)
                     </span>
                   </div>
                   <div className="text-xs font-mono-tabular">
@@ -1519,6 +2042,18 @@ export const App: React.FC = () => {
                   <table className="w-full text-xs border-collapse">
                     <thead>
                       <tr className="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        <th className="py-2.5 px-3 text-center w-9">
+                          <input
+                            type="checkbox"
+                            checked={
+                              filteredLots.length > 0 &&
+                              selectedLotIds.length === filteredLots.length
+                            }
+                            onChange={toggleSelectAllVisibleLots}
+                            className="w-3.5 h-3.5 accent-rose-600 cursor-pointer"
+                            title="Select / Deselect All Lots"
+                          />
+                        </th>
                         <th className="py-2.5 px-3 text-center">Health</th>
                         <th className="py-2.5 px-3 text-center">Tax Tier</th>
                         <th className="py-2.5 px-3 text-center">Lock</th>
@@ -1537,189 +2072,240 @@ export const App: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200/70 dark:divide-slate-800/70 font-mono-tabular">
-                      {groupedLotsByAccount.map(([groupKey, group]) => {
-                        const isCollapsed = !!collapsedGroups[groupKey];
-                        const groupPnl = group.totalValue - group.totalCost;
+                      {groupedLotsByAccount.length === 0 ? (
+                        <tr>
+                          <td colSpan={16} className="py-12 px-4 text-center font-sans">
+                            <div className="max-w-md mx-auto space-y-2">
+                              <div className="text-sm font-extrabold">
+                                Clean Slate — 0 Stock Holdings Currently in Vault
+                              </div>
+                              <p className={`text-xs ${mutedText}`}>
+                                Use the <strong>Batch Add Spreadsheet</strong> above to feed multiple stocks at once, or click <strong>Bulk CSV / Cash Manager</strong> to import a CSV file.
+                              </p>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        groupedLotsByAccount.map(([groupKey, group]) => {
+                          const isCollapsed = !!collapsedGroups[groupKey];
+                          const groupPnl = group.totalValue - group.totalCost;
+                          const groupLotIds = group.lots.map((l) => l.lot_id);
+                          const allGroupSelected =
+                            groupLotIds.length > 0 &&
+                            groupLotIds.every((id) => selectedLotIds.includes(id));
 
-                        return (
-                          <React.Fragment key={groupKey}>
-                            {/* Collapsible Group Header Row */}
-                            <tr
-                              onClick={() =>
-                                setCollapsedGroups((prev) => ({
-                                  ...prev,
-                                  [groupKey]: !prev[groupKey],
-                                }))
-                              }
-                              className="bg-slate-200/60 dark:bg-slate-800/70 font-sans font-extrabold text-xs cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800"
-                            >
-                              <td colSpan={11} className="py-2 px-3">
-                                <div className="flex items-center gap-2">
-                                  {isCollapsed ? (
-                                    <ChevronRight className="w-4 h-4" />
-                                  ) : (
-                                    <ChevronDown className="w-4 h-4" />
-                                  )}
-                                  <span>
-                                    {group.accountLabel.toUpperCase()} ({group.lots.length} ITEMS)
-                                  </span>
-                                  <span className="text-[11px] font-normal text-slate-500 font-mono-tabular ml-2">
-                                    BOID: {group.boid} · TMS #{group.brokerCode}
-                                  </span>
-                                </div>
-                              </td>
-                              <td className="py-2 px-3 text-right font-mono-tabular">
-                                {group.totalCost.toLocaleString("en-IN")}
-                              </td>
-                              <td className="py-2 px-3 text-right font-mono-tabular text-[#0062A8] dark:text-sky-400">
-                                {group.totalValue.toLocaleString("en-IN")}
-                              </td>
-                              <td
-                                className={`py-2 px-3 text-right font-mono-tabular ${
-                                  groupPnl >= 0 ? "text-emerald-600" : "text-rose-600"
-                                }`}
-                              >
-                                {groupPnl >= 0 ? "+" : ""}
-                                {groupPnl.toLocaleString("en-IN")}
-                              </td>
-                              <td />
-                            </tr>
+                          return (
+                            <React.Fragment key={groupKey}>
+                              {/* Collapsible Group Header Row */}
+                              <tr className="bg-slate-200/60 dark:bg-slate-800/70 font-sans font-extrabold text-xs hover:bg-slate-200 dark:hover:bg-slate-800">
+                                <td className="py-2 px-3 text-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={allGroupSelected}
+                                    onChange={() => toggleSelectGroupLots(groupLotIds)}
+                                    className="w-3.5 h-3.5 accent-rose-600 cursor-pointer"
+                                    title={`Select all lots in ${group.accountLabel}`}
+                                  />
+                                </td>
+                                <td
+                                  colSpan={11}
+                                  onClick={() =>
+                                    setCollapsedGroups((prev) => ({
+                                      ...prev,
+                                      [groupKey]: !prev[groupKey],
+                                    }))
+                                  }
+                                  className="py-2 px-3 cursor-pointer"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    {isCollapsed ? (
+                                      <ChevronRight className="w-4 h-4" />
+                                    ) : (
+                                      <ChevronDown className="w-4 h-4" />
+                                    )}
+                                    <span>
+                                      {group.accountLabel.toUpperCase()} ({group.lots.length} ITEMS)
+                                    </span>
+                                    <span className="text-[11px] font-normal text-slate-500 font-mono-tabular ml-2">
+                                      BOID: {group.boid} · TMS #{group.brokerCode}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="py-2 px-3 text-right font-mono-tabular">
+                                  {group.totalCost.toLocaleString("en-IN")}
+                                </td>
+                                <td className="py-2 px-3 text-right font-mono-tabular text-[#0062A8] dark:text-sky-400">
+                                  {group.totalValue.toLocaleString("en-IN")}
+                                </td>
+                                <td
+                                  className={`py-2 px-3 text-right font-mono-tabular ${
+                                    groupPnl >= 0 ? "text-emerald-600" : "text-rose-600"
+                                  }`}
+                                >
+                                  {groupPnl >= 0 ? "+" : ""}
+                                  {groupPnl.toLocaleString("en-IN")}
+                                </td>
+                                <td />
+                              </tr>
 
-                            {/* Individual Lot Rows */}
-                            {!isCollapsed &&
-                              group.lots.map((lot) => {
-                                const ltp = livePrices[lot.symbol] ?? lot.purchase_price;
-                                const cost = lot.quantity * lot.purchase_price;
-                                const val = lot.quantity * ltp;
-                                const pnl = val - cost;
-                                const pnlPct = cost > 0 ? (pnl / cost) * 100 : 0;
-                                const isLongTerm = lot.holding_days > 365;
-                                const rank =
-                                  allocationRings.schur_hrp.asset_ranks?.[lot.symbol] || 6;
-                                const scoreBadge = Math.max(5, Math.min(10, 11 - Math.ceil(rank / 2)));
+                              {/* Individual Lot Rows */}
+                              {!isCollapsed &&
+                                group.lots.map((lot) => {
+                                  const ltp = livePrices[lot.symbol] ?? lot.purchase_price;
+                                  const cost = lot.quantity * lot.purchase_price;
+                                  const val = lot.quantity * ltp;
+                                  const pnl = val - cost;
+                                  const pnlPct = cost > 0 ? (pnl / cost) * 100 : 0;
+                                  const isLongTerm = lot.holding_days > 365;
+                                  const rank =
+                                    allocationRings.schur_hrp.asset_ranks?.[lot.symbol] || 6;
+                                  const scoreBadge = Math.max(
+                                    5,
+                                    Math.min(10, 11 - Math.ceil(rank / 2))
+                                  );
+                                  const isSelected = selectedLotIds.includes(lot.lot_id);
 
-                                return (
-                                  <tr
-                                    key={lot.lot_id}
-                                    className="hover:bg-blue-500/5 transition-colors"
-                                  >
-                                    {/* RAG Traffic Light 1: Position Health */}
-                                    <td className="py-2.5 px-3 text-center">
-                                      <span
-                                        className={`inline-block w-3 h-3 rounded-full ${
-                                          pnl >= 0 ? "bg-emerald-500" : "bg-amber-500"
-                                        }`}
-                                        title={pnl >= 0 ? "In Profit" : "Tax-Loss Harvest Candidate"}
-                                      />
-                                    </td>
-                                    {/* RAG Traffic Light 2: CGT Tax Bracket */}
-                                    <td className="py-2.5 px-3 text-center">
-                                      <span
-                                        className={`inline-block w-3 h-3 rounded-full ${
-                                          isLongTerm ? "bg-emerald-500" : "bg-sky-500"
-                                        }`}
-                                        title={lot.tax_bracket_label}
-                                      />
-                                    </td>
-                                    {/* RAG Traffic Light 3: Lock Status */}
-                                    <td className="py-2.5 px-3 text-center">
-                                      <span
-                                        className={`inline-block w-3 h-3 rounded-full ${
-                                          lot.is_promoter_locked ? "bg-rose-500" : "bg-emerald-500"
-                                        }`}
-                                        title={
-                                          lot.is_promoter_locked
-                                            ? "3-Year Promoter Lock Active"
-                                            : "Freely Tradable"
-                                        }
-                                      />
-                                    </td>
-
-                                    <td className="py-2.5 px-3 font-bold text-sm">
-                                      {lot.symbol}
-                                    </td>
-                                    <td className="py-2.5 px-3 text-[11px] font-sans">
-                                      TMS #{lot.broker_code} · {lot.tax_bracket_label}
-                                    </td>
-                                    <td className="py-2.5 px-3 text-center">
-                                      {pnl >= 0 ? (
-                                        <span className="inline-flex items-center gap-0.5 text-emerald-600 font-bold text-[11px]">
-                                          <ArrowUpRight className="w-3.5 h-3.5" /> +{pnlPct.toFixed(1)}%
-                                        </span>
-                                      ) : (
-                                        <span className="inline-flex items-center gap-0.5 text-amber-600 font-bold text-[11px]">
-                                          <ArrowDownRight className="w-3.5 h-3.5" /> {pnlPct.toFixed(1)}%
-                                        </span>
-                                      )}
-                                    </td>
-
-                                    {/* Triskell-style solid colored Score Cell */}
-                                    <td
-                                      className={`py-2.5 px-3 text-center font-bold text-white ${
-                                        scoreBadge >= 8
-                                          ? "bg-emerald-600"
-                                          : scoreBadge >= 6
-                                          ? "bg-amber-500"
-                                          : "bg-rose-500"
+                                  return (
+                                    <tr
+                                      key={lot.lot_id}
+                                      className={`transition-colors ${
+                                        isSelected
+                                          ? "bg-rose-500/10 hover:bg-rose-500/15"
+                                          : "hover:bg-blue-500/5"
                                       }`}
                                     >
-                                      {scoreBadge}/10
-                                    </td>
+                                      <td className="py-2.5 px-3 text-center">
+                                        <input
+                                          type="checkbox"
+                                          checked={isSelected}
+                                          onChange={() => toggleSelectLot(lot.lot_id)}
+                                          className="w-3.5 h-3.5 accent-rose-600 cursor-pointer"
+                                        />
+                                      </td>
+                                      {/* RAG Traffic Light 1: Position Health */}
+                                      <td className="py-2.5 px-3 text-center">
+                                        <span
+                                          className={`inline-block w-3 h-3 rounded-full ${
+                                            pnl >= 0 ? "bg-emerald-500" : "bg-amber-500"
+                                          }`}
+                                          title={
+                                            pnl >= 0 ? "In Profit" : "Tax-Loss Harvest Candidate"
+                                          }
+                                        />
+                                      </td>
+                                      {/* RAG Traffic Light 2: CGT Tax Bracket */}
+                                      <td className="py-2.5 px-3 text-center">
+                                        <span
+                                          className={`inline-block w-3 h-3 rounded-full ${
+                                            isLongTerm ? "bg-emerald-500" : "bg-sky-500"
+                                          }`}
+                                          title={lot.tax_bracket_label}
+                                        />
+                                      </td>
+                                      {/* RAG Traffic Light 3: Lock Status */}
+                                      <td className="py-2.5 px-3 text-center">
+                                        <span
+                                          className={`inline-block w-3 h-3 rounded-full ${
+                                            lot.is_promoter_locked
+                                              ? "bg-rose-500"
+                                              : "bg-emerald-500"
+                                          }`}
+                                          title={
+                                            lot.is_promoter_locked
+                                              ? "3-Year Promoter Lock Active"
+                                              : "Freely Tradable"
+                                          }
+                                        />
+                                      </td>
 
-                                    {/* Triskell-style Delay/Duration Pill */}
-                                    <td className="py-2.5 px-3 text-center">
-                                      <span
-                                        className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                          lot.is_promoter_locked
-                                            ? "bg-rose-500/20 text-rose-600"
-                                            : isLongTerm
-                                            ? "bg-emerald-500/20 text-emerald-600"
-                                            : "bg-sky-500/20 text-sky-600"
+                                      <td className="py-2.5 px-3 font-bold text-sm">
+                                        {lot.symbol}
+                                      </td>
+                                      <td className="py-2.5 px-3 text-[11px] font-sans">
+                                        TMS #{lot.broker_code} · {lot.tax_bracket_label}
+                                      </td>
+                                      <td className="py-2.5 px-3 text-center">
+                                        {pnl >= 0 ? (
+                                          <span className="inline-flex items-center gap-0.5 text-emerald-600 font-bold text-[11px]">
+                                            <ArrowUpRight className="w-3.5 h-3.5" /> +
+                                            {pnlPct.toFixed(1)}%
+                                          </span>
+                                        ) : (
+                                          <span className="inline-flex items-center gap-0.5 text-amber-600 font-bold text-[11px]">
+                                            <ArrowDownRight className="w-3.5 h-3.5" />{" "}
+                                            {pnlPct.toFixed(1)}%
+                                          </span>
+                                        )}
+                                      </td>
+
+                                      {/* Triskell-style solid colored Score Cell */}
+                                      <td
+                                        className={`py-2.5 px-3 text-center font-bold text-white ${
+                                          scoreBadge >= 8
+                                            ? "bg-emerald-600"
+                                            : scoreBadge >= 6
+                                            ? "bg-amber-500"
+                                            : "bg-rose-500"
                                         }`}
                                       >
-                                        {lot.holding_days}d held
-                                      </span>
-                                    </td>
+                                        {scoreBadge}/10
+                                      </td>
 
-                                    <td className="py-2.5 px-3 text-right font-bold">
-                                      {lot.quantity.toLocaleString()}
-                                    </td>
-                                    <td className="py-2.5 px-3 text-right">
-                                      {lot.purchase_price.toFixed(2)}
-                                    </td>
-                                    <td className="py-2.5 px-3 text-right font-bold text-[#0062A8] dark:text-sky-400">
-                                      {ltp.toFixed(2)}
-                                    </td>
-                                    <td className="py-2.5 px-3 text-right">
-                                      {cost.toLocaleString("en-IN")}
-                                    </td>
-                                    <td className="py-2.5 px-3 text-right font-bold">
-                                      {val.toLocaleString("en-IN")}
-                                    </td>
-                                    <td
-                                      className={`py-2.5 px-3 text-right font-bold ${
-                                        pnl >= 0 ? "text-emerald-600" : "text-rose-600"
-                                      }`}
-                                    >
-                                      {pnl >= 0 ? "+" : ""}
-                                      {pnl.toLocaleString("en-IN")}
-                                    </td>
-                                    <td className="py-2.5 px-3 text-center">
-                                      <button
-                                        type="button"
-                                        onClick={() => handleDeleteLot(lot.lot_id)}
-                                        className="p-1.5 rounded bg-rose-500/10 hover:bg-rose-500/25 text-rose-500 cursor-pointer"
-                                        title="Remove Lot"
+                                      {/* Triskell-style Delay/Duration Pill */}
+                                      <td className="py-2.5 px-3 text-center">
+                                        <span
+                                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                            lot.is_promoter_locked
+                                              ? "bg-rose-500/20 text-rose-600"
+                                              : isLongTerm
+                                              ? "bg-emerald-500/20 text-emerald-600"
+                                              : "bg-sky-500/20 text-sky-600"
+                                          }`}
+                                        >
+                                          {lot.holding_days}d held
+                                        </span>
+                                      </td>
+
+                                      <td className="py-2.5 px-3 text-right font-bold">
+                                        {lot.quantity.toLocaleString()}
+                                      </td>
+                                      <td className="py-2.5 px-3 text-right">
+                                        {lot.purchase_price.toFixed(2)}
+                                      </td>
+                                      <td className="py-2.5 px-3 text-right font-bold text-[#0062A8] dark:text-sky-400">
+                                        {ltp.toFixed(2)}
+                                      </td>
+                                      <td className="py-2.5 px-3 text-right">
+                                        {cost.toLocaleString("en-IN")}
+                                      </td>
+                                      <td className="py-2.5 px-3 text-right font-bold">
+                                        {val.toLocaleString("en-IN")}
+                                      </td>
+                                      <td
+                                        className={`py-2.5 px-3 text-right font-bold ${
+                                          pnl >= 0 ? "text-emerald-600" : "text-rose-600"
+                                        }`}
                                       >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </button>
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                          </React.Fragment>
-                        );
-                      })}
+                                        {pnl >= 0 ? "+" : ""}
+                                        {pnl.toLocaleString("en-IN")}
+                                      </td>
+                                      <td className="py-2.5 px-3 text-center">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDeleteLot(lot.lot_id)}
+                                          className="p-1.5 rounded bg-rose-500/10 hover:bg-rose-500/25 text-rose-500 cursor-pointer"
+                                          title="Remove Lot"
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                            </React.Fragment>
+                          );
+                        })
+                      )}
                     </tbody>
                   </table>
                 </div>
