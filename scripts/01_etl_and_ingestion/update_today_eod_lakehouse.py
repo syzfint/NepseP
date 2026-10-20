@@ -28,6 +28,16 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Any
 
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+ALT_DIR = Path(r"C:/Users/achar/Downloads/neps")
+SCRIPTS_DIR = BASE_DIR / "scripts"
+ETL_DIR = SCRIPTS_DIR / "01_etl_and_ingestion"
+MODEL_DIR = SCRIPTS_DIR / "02_modeling_and_calculations"
+
+for p in [str(BASE_DIR), str(SCRIPTS_DIR), str(ETL_DIR), str(MODEL_DIR)]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
+
 import duckdb
 import numpy as np
 import pandas as pd
@@ -36,7 +46,7 @@ from scripts.db_connection import (
     connection_manager,
     get_connection_manager,
 )
-from scripts.01_etl_and_ingestion.schema_canonicalization import (
+from schema_canonicalization import (
     process_floorsheet_df,
     log_rejected_to_dead_letter,
 )
@@ -45,20 +55,11 @@ from scripts.01_etl_and_ingestion.schema_canonicalization import (
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("eod_lakehouse_updater")
 
-BASE_DIR = Path.cwd()
-ALT_DIR = Path(r"C:/Users/achar/Downloads/neps")
 RAW_DATA_DIR = BASE_DIR / "01_raw_data"
 PROCESSED_DIR = BASE_DIR / "02_processed_parquet"
 FEATURE_DIR = BASE_DIR / "03_feature_store"
 STATIC_DIR = BASE_DIR / "static_data"
 REPORTS_DIR = BASE_DIR / "reports"
-SCRIPTS_DIR = BASE_DIR / "scripts"
-ETL_DIR = SCRIPTS_DIR / "01_etl_and_ingestion"
-MODEL_DIR = SCRIPTS_DIR / "02_modeling_and_calculations"
-
-for p in [str(SCRIPTS_DIR), str(ETL_DIR), str(MODEL_DIR)]:
-    if p not in sys.path:
-        sys.path.insert(0, p)
 
 for d in [RAW_DATA_DIR, PROCESSED_DIR, FEATURE_DIR, STATIC_DIR, REPORTS_DIR]:
     d.mkdir(parents=True, exist_ok=True)

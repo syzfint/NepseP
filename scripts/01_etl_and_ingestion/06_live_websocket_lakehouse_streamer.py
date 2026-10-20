@@ -36,6 +36,10 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
 import pyarrow as pa
 import pyarrow.parquet as pq
 import duckdb
@@ -47,8 +51,6 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] [LakehouseStreamer] %(message)s"
 )
 logger = logging.getLogger("LakehouseStreamer")
-
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # Nepal Standard Time is UTC+5:45
 NPT_TIMEZONE = timezone(timedelta(hours=5, minutes=45))

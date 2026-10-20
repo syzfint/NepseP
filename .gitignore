@@ -1,6 +1,10 @@
 *.parquet
 *.csv
 *.json
+!apex_wealth/frontend/*.json
+node_modules/
+*.tsbuildinfo
+dist/
 __pycache__/
 .venv/
 .env*

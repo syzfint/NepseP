@@ -30,7 +30,12 @@ from pathlib import Path
 import duckdb
 import pandas as pd
 from scripts.db_connection import connection_manager
-from scripts.01_etl_and_ingestion.schema_canonicalization import (
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from schema_canonicalization import (
     process_floorsheet_df,
     log_rejected_to_dead_letter,
 )

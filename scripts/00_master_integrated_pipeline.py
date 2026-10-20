@@ -52,7 +52,7 @@ OUTPUT_JSON_PATH = BASE_DIR / "NEPSE_MASTER_INTEGRATED_OUTPUT.json"
 SCRIPTS_DIR = BASE_DIR / "scripts"
 etl_dir = SCRIPTS_DIR / "01_etl_and_ingestion"
 model_dir = SCRIPTS_DIR / "02_modeling_and_calculations"
-for p in [str(SCRIPTS_DIR), str(etl_dir), str(model_dir)]:
+for p in [str(BASE_DIR), str(SCRIPTS_DIR), str(etl_dir), str(model_dir)]:
     if p not in sys.path:
         sys.path.insert(0, p)
 
