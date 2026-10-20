@@ -56,7 +56,15 @@ from engine.ipc_shared_memory import (
     LockFreeSharedMemoryRingBuffer,
     allocate_cache_aligned_matrix,
 )
+from engine.local_file_importer import parse_uploaded_portfolio_file
+from engine.broker_activity_engine import NepseBrokerActivityEngine, normalize_broker_no
 from engine.portfolio_optimizer import ReturnsFrame, SchurHRPResult, SchurRAHRPOptimizer
+from engine.price_integrity_protocol import (
+    ExplicitPredictionRecord,
+    PriceProvenanceRecord,
+    StrictPriceIntegrityEngine,
+    SyntheticPriceViolationError,
+)
 
 
 SECTOR_METADATA: Dict[str, Dict[str, str]] = {
@@ -79,6 +87,7 @@ SECTOR_METADATA: Dict[str, Dict[str, str]] = {
 }
 
 
+import base64
 import json
 import uuid as _uuid
 
@@ -163,14 +172,57 @@ class ImportPortfolioRequest(BaseModel):
     items: List[ImportPortfolioItem]
 
 
+class UpdateLtpRequest(BaseModel):
+    symbol: str
+    ltp: float = Field(
+        description="Pass > 0 for explicit user-entered LTP, or 0 to reset to Verified NEPSE Historical Close."
+    )
+
+
+class LocalFileUploadRequest(BaseModel):
+    filename: str
+    content_base64: str
+    default_sub_account_id: str = "Personal"
+    auto_commit: bool = False
+
+
+class CreateAccountRequest(BaseModel):
+    account_label: str = ""
+    account_type: str = "PERSONAL"
+    broker_no: str
+    boid_id: Optional[str] = None
+    tms_client_code: Optional[str] = None
+    dp_name: Optional[str] = None
+    cash_balance: float = 0.0
+
+
+class UpdateAccountRequest(BaseModel):
+    account_label: Optional[str] = None
+    account_type: Optional[str] = None
+    broker_no: Optional[str] = None
+    boid_id: Optional[str] = None
+    tms_client_code: Optional[str] = None
+    dp_name: Optional[str] = None
+
+
 class ApexWealthStateStore:
-    """In-memory institutional state coordinator starting clean (0 demo holdings) with JSON persistence."""
+    """In-memory institutional state coordinator enforcing the Strict Zero-Synthetic-Price Protocol."""
 
     def __init__(self) -> None:
         self.reference_time = datetime.now(timezone.utc)
-        self.vault, self.market_prices = create_default_institutional_vault(self.reference_time)
+        self.integrity_engine = StrictPriceIntegrityEngine()
+        self.vault, self.reference_closing_ltp = create_default_institutional_vault(self.reference_time)
+        self.market_prices: Dict[str, float] = {}
+        self.user_custom_ltp_map: Dict[str, float] = {}
+        self.price_provenance: Dict[str, Dict[str, Any]] = {}
+        self.return_series_provenance: Dict[str, Dict[str, Any]] = {}
+        self.order_books: Dict[str, Level2OrderBook] = {}
         # Clear all default demo holdings, settlement locks, and demo cash so user starts with a clean slate
         self._wipe_vault_holdings(reset_cash=True)
+        # Start with ZERO accounts: the user creates their own accounts and applies their broker number
+        self._legacy_default_subs = list(self.vault.sub_accounts)
+        self.vault.sub_accounts = []
+        self.broker_engine = NepseBrokerActivityEngine()
 
         self.aggregator = MultiAccountAggregator(self.reference_time)
         self.optimizer = SchurRAHRPOptimizer(
@@ -194,23 +246,22 @@ class ApexWealthStateStore:
             create=True,
         )
 
-        # Live microstructure state
-        self.vpin: float = 0.18
-        self.hawkes_intensity: float = 0.04
-        self.var_99: float = 0.0154
-        self.cvar_1d: float = 0.0182
+        # Static microstructure state (no fake sine-wave live ticks)
+        self.vpin: float = 0.0
+        self.hawkes_intensity: float = 0.0
+        self.var_99: float = 0.0
+        self.cvar_1d: float = 0.0
         self.rebalance_executed_count: int = 0
         self.tick_sequence: int = 0
         self.user_executions: List[Dict[str, Any]] = []
         self.activity_feed: List[Dict[str, Any]] = []
 
         self._load_persisted_user_store()
-        self.returns_df = self._generate_institutional_returns()
-        self.order_books: Dict[str, Level2OrderBook] = self._build_initial_order_books()
+        self._sync_active_symbols_with_holdings()
         self._refresh_full_state()
 
     def _wipe_vault_holdings(self, reset_cash: bool = True) -> None:
-        """Remove all tax lots and settlement locks from all sub-accounts."""
+        """Remove all tax lots, settlement locks, and phantom market prices from all sub-accounts."""
         for sub in self.vault.sub_accounts:
             sub.settlement_locks.clear()
             sub.available_equity = 0.0
@@ -219,16 +270,134 @@ class ApexWealthStateStore:
             for boid in sub.demat_boids:
                 boid.tax_lots.clear()
                 boid.total_demat_shares = 0
+        self.market_prices.clear()
+        self.user_custom_ltp_map.clear()
+        self.price_provenance.clear()
+        self.return_series_provenance.clear()
+        self.order_books.clear()
+
+    def _sync_active_symbols_with_holdings(self) -> None:
+        """
+        Synchronize market_prices, price_provenance, order_books, and historical returns
+        strictly with symbols currently held in the user's vault.
+        Enforces NEVER_SYNTHESIZE_PRICE via StrictPriceIntegrityEngine.
+        """
+        held_latest_purchase_price: Dict[str, float] = {}
+        for sub in self.vault.sub_accounts:
+            for boid in sub.demat_boids:
+                for lot in boid.tax_lots:
+                    sym = str(lot.symbol).strip().upper()
+                    if sym:
+                        held_latest_purchase_price[sym] = float(lot.purchase_price)
+
+        # Prune any symbol that is no longer held in the vault
+        for sym in list(self.market_prices.keys()):
+            if sym not in held_latest_purchase_price:
+                self.market_prices.pop(sym, None)
+                self.price_provenance.pop(sym, None)
+                self.order_books.pop(sym, None)
+        for sym in list(self.user_custom_ltp_map.keys()):
+            if sym not in held_latest_purchase_price:
+                self.user_custom_ltp_map.pop(sym, None)
+
+        # Resolve verified price & provenance record for every held symbol (NEVER synthetic)
+        for sym, purchase_price in held_latest_purchase_price.items():
+            user_ltp = self.user_custom_ltp_map.get(sym)
+            prov_rec = self.integrity_engine.resolve_verified_price(
+                symbol=sym,
+                user_supplied_ltp=user_ltp,
+                user_purchase_price=purchase_price,
+            )
+            self.market_prices[sym] = prov_rec.price
+            self.price_provenance[sym] = asdict(prov_rec)
+
+        self.order_books = self._build_initial_order_books()
+        self.returns_df = self._generate_institutional_returns()
+
+    def _serialize_account(self, sub: Any) -> Dict[str, Any]:
+        tms = sub.tms_accounts[0] if sub.tms_accounts else None
+        boid = sub.demat_boids[0] if sub.demat_boids else None
+        broker_no = str(tms.broker_code) if tms else ""
+        return {
+            "account_id": str(sub.account_id),
+            "account_label": sub.account_label,
+            "account_type": sub.account_type.value if hasattr(sub.account_type, "value") else str(sub.account_type),
+            "broker_no": broker_no,
+            "broker_name": self.broker_engine.get_broker_name(broker_no) if broker_no else "",
+            "tms_client_code": tms.tms_client_code if tms else "",
+            "boid_id": boid.boid_id if boid else "",
+            "dp_name": boid.dp_name if boid else "",
+            "cash_balance": float(sub.cash_balance),
+            "created_at": getattr(sub, "created_at_iso", None) or datetime.now(timezone.utc).isoformat(),
+        }
+
+    def create_sub_account(
+        self,
+        account_label: str,
+        account_type: str,
+        broker_no: str,
+        boid_id: Optional[str] = None,
+        tms_client_code: Optional[str] = None,
+        dp_name: Optional[str] = None,
+        cash_balance: float = 0.0,
+        account_id: Optional[str] = None,
+        created_at_iso: Optional[str] = None,
+    ) -> Any:
+        """Create a user-owned SubAccount bound to a NEPSE broker number (TMS) and CDSC BOID."""
+        from database.models import AccountType, DematBOID, SubAccount, TMSAccount
+
+        b_no = normalize_broker_no(broker_no)
+        acc_type_raw = str(account_type or "PERSONAL").strip().upper()
+        acc_type = AccountType(acc_type_raw) if acc_type_raw in AccountType.__members__ else AccountType.PERSONAL
+        acc_uuid = _uuid.UUID(account_id) if account_id else _uuid.uuid4()
+        label = (account_label or "").strip() or f"My Account (TMS #{b_no})"
+
+        boid_clean = "".join(ch for ch in str(boid_id or "") if ch.isdigit())
+        if len(boid_clean) != 16:
+            # Placeholder until the user enters their real 16-digit BOID (not a market price; purely an identifier)
+            boid_clean = ("13" + acc_uuid.hex.replace("-", ""))[:16]
+            boid_clean = "".join(ch if ch.isdigit() else str(ord(ch) % 10) for ch in boid_clean)
+
+        sub = SubAccount(
+            account_id=acc_uuid,
+            vault_id=self.vault.vault_id,
+            account_type=acc_type,
+            account_label=label,
+            cash_balance=max(0.0, float(cash_balance or 0.0)),
+            available_equity=0.0,
+        )
+        sub.created_at_iso = created_at_iso or datetime.now(timezone.utc).isoformat()
+        tms = TMSAccount(
+            tms_id=_uuid.uuid4(),
+            sub_account_id=sub.account_id,
+            broker_code=b_no,
+            tms_client_code=(tms_client_code or "").strip() or f"TMS{b_no}-{acc_uuid.hex[:6].upper()}",
+            encrypted_session_token="",
+        )
+        boid = DematBOID(
+            boid_id=boid_clean,
+            sub_account_id=sub.account_id,
+            tms_id=tms.tms_id,
+            dp_name=(dp_name or "").strip() or "CDSC Depository Participant",
+            total_demat_shares=0,
+        )
+        sub.tms_accounts = [tms]
+        sub.demat_boids = [boid]
+        sub.settlement_locks = []
+        self.vault.sub_accounts.append(sub)
+        return sub
 
     def _save_persisted_user_store(self) -> None:
-        """Persist user-fed holdings, cash balances, and market prices to disk."""
+        """Persist user-created accounts, holdings, cash balances, and user custom LTPs to disk."""
         try:
+            self._sync_active_symbols_with_holdings()
             lots_out = []
             for sub in self.vault.sub_accounts:
                 for boid in sub.demat_boids:
                     for lot in boid.tax_lots:
                         lots_out.append({
                             "lot_id": str(lot.lot_id),
+                            "sub_account_id": str(sub.account_id),
                             "sub_account_label": sub.account_label,
                             "boid_id": boid.boid_id,
                             "symbol": lot.symbol,
@@ -239,7 +408,11 @@ class ApexWealthStateStore:
                         })
             cash_out = {sub.account_label: float(sub.cash_balance) for sub in self.vault.sub_accounts}
             payload = {
+                "schema_version": 2,
+                "accounts": [self._serialize_account(s) for s in self.vault.sub_accounts],
                 "market_prices": self.market_prices,
+                "user_custom_ltp_map": self.user_custom_ltp_map,
+                "price_provenance": self.price_provenance,
                 "cash_balances": cash_out,
                 "tax_lots": lots_out,
                 "user_executions": self.user_executions,
@@ -249,25 +422,60 @@ class ApexWealthStateStore:
             pass
 
     def _load_persisted_user_store(self) -> None:
-        """Load user-fed holdings from disk if present."""
+        """Load user-created accounts and holdings from disk if present."""
         if not USER_STORE_PATH.exists():
             return
         try:
             from database.models import TaxLot
             raw = json.loads(USER_STORE_PATH.read_text(encoding="utf-8"))
-            for sym, price in raw.get("market_prices", {}).items():
-                self.market_prices[str(sym).upper()] = float(price)
-            cash_map = raw.get("cash_balances", {})
-            for sub in self.vault.sub_accounts:
-                if sub.account_label in cash_map:
-                    sub.cash_balance = float(cash_map[sub.account_label])
+            saved_custom_ltps = {
+                str(sym).upper(): float(price)
+                for sym, price in raw.get("user_custom_ltp_map", {}).items()
+                if float(price) > 0
+            }
+            self.user_custom_ltp_map.update(saved_custom_ltps)
+
+            if "accounts" in raw:
+                for acc in raw.get("accounts", []):
+                    try:
+                        self.create_sub_account(
+                            account_label=acc.get("account_label", ""),
+                            account_type=acc.get("account_type", "PERSONAL"),
+                            broker_no=acc.get("broker_no", "58"),
+                            boid_id=acc.get("boid_id"),
+                            tms_client_code=acc.get("tms_client_code"),
+                            dp_name=acc.get("dp_name"),
+                            cash_balance=float(acc.get("cash_balance", 0.0)),
+                            account_id=acc.get("account_id"),
+                            created_at_iso=acc.get("created_at"),
+                        )
+                    except Exception:
+                        continue
+            else:
+                # Legacy store: restore only default accounts that actually hold saved lots
+                referenced = {str(it.get("sub_account_label")) for it in raw.get("tax_lots", [])}
+                cash_map_legacy = raw.get("cash_balances", {})
+                for legacy in self._legacy_default_subs:
+                    if legacy.account_label in referenced or float(cash_map_legacy.get(legacy.account_label, 0.0)) > 0:
+                        legacy.cash_balance = float(cash_map_legacy.get(legacy.account_label, 0.0))
+                        self.vault.sub_accounts.append(legacy)
+
             self.user_executions = list(raw.get("user_executions", []))
+            if not self.vault.sub_accounts:
+                return
             for item in raw.get("tax_lots", []):
-                target_sub = self.vault.sub_accounts[0]
+                target_sub = None
                 for sub in self.vault.sub_accounts:
-                    if sub.account_label == item.get("sub_account_label"):
+                    if item.get("sub_account_id") and str(sub.account_id) == str(item.get("sub_account_id")):
                         target_sub = sub
                         break
+                if target_sub is None:
+                    for sub in self.vault.sub_accounts:
+                        if sub.account_label == item.get("sub_account_label"):
+                            target_sub = sub
+                            break
+                if target_sub is None:
+                    target_sub = self.vault.sub_accounts[0]
                 if not target_sub.demat_boids:
                     continue
                 target_boid = target_sub.demat_boids[0]
@@ -277,10 +485,11 @@ class ApexWealthStateStore:
                         p_date = p_date.replace(tzinfo=timezone.utc)
                 except Exception:
                     p_date = self.reference_time - timedelta(days=180)
+                sym_upper = str(item["symbol"]).upper()
                 lot = TaxLot(
                     lot_id=_uuid.UUID(item["lot_id"]) if item.get("lot_id") else _uuid.uuid4(),
                     boid_id=target_boid.boid_id,
-                    symbol=str(item["symbol"]).upper(),
+                    symbol=sym_upper,
                     quantity=int(item["quantity"]),
                     purchase_price=float(item["purchase_price"]),
                     purchase_date=p_date,
@@ -291,14 +500,22 @@ class ApexWealthStateStore:
         except Exception:
             pass
 
-    def _ensure_symbol_registered(self, sym: str, price: float) -> None:
-        """Ensure any newly fed stock symbol is registered in market_prices, order_books, and returns_df."""
+    def _ensure_symbol_registered(self, sym: str, purchase_price: float, user_ltp: Optional[float] = None) -> None:
+        """
+        Register a held symbol in market_prices and price_provenance strictly via
+        StrictPriceIntegrityEngine (NEVER synthetic).
+        """
         sym = sym.strip().upper()
-        is_new = sym not in self.market_prices
-        if is_new or price > 0:
-            if is_new:
-                self.market_prices[sym] = float(price)
-        ltp = self.market_prices.get(sym, float(price))
+        if user_ltp is not None and float(user_ltp) > 0:
+            self.user_custom_ltp_map[sym] = round(float(user_ltp), 2)
+        prov_rec = self.integrity_engine.resolve_verified_price(
+            symbol=sym,
+            user_supplied_ltp=self.user_custom_ltp_map.get(sym),
+            user_purchase_price=purchase_price,
+        )
+        self.market_prices[sym] = prov_rec.price
+        self.price_provenance[sym] = asdict(prov_rec)
+        ltp = prov_rec.price
         if sym not in self.order_books:
             base_depth = 1800
             self.order_books[sym] = Level2OrderBook(
@@ -315,64 +532,35 @@ class ApexWealthStateStore:
                     LOBLevel(3, round(ltp + 3.0, 2), int(base_depth * 1.50), 21),
                 ],
             )
-        if is_new:
-            self.returns_df = self._generate_institutional_returns()
-
 
     def _generate_institutional_returns(self) -> Any:
         """
-        Generate a deterministic 320-day historical return matrix across the 16 NEPSE symbols
-        with realistic block-correlated sector factors and a high raw condition number (kappa > 120)
-        so Ledoit-Wolf shrinkage and Schur-RA-HRP are exercised realistically.
+        Build historical daily return series strictly from real NEPSE daily closing prices
+        in `nepse_data_all/*.csv` via StrictPriceIntegrityEngine.
+        ZERO `np.random`, ZERO synthetic factors.
         """
-        rng = np.random.default_rng(20261020)
         symbols = sorted(self.market_prices.keys())
-        n_days = 320
-        n_assets = len(symbols)
-
-        # Aligned 64-byte matrix for SIMD safety
-        ret_mat = allocate_cache_aligned_matrix((n_days, n_assets), dtype=np.float64)
-
-        market_factor = rng.normal(0.0005, 0.011, size=(n_days, 1))
-        bank_factor = rng.normal(0.0004, 0.009, size=(n_days, 1))
-        hydro_factor = rng.normal(0.0002, 0.014, size=(n_days, 1))
-        mfg_factor = rng.normal(0.0003, 0.010, size=(n_days, 1))
-
-        # Low-variance collinear base to induce raw condition number > 100 before shrinkage
-        collinear_driver = rng.normal(0.0, 0.008, size=n_days)
-
-        for idx, sym in enumerate(symbols):
-            sec = SECTOR_METADATA.get(sym, {}).get("sector", "Commercial Banks")
-            idio_scale = 0.0012 if idx < 3 else (0.0065 + 0.0008 * idx)
-            idio = rng.normal(0.0, idio_scale, size=n_days)
-
-            if "Bank" in sec:
-                col = 0.75 * market_factor[:, 0] + 0.65 * bank_factor[:, 0] + idio
-            elif "Hydro" in sec:
-                col = 0.60 * market_factor[:, 0] + 0.85 * hydro_factor[:, 0] + idio
-            else:
-                col = 0.65 * market_factor[:, 0] + 0.55 * mfg_factor[:, 0] + idio
-
-            if idx in (0, 1):
-                col = 0.992 * collinear_driver + rng.normal(0.0, 0.00045, size=n_days)
-
-            ret_mat[:, idx] = col
-
+        returns_frame, provenance_map = self.integrity_engine.build_real_historical_returns_frame(
+            symbols=symbols,
+            min_window=180,
+        )
+        self.return_series_provenance = provenance_map
         if pd is not None:
+            n_days = returns_frame.to_numpy().shape[0]
             dates = pd.date_range(end=self.reference_time.date(), periods=n_days, freq="B")
-            return pd.DataFrame(ret_mat, index=dates, columns=symbols)
-        return ReturnsFrame(ret_mat, columns=symbols)
+            return pd.DataFrame(returns_frame.to_numpy(), index=dates, columns=returns_frame.columns)
+        return returns_frame
 
     def _build_initial_order_books(self) -> Dict[str, Level2OrderBook]:
         books: Dict[str, Level2OrderBook] = {}
         for idx, (sym, ltp) in enumerate(sorted(self.market_prices.items())):
             base_depth = 1200 + (idx * 310)
             bids = [
-                LOBLevel(level=1, price=round(ltp - 1.0, 2), quantity=base_depth, orders_count=14),
-                LOBLevel(level=2, price=round(ltp - 2.0, 2), quantity=int(base_depth * 1.25), orders_count=19),
-                LOBLevel(level=3, price=round(ltp - 3.0, 2), quantity=int(base_depth * 1.45), orders_count=23),
-                LOBLevel(level=4, price=round(ltp - 4.0, 2), quantity=int(base_depth * 1.10), orders_count=11),
-                LOBLevel(level=5, price=round(ltp - 5.0, 2), quantity=int(base_depth * 0.95), orders_count=9),
+                LOBLevel(level=1, price=round(max(1.0, ltp - 1.0), 2), quantity=base_depth, orders_count=14),
+                LOBLevel(level=2, price=round(max(1.0, ltp - 2.0), 2), quantity=int(base_depth * 1.25), orders_count=19),
+                LOBLevel(level=3, price=round(max(1.0, ltp - 3.0), 2), quantity=int(base_depth * 1.45), orders_count=23),
+                LOBLevel(level=4, price=round(max(1.0, ltp - 4.0), 2), quantity=int(base_depth * 1.10), orders_count=11),
+                LOBLevel(level=5, price=round(max(1.0, ltp - 5.0), 2), quantity=int(base_depth * 0.95), orders_count=9),
             ]
             asks = [
                 LOBLevel(level=1, price=round(ltp + 1.0, 2), quantity=int(base_depth * 1.05), orders_count=12),
@@ -412,6 +600,7 @@ class ApexWealthStateStore:
         return lots
 
     def _refresh_full_state(self) -> None:
+        self._sync_active_symbols_with_holdings()
         self.ledger: ConsolidatedVaultLedger = self.aggregator.consolidate_vault(
             self.vault,
             self.market_prices,
@@ -473,7 +662,8 @@ class ApexWealthStateStore:
             for sym, cur_w, tgt_w, d_w in drifts[:4]:
                 if abs(d_w) < 0.005:
                     continue
-                self._ensure_symbol_registered(sym, self.market_prices.get(sym, 500.0))
+                lot_cost = next((l.purchase_price for l in candidate_lots if l.symbol == sym), 0.0)
+                self._ensure_symbol_registered(sym, self.market_prices.get(sym, lot_cost))
                 plan = self.slicer.build_rebalance_execution_plan(
                     symbol=sym,
                     current_weight=cur_w,
@@ -492,24 +682,27 @@ class ApexWealthStateStore:
 
         # Write latest frame to 64-byte cache-aligned IPC ring buffer
         health = self.get_health_telemetry()
-        ref_sym = "NABIL" if "NABIL" in self.order_books else next(iter(self.order_books.keys()))
+        if self.order_books:
+            ref_sym = next(iter(self.order_books.keys()))
+            top3_d = self.order_books[ref_sym].top_l_depth("SELL", 3)
+            ltp_val = self.market_prices.get(ref_sym, 0.0)
+        else:
+            top3_d = 0
+            ltp_val = 0.0
         self.ipc_ring.write_frame(
-            vpin=self.vpin,
-            hawkes_intensity=self.hawkes_intensity,
-            var_99=self.var_99,
+            vpin=self.vpin if self.order_books else 0.0,
+            hawkes_intensity=self.hawkes_intensity if self.order_books else 0.0,
+            var_99=self.var_99 if self.order_books else 0.0,
             health_score=float(health.score),
-            symbol_id=1,
-            top3_lob_depth=self.order_books[ref_sym].top_l_depth("SELL", 3),
-            last_traded_price=self.market_prices.get(ref_sym, 500.0),
+            symbol_id=1 if self.order_books else 0,
+            top3_lob_depth=top3_d,
+            last_traded_price=ltp_val,
         )
 
     def _build_audit_feed_and_merkle_tree(self) -> None:
         if not self.user_executions:
             self.activity_feed = []
-            self.merkle_engine.payloads = []
-            self.merkle_engine.leaf_hashes = []
-            self.merkle_engine.tree_levels = []
-            self.merkle_engine.merkle_root = "0" * 64
+            self.merkle_engine.build_tree([])
             return
 
         merkle_root = self.merkle_engine.build_tree(self.user_executions)
@@ -524,53 +717,91 @@ class ApexWealthStateStore:
             self.activity_feed.append(enriched)
 
     def get_health_telemetry(self):
-        if self.vpin >= 0.70 or self.hawkes_intensity >= 0.85:
-            return self.alert_engine.compute_portfolio_health_score(
-                var_99=self.var_99,
-                vpin=self.vpin,
-                c_locked_ratio=self.ledger.c_locked_ratio,
-                s_locked_ratio=self.ledger.s_locked_ratio,
-                hawkes_intensity=self.hawkes_intensity,
+        raw_lots = self._extract_candidate_tax_lots()
+        if len(raw_lots) == 0 and self.ledger.nav_total <= 0.0:
+            tel = self.alert_engine.compute_portfolio_health_score(
+                var_99=0.0,
+                vpin=0.0,
+                c_locked_ratio=0.0,
+                s_locked_ratio=0.0,
+                hawkes_intensity=0.0,
                 var_max=0.035,
-                cvar_1d=self.cvar_1d,
+                cvar_1d=0.0,
             )
-        # Institutional calibrated baseline yielding 94/100 (Optimal)
+            tel.score = 0
+            tel.status = "Empty Vault"
+            tel.cvar_1d_pct = 0.0
+            tel.vpin = 0.0
+            tel.hawkes_intensity = 0.0
+            tel.cdsc_t2_lockup_pct = 0.0
+            tel.var_99_pct = 0.0
+            tel.s_locked_ratio = 0.0
+            return tel
+
+        # Dynamically compute actual portfolio daily VaR_99 and CVaR_1d from user's held weights
+        held_syms = [s for s, w in self.current_weights.items() if w > 0 and s in list(self.returns_df.columns)]
+        if held_syms:
+            cols = list(self.returns_df.columns)
+            col_indices = [cols.index(s) for s in held_syms]
+            w_vec = np.array([self.current_weights[s] for s in held_syms], dtype=np.float64)
+            w_sum = float(np.sum(w_vec))
+            if w_sum > 0:
+                w_vec = w_vec / w_sum
+            sub_ret = np.asarray(self.returns_df.to_numpy(), dtype=np.float64)[:, col_indices]
+            port_daily_rets = sub_ret @ w_vec
+            losses = -port_daily_rets
+            var_99_val = float(max(0.001, np.percentile(losses, 99)))
+            tail_losses = losses[losses >= var_99_val]
+            cvar_1d_val = float(np.mean(tail_losses)) if len(tail_losses) > 0 else var_99_val * 1.15
+        else:
+            var_99_val = 0.0
+            cvar_1d_val = 0.0
+
+        self.var_99 = round(var_99_val, 4)
+        self.cvar_1d = round(cvar_1d_val, 4)
+
         tel = self.alert_engine.compute_portfolio_health_score(
-            var_99=0.0022,
-            vpin=0.06,
-            c_locked_ratio=0.065,
-            s_locked_ratio=0.045,
+            var_99=self.var_99,
+            vpin=self.vpin,
+            c_locked_ratio=self.ledger.c_locked_ratio,
+            s_locked_ratio=self.ledger.s_locked_ratio,
             hawkes_intensity=self.hawkes_intensity,
             var_max=0.035,
-            cvar_1d=0.0182,
+            cvar_1d=self.cvar_1d,
         )
         tel.vpin = round(self.vpin, 4)
-        tel.cdsc_t2_lockup_pct = 12.4
+        tel.cdsc_t2_lockup_pct = round(self.ledger.r_lock_ratio * 100.0, 2)
         return tel
 
     def get_tri_horizon_alerts(self) -> List[Dict[str, Any]]:
+        raw_lots = self._extract_candidate_tax_lots()
+        if len(raw_lots) == 0:
+            return []
+        ref_sym = raw_lots[0].symbol
+        ref_cost = raw_lots[0].purchase_price
+        self._ensure_symbol_registered(ref_sym, self.market_prices.get(ref_sym, ref_cost))
         past_alerts = self.alert_engine.evaluate_past_horizon(
-            committed_unsettled_cash=0.0,
+            committed_unsettled_cash=self.ledger.unsettled_cash_t2,
             stcgt_liquidated_with_ltcgt_available=False,
             merkle_verification_passed=True,
-            symbol="NABIL",
+            symbol=ref_sym,
             reference_time=self.reference_time,
         )
         pres_alerts = self.alert_engine.evaluate_present_horizon(
             vpin=self.vpin,
             child_slice_qty=180,
-            top3_lob_depth=self.order_books["NABIL"].top_l_depth("SELL", 3),
+            top3_lob_depth=self.order_books[ref_sym].top_l_depth("SELL", 3),
             hawkes_intensity=self.hawkes_intensity,
-            decision_price=1245.0,
-            fill_price=1246.0,
-            symbol="NABIL",
+            decision_price=self.market_prices.get(ref_sym, ref_cost),
+            fill_price=self.market_prices.get(ref_sym, ref_cost),
+            symbol=ref_sym,
             reference_time=self.reference_time,
         )
-        # Ensure Rank-14/15 warning and Promoter Cliff warning are surfaced clearly
-        held_ranks = dict(self.schur_result.asset_ranks)
-        if not any(r in (14, 15) for r in held_ranks.values()):
-            held_ranks["HDL"] = 14
-
+        held_ranks = {
+            sym: self.schur_result.asset_ranks.get(sym, 8)
+            for sym in self.current_weights
+            if self.current_weights.get(sym, 0.0) > 0
+        }
         promoter_days = {
             w.symbol: w.days_remaining for w in self.ledger.promoter_cliff_warnings
         }
@@ -578,15 +809,23 @@ class ApexWealthStateStore:
             projected_var_99=self.var_99,
             held_asset_ranks=held_ranks,
             promoter_cliff_days=promoter_days,
-            raw_condition_number=max(118.4, self.schur_result.raw_condition_number),
+            raw_condition_number=self.schur_result.raw_condition_number,
             reference_time=self.reference_time,
         )
         all_alerts = past_alerts + pres_alerts + fut_alerts
         return [asdict(a) for a in all_alerts]
 
     def build_sector_allocations(self) -> List[Dict[str, Any]]:
+        raw_lots = self._extract_candidate_tax_lots()
+        if len(raw_lots) == 0:
+            return []
+
         sector_Buckets: Dict[str, Dict[str, Any]] = {}
         for sym in self.ledger.symbols:
+            cur_w = float(self.current_weights.get(sym, 0.0))
+            tgt_w = float(self.schur_result.post_hysteresis_weights.get(sym, 0.0))
+            if cur_w <= 0.0 and tgt_w <= 0.0:
+                continue
             meta = SECTOR_METADATA.get(
                 sym, {"sector": "Diversified Equity", "color": "#64748B"}
             )
@@ -599,8 +838,6 @@ class ApexWealthStateStore:
                     "target_weight": 0.0,
                     "assets": [],
                 }
-            cur_w = float(self.current_weights.get(sym, 0.0))
-            tgt_w = float(self.schur_result.post_hysteresis_weights.get(sym, 0.0))
             sector_Buckets[sec_name]["current_weight"] += cur_w
             sector_Buckets[sec_name]["target_weight"] += tgt_w
             sector_Buckets[sec_name]["assets"].append(
@@ -641,52 +878,31 @@ class ApexWealthStateStore:
             )
         return sorted(out, key=lambda x: -x["current_weight_pct"])
 
-    def step_live_tick(self) -> Dict[str, Any]:
-        """Advance live market microstructure simulation by one sub-second tick."""
-        self.tick_sequence += 1
-        phase = self.tick_sequence * 0.27
-        symbols = sorted(self.market_prices.keys())
-        sym = symbols[self.tick_sequence % len(symbols)]
-
-        old_price = self.market_prices[sym]
-        delta_pct = 0.0018 * math.sin(phase) + 0.0009 * math.cos(phase * 1.7)
-        new_price = round(max(100.0, old_price * (1.0 + delta_pct)), 2)
-        direction = "UP" if new_price >= old_price else "DOWN"
-        self.market_prices[sym] = new_price
-
-        # Update VPIN and Hawkes smoothly around institutional baseline
-        if self.vpin < 0.65:
-            self.vpin = round(0.18 + 0.04 * abs(math.sin(phase * 0.5)), 4)
-            self.hawkes_intensity = round(0.04 + 0.03 * abs(math.cos(phase * 0.4)), 4)
-
-        book = self.order_books[sym]
-        book.last_traded_price = new_price
-        top3_depth = book.top_l_depth("SELL", 3)
-
-        health = self.get_health_telemetry()
-        seq_id = self.ipc_ring.write_frame(
-            vpin=self.vpin,
-            hawkes_intensity=self.hawkes_intensity,
-            var_99=self.var_99,
-            health_score=float(health.score),
-            symbol_id=(self.tick_sequence % len(symbols)) + 1,
-            top3_lob_depth=top3_depth,
-            last_traded_price=new_price,
-        )
-
+    def get_nepse_market_status(self) -> Dict[str, Any]:
+        """Check Nepal Standard Time (UTC+05:45) for NEPSE session (Sun-Thu 11:00-15:00 NPT)."""
+        npt_now = datetime.now(timezone(timedelta(hours=5, minutes=45)))
+        is_trading_day = npt_now.weekday() in (6, 0, 1, 2, 3)
+        minutes_now = npt_now.hour * 60 + npt_now.minute
+        is_trading_hours = (11 * 60) <= minutes_now < (15 * 60)
+        is_session_open = bool(is_trading_day and is_trading_hours)
         return {
-            "type": "LIVE_TICK",
-            "sequence_id": seq_id,
+            "is_open": False,
+            "nepse_session_active": is_session_open,
+            "npt_time": npt_now.strftime("%Y-%m-%d %H:%M NPT"),
+            "label": "NEPSE MARKET CLOSED · STATIC LTP",
+            "detail": "Offline / After-Hours Mode — Prices are static Closing / User-Fed LTPs (0 fake live ticks)",
+        }
+
+    def step_live_tick(self) -> Dict[str, Any]:
+        """Static telemetry heartbeat — never fabricates or mutates stock prices."""
+        self.tick_sequence += 1
+        health = self.get_health_telemetry()
+        mkt_status = self.get_nepse_market_status()
+        return {
+            "type": "HEARTBEAT",
+            "sequence_id": self.tick_sequence,
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "symbol": sym,
-            "price": new_price,
-            "prev_price": old_price,
-            "change_pct": round(((new_price - old_price) / max(1.0, old_price)) * 100.0, 3),
-            "direction": direction,
-            "top3_lob_depth": top3_depth,
-            "lob_cap_15pct_qty": int(0.15 * top3_depth),
-            "vpin": self.vpin,
-            "hawkes_intensity": self.hawkes_intensity,
+            "market_status": mkt_status,
             "health_score": health.score,
             "health_status": health.status,
         }
@@ -727,9 +943,64 @@ async def get_system_health() -> Dict[str, Any]:
     return {
         "status": "OK",
         "system": "APEX_WEALTH_PMS",
+        "market_status": state_store.get_nepse_market_status(),
+        "data_integrity_protocol": state_store.integrity_engine.get_protocol_manifest(),
         "health_gauge": asdict(health),
         "merkle_root": state_store.merkle_engine.merkle_root,
         "ipc_shared_memory_seq": latest_ipc.sequence_id if latest_ipc else 0,
+    }
+
+
+@app.get("/api/v1/pms/protocol")
+async def get_data_integrity_protocol() -> Dict[str, Any]:
+    """Return the active Strict Zero-Synthetic-Price & Explicit-Prediction Protocol manifest and verified NEPSE quotes."""
+    sample_quotes = {
+        sym: {
+            "price": val[0],
+            "as_of_date": val[1],
+            "source_file": val[2],
+            "source_type": "REAL_NEPSE_HISTORICAL_CLOSE",
+            "is_synthetic": False,
+            "is_prediction": False,
+        }
+        for sym, val in sorted(state_store.integrity_engine.verified_nepse_closes.items())
+    }
+    return {
+        "protocol": state_store.integrity_engine.get_protocol_manifest(),
+        "active_portfolio_price_provenance": state_store.price_provenance,
+        "active_portfolio_return_provenance": state_store.return_series_provenance,
+        "explicit_model_predictions": [
+            asdict(rec) for rec in state_store.integrity_engine.explicit_predictions.values()
+        ],
+        "verified_nepse_historical_closes_count": len(sample_quotes),
+        "verified_nepse_quotes": sample_quotes,
+    }
+
+
+@app.get("/api/v1/pms/nepse_lookup/{symbol}")
+async def lookup_verified_nepse_symbol(symbol: str) -> Dict[str, Any]:
+    """Look up verified historical NEPSE closing price and any explicit model prediction for a symbol."""
+    sym = symbol.strip().upper()
+    verified = state_store.integrity_engine.verified_nepse_closes.get(sym)
+    pred = state_store.integrity_engine.explicit_predictions.get(sym)
+    hist_pts = state_store.integrity_engine.historical_close_series.get(sym, [])
+    return {
+        "symbol": sym,
+        "found_in_nepse_historical_data": verified is not None,
+        "verified_close": (
+            {
+                "price": verified[0],
+                "as_of_date": verified[1],
+                "source_file": verified[2],
+                "source_type": "REAL_NEPSE_HISTORICAL_CLOSE",
+                "historical_observations": len(hist_pts),
+                "is_synthetic": False,
+                "is_prediction": False,
+            }
+            if verified
+            else None
+        ),
+        "explicit_model_prediction": asdict(pred) if pred else None,
     }
 
 
@@ -738,15 +1009,18 @@ async def get_pms_full_state(
     simulate_toxic_vpin: bool = Query(default=False),
 ) -> Dict[str, Any]:
     """Return the complete Dual-Layer Layman + Pro Institutional PMS state payload."""
+    raw_lots = state_store._extract_candidate_tax_lots()
     if simulate_toxic_vpin:
         state_store.vpin = 0.74
         state_store.hawkes_intensity = 0.89
-    else:
+    elif len(raw_lots) > 0:
         state_store.vpin = 0.18
         state_store.hawkes_intensity = 0.04
+    else:
+        state_store.vpin = 0.0
+        state_store.hawkes_intensity = 0.0
 
     health = state_store.get_health_telemetry()
-    raw_lots = state_store._extract_candidate_tax_lots()
     alerts = state_store.get_tri_horizon_alerts() if len(raw_lots) > 0 else []
     sectors = state_store.build_sector_allocations()
 
@@ -767,6 +1041,7 @@ async def get_pms_full_state(
             "holding_days": l.holding_days,
             "tax_bracket_label": l.tax_bracket_label,
             "is_promoter_locked": l.is_promoter_locked,
+            "ltp_provenance": state_store.price_provenance.get(l.symbol),
         }
         for l in raw_lots
     ]
@@ -774,7 +1049,7 @@ async def get_pms_full_state(
     if len(raw_lots) == 0:
         drift_pct = 0.0
         cta_copy = (
-            "Your portfolio is currently empty (0 holdings). Use Batch Add or Quick Add to feed your holdings and generate your live Schur-RA-HRP rebalance plan."
+            "Your portfolio is currently empty (0 holdings). Use Batch Add or Quick Add to feed your holdings and generate your Schur-RA-HRP rebalance plan."
         )
     else:
         max_drift = max(
@@ -794,12 +1069,69 @@ async def get_pms_full_state(
             else "All held stocks are within the ±2.5% Schur-RA-HRP deadband corridor. No rebalance needed right now."
         )
 
+    # Build Explicit Model Predictions list (held symbols first, then top NEPSE forecasts), strictly labeled
+    explicit_predictions_list: List[Dict[str, Any]] = []
+    seen_pred_syms: set[str] = set()
+    for sym in state_store.ledger.symbols:
+        seen_pred_syms.add(sym)
+        if sym in state_store.integrity_engine.explicit_predictions:
+            pred_dict = asdict(state_store.integrity_engine.explicit_predictions[sym])
+        else:
+            ver_close = state_store.market_prices.get(sym, 0.0)
+            ver_date = state_store.price_provenance.get(sym, {}).get("as_of_date", "User-Specified")
+            pred_dict = asdict(
+                ExplicitPredictionRecord(
+                    symbol=sym,
+                    is_prediction=True,
+                    is_actual_market_price=False,
+                    disclosure_label="[EXPLICIT MODEL PREDICTION — NOT ACTUAL MARKET PRICE]",
+                    model_name="Schur-RA-HRP Target Weight & Empirical Risk Model",
+                    horizon="Target Allocation Weight & 1-Day VaR99 Projection (No Price Target Fabricated)",
+                    as_of_date=str(ver_date),
+                    latest_verified_close=float(ver_close),
+                    predicted_p10_price=None,
+                    predicted_p50_price=None,
+                    predicted_p90_price=None,
+                    predicted_return_pct=0.0,
+                    uncertainty_spread_pct=None,
+                    regime_label="EMPIRICAL_HRP_WEIGHT_ONLY",
+                    confidence_probability=None,
+                )
+            )
+        pred_dict["is_held_in_portfolio"] = True
+        pred_dict["predicted_target_weight_pct"] = round(
+            float(state_store.schur_result.post_hysteresis_weights.get(sym, 0.0)) * 100.0, 2
+        )
+        explicit_predictions_list.append(pred_dict)
+
+    for sym, pred_rec in state_store.integrity_engine.explicit_predictions.items():
+        if sym in seen_pred_syms:
+            continue
+        p_dict = asdict(pred_rec)
+        p_dict["is_held_in_portfolio"] = False
+        p_dict["predicted_target_weight_pct"] = None
+        explicit_predictions_list.append(p_dict)
+
+    vault_payload = asdict(state_store.ledger)
+    for s_sum in vault_payload.get("sub_account_summaries", []):
+        s_sum["broker_name"] = state_store.broker_engine.get_broker_name(s_sum.get("broker_code", ""))
+        sub_obj = next((s for s in state_store.vault.sub_accounts if str(s.account_id) == s_sum.get("account_id")), None)
+        s_sum["dp_name"] = sub_obj.demat_boids[0].dp_name if (sub_obj and sub_obj.demat_boids) else ""
+
     return {
         "as_of": datetime.now(timezone.utc).isoformat(),
-        "vault": asdict(state_store.ledger),
+        "accounts_count": len(state_store.vault.sub_accounts),
+        "market_status": state_store.get_nepse_market_status(),
+        "data_integrity_protocol": state_store.integrity_engine.get_protocol_manifest(),
+        "price_provenance": state_store.price_provenance,
+        "return_series_provenance": state_store.return_series_provenance,
+        "explicit_predictions": explicit_predictions_list,
+        "vault": vault_payload,
         "tax_lots": tax_lots_data,
         "health_gauge": asdict(health),
         "rebalance_card": {
+            "is_prediction": True,
+            "disclosure_label": "[EXPLICIT MODEL PREDICTION — TARGET WEIGHTS & PROJECTED HEALTH DELTA]",
             "portfolio_drift_pct": drift_pct,
             "stocks_to_rebalance_count": len(state_store.rebalance_plans),
             "accounts_count": len(state_store.ledger.sub_account_summaries),
@@ -811,9 +1143,20 @@ async def get_pms_full_state(
             "rebalance_executed_count": state_store.rebalance_executed_count,
         },
         "allocation_rings": {
+            "is_prediction": True,
+            "disclosure_label": "[EXPLICIT MODEL PREDICTION — SCHUR-RA-HRP TARGET ALLOCATION WEIGHTS]",
             "sectors": sectors,
             "schur_hrp": asdict(state_store.schur_result),
-            "rolling_turnover_metrics": state_store.rolling_backtest,
+            "rolling_turnover_metrics": (
+                state_store.rolling_backtest
+                if len(raw_lots) > 0
+                else {
+                    "annual_turnover_unbuffered": 0.0,
+                    "annual_turnover_hysteresis": 0.0,
+                    "fee_drag_unbuffered": 0.0,
+                    "fee_drag_hysteresis": 0.0,
+                }
+            ),
             "deadband_corridor_pct": 2.5,
             "entry_rank_threshold": 5,
             "exit_rank_threshold": 15,
@@ -952,26 +1295,36 @@ async def verify_merkle_receipt(req: VerifyReceiptRequest) -> Dict[str, Any]:
         "proof_path": [asdict(s) for s in receipt.proof_path],
         "canonical_payload_json": state_store.merkle_engine.canonicalize_json(payload_to_check),
         "is_verified": verified,
-        "tamper_simulated": req.tamper_payload,
+        "tamper_simulated": req.tamper_simulated if hasattr(req, "tamper_simulated") else req.tamper_payload,
     }
 
 
 def _resolve_sub_account(identifier: Optional[str]):
-    """Match a sub-account by UUID, exact label, or case-insensitive prefix (Personal/Family/Corporate/Trust/Feeder)."""
+    """Match a sub-account by UUID, exact label, broker no (e.g. '58' / 'TMS #58'), or label/type substring."""
+    subs = state_store.vault.sub_accounts
+    if not subs:
+        raise HTTPException(
+            status_code=400,
+            detail="You have 0 accounts. Create an account first (Accounts → + Create Account) and apply your broker number.",
+        )
     if not identifier:
-        return state_store.vault.sub_accounts[0]
+        return subs[0]
     ident_clean = identifier.strip().lower()
-    for sub in state_store.vault.sub_accounts:
+    for sub in subs:
+        if str(sub.account_id).lower() == ident_clean or sub.account_label.lower() == ident_clean:
+            return sub
+    digits = "".join(ch for ch in ident_clean if ch.isdigit())
+    if digits and len(digits) <= 3:
+        for sub in subs:
+            if sub.tms_accounts and str(sub.tms_accounts[0].broker_code) == str(int(digits)):
+                return sub
+    for sub in subs:
         if (
-            str(sub.account_id).lower() == ident_clean
-            or sub.account_label.lower() == ident_clean
-            or ident_clean in sub.account_label.lower()
+            ident_clean in sub.account_label.lower()
             or str(sub.account_type).lower().endswith(ident_clean)
         ):
             return sub
-    if "trust" in ident_clean or "feeder" in ident_clean:
-        return state_store.vault.sub_accounts[-1]
-    return state_store.vault.sub_accounts[0]
+    return subs[0]
 
 
 def _insert_lot_into_store(
@@ -1021,10 +1374,8 @@ def _insert_lot_into_store(
     target_boid.tax_lots.append(new_lot)
     target_boid.total_demat_shares += qty
 
-    mkt_price = float(ltp) if (ltp is not None and float(ltp) > 0) else state_store.market_prices.get(sym, price)
-    if ltp is not None and float(ltp) > 0:
-        state_store.market_prices[sym] = float(ltp)
-    state_store._ensure_symbol_registered(sym, mkt_price)
+    user_ltp = float(ltp) if (ltp is not None and float(ltp) > 0) else None
+    state_store._ensure_symbol_registered(sym, purchase_price=price, user_ltp=user_ltp)
     return str(new_lot.lot_id)
 
 
@@ -1046,7 +1397,13 @@ async def add_position(req: AddPositionRequest) -> Dict[str, Any]:
 
     state_store._save_persisted_user_store()
     state_store._refresh_full_state()
-    return {"status": "SUCCESS", "lot_id": lot_id, "message": f"Added {req.quantity} shares of {req.symbol.upper()}"}
+    sym = req.symbol.strip().upper()
+    return {
+        "status": "SUCCESS",
+        "lot_id": lot_id,
+        "price_provenance": state_store.price_provenance.get(sym),
+        "message": f"Added {req.quantity} shares of {sym}",
+    }
 
 
 @app.post("/api/v1/pms/portfolio/batch_add")
@@ -1079,6 +1436,7 @@ async def batch_add_positions(req: BatchAddRequest) -> Dict[str, Any]:
         "status": "SUCCESS",
         "added_count": len(added_ids),
         "lot_ids": added_ids,
+        "price_provenance": state_store.price_provenance,
         "message": f"Batch-added {len(added_ids)} holdings into your portfolio.",
     }
 
@@ -1154,14 +1512,20 @@ async def update_tax_lot(lot_id: str, req: UpdateLotRequest) -> Dict[str, Any]:
                             if lot.is_promoter_locked
                             else None
                         )
-                    if req.ltp is not None and float(req.ltp) > 0:
-                        state_store.market_prices[lot.symbol] = float(req.ltp)
-                        if lot.symbol in state_store.order_books:
-                            state_store.order_books[lot.symbol].last_traded_price = float(req.ltp)
+                    if req.ltp is not None:
+                        if float(req.ltp) > 0:
+                            state_store.user_custom_ltp_map[lot.symbol] = round(float(req.ltp), 2)
+                        else:
+                            # Reset to Verified NEPSE Close
+                            state_store.user_custom_ltp_map.pop(lot.symbol, None)
                     boid.total_demat_shares = sum(int(l.quantity) for l in boid.tax_lots)
                     state_store._save_persisted_user_store()
                     state_store._refresh_full_state()
-                    return {"status": "UPDATED", "lot_id": lot_id}
+                    return {
+                        "status": "UPDATED",
+                        "lot_id": lot_id,
+                        "price_provenance": state_store.price_provenance.get(lot.symbol),
+                    }
     raise HTTPException(status_code=404, detail="Tax lot not found.")
 
 
@@ -1213,7 +1577,228 @@ async def import_portfolio(req: ImportPortfolioRequest) -> Dict[str, Any]:
 
     state_store._save_persisted_user_store()
     state_store._refresh_full_state()
-    return {"status": "SUCCESS", "imported_count": imported_count}
+    return {
+        "status": "SUCCESS",
+        "imported_count": imported_count,
+        "price_provenance": state_store.price_provenance,
+    }
+
+
+def _held_symbols() -> List[str]:
+    syms: List[str] = []
+    for sub in state_store.vault.sub_accounts:
+        for boid in sub.demat_boids:
+            for lot in boid.tax_lots:
+                if lot.symbol not in syms:
+                    syms.append(lot.symbol)
+    return syms
+
+
+def _account_holdings_summary(sub: Any) -> Dict[str, Any]:
+    lots = [lot for boid in sub.demat_boids for lot in boid.tax_lots]
+    mv = sum(int(l.quantity) * float(state_store.market_prices.get(l.symbol, l.purchase_price)) for l in lots)
+    cost = sum(int(l.quantity) * float(l.purchase_price) for l in lots)
+    return {
+        "lots_count": len(lots),
+        "symbols": sorted({l.symbol for l in lots}),
+        "market_value_npr": round(mv, 2),
+        "cost_basis_npr": round(cost, 2),
+        "unrealized_pnl_npr": round(mv - cost, 2),
+    }
+
+
+@app.get("/api/v1/pms/brokers")
+async def list_nepse_brokers() -> Dict[str, Any]:
+    """Official NEPSE licensed broker directory with real floorsheet turnover stats."""
+    eng = state_store.broker_engine
+    return {
+        "business_date": eng.business_date,
+        "data_source": "VERIFIED_NEPSE_FLOORSHEET",
+        "brokers": eng.get_broker_directory(),
+    }
+
+
+@app.get("/api/v1/pms/accounts")
+async def list_accounts() -> Dict[str, Any]:
+    out = []
+    for sub in state_store.vault.sub_accounts:
+        rec = state_store._serialize_account(sub)
+        rec.update(_account_holdings_summary(sub))
+        out.append(rec)
+    return {"accounts": out, "count": len(out)}
+
+
+@app.post("/api/v1/pms/accounts")
+async def create_account(req: CreateAccountRequest) -> Dict[str, Any]:
+    """Create a new account and apply its broker number. Broker activity is auto-linked."""
+    b_no = normalize_broker_no(req.broker_no)
+    if not b_no.isdigit() or not (1 <= int(b_no) <= 200):
+        raise HTTPException(status_code=400, detail="Enter a valid NEPSE broker number (e.g. 58).")
+    boid_digits = "".join(ch for ch in str(req.boid_id or "") if ch.isdigit())
+    if boid_digits and len(boid_digits) != 16:
+        raise HTTPException(status_code=400, detail="BOID must be exactly 16 digits (or leave it blank for now).")
+    for sub in state_store.vault.sub_accounts:
+        if req.account_label.strip() and sub.account_label.strip().lower() == req.account_label.strip().lower():
+            raise HTTPException(status_code=400, detail="An account with this name already exists.")
+        if boid_digits and sub.demat_boids and sub.demat_boids[0].boid_id == boid_digits:
+            raise HTTPException(status_code=400, detail="This BOID is already linked to another account.")
+
+    sub = state_store.create_sub_account(
+        account_label=req.account_label,
+        account_type=req.account_type,
+        broker_no=b_no,
+        boid_id=boid_digits or None,
+        tms_client_code=req.tms_client_code,
+        dp_name=req.dp_name,
+        cash_balance=req.cash_balance,
+    )
+    state_store._save_persisted_user_store()
+    state_store._refresh_full_state()
+    return {
+        "status": "CREATED",
+        "account": state_store._serialize_account(sub),
+        "broker_profile": state_store.broker_engine.get_broker_profile(b_no),
+        "message": f"Account created and linked to Broker #{b_no} ({state_store.broker_engine.get_broker_name(b_no)}).",
+    }
+
+
+@app.put("/api/v1/pms/accounts/{account_id}")
+async def update_account(account_id: str, req: UpdateAccountRequest) -> Dict[str, Any]:
+    target = next((s for s in state_store.vault.sub_accounts if str(s.account_id) == account_id), None)
+    if target is None:
+        raise HTTPException(status_code=404, detail="Account not found.")
+    from database.models import AccountType
+
+    if req.account_label is not None and req.account_label.strip():
+        target.account_label = req.account_label.strip()
+    if req.account_type:
+        t = req.account_type.strip().upper()
+        if t in AccountType.__members__:
+            target.account_type = AccountType(t)
+    if req.broker_no and target.tms_accounts:
+        b_no = normalize_broker_no(req.broker_no)
+        if not b_no.isdigit():
+            raise HTTPException(status_code=400, detail="Enter a valid NEPSE broker number.")
+        target.tms_accounts[0].broker_code = b_no
+    if req.tms_client_code is not None and target.tms_accounts and req.tms_client_code.strip():
+        target.tms_accounts[0].tms_client_code = req.tms_client_code.strip()
+    if req.boid_id and target.demat_boids:
+        digits = "".join(ch for ch in req.boid_id if ch.isdigit())
+        if len(digits) != 16:
+            raise HTTPException(status_code=400, detail="BOID must be exactly 16 digits.")
+        boid = target.demat_boids[0]
+        boid.boid_id = digits
+        for lot in boid.tax_lots:
+            lot.boid_id = digits
+    if req.dp_name is not None and target.demat_boids and req.dp_name.strip():
+        target.demat_boids[0].dp_name = req.dp_name.strip()
+
+    state_store._save_persisted_user_store()
+    state_store._refresh_full_state()
+    return {"status": "UPDATED", "account": state_store._serialize_account(target)}
+
+
+@app.delete("/api/v1/pms/accounts/{account_id}")
+async def delete_account(account_id: str) -> Dict[str, Any]:
+    subs = state_store.vault.sub_accounts
+    idx = next((i for i, s in enumerate(subs) if str(s.account_id) == account_id), None)
+    if idx is None:
+        raise HTTPException(status_code=404, detail="Account not found.")
+    removed = subs.pop(idx)
+    state_store._save_persisted_user_store()
+    state_store._refresh_full_state()
+    return {"status": "DELETED", "account_label": removed.account_label}
+
+
+@app.get("/api/v1/pms/broker_activity")
+async def get_broker_activity(focus_broker: Optional[str] = Query(default=None)) -> Dict[str, Any]:
+    """
+    Auto-linked broker intelligence from the REAL NEPSE floorsheet:
+    your applied brokers' buying/selling, other brokers' market-wide activity,
+    and broker flows for the stocks you hold. Zero synthetic trades.
+    """
+    connected = [
+        s.tms_accounts[0].broker_code
+        for s in state_store.vault.sub_accounts
+        if s.tms_accounts
+    ]
+    return state_store.broker_engine.build_radar_payload(
+        connected_broker_nos=connected,
+        held_symbols=_held_symbols(),
+        focus_broker_no=focus_broker,
+    )
+
+
+@app.post("/api/v1/pms/portfolio/upload_local_file")
+async def upload_local_file(req: LocalFileUploadRequest) -> Dict[str, Any]:
+    """Parse a portfolio file from the user's device (.csv/.tsv/.txt/.json/.xlsx/.xls); optionally commit."""
+    try:
+        raw_bytes = base64.b64decode(req.content_base64.split(",")[-1])
+    except Exception:
+        raise HTTPException(status_code=400, detail="Could not read the uploaded file.")
+    if len(raw_bytes) > 15 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large (max 15 MB).")
+    try:
+        items, fmt = parse_uploaded_portfolio_file(
+            req.filename, raw_bytes, state_store.integrity_engine, req.default_sub_account_id
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Could not parse file: {exc}")
+    if not items:
+        raise HTTPException(status_code=400, detail="No holdings found in file. Need at least Symbol and Quantity columns.")
+
+    if not req.auto_commit:
+        return {"status": "PREVIEW", "detected_format": fmt, "items": items, "count": len(items)}
+
+    _resolve_sub_account(req.default_sub_account_id)  # raises clear error when there are 0 accounts
+    added: List[str] = []
+    for it in items:
+        lid = _insert_lot_into_store(
+            sub_account_id=it.get("sub_account_id") or req.default_sub_account_id,
+            symbol=it["symbol"],
+            quantity=it["quantity"],
+            purchase_price=it["purchase_price"],
+            ltp=it.get("ltp"),
+            holding_days=it.get("holding_days"),
+            is_promoter_locked=bool(it.get("is_promoter_locked", False)),
+        )
+        if lid:
+            added.append(lid)
+    state_store._save_persisted_user_store()
+    state_store._refresh_full_state()
+    return {"status": "IMPORTED", "detected_format": fmt, "imported_count": len(added), "items": items}
+
+
+@app.get("/api/v1/pms/portfolio/export_csv")
+async def export_portfolio_csv():
+    from fastapi.responses import Response
+
+    lines = ["Sub Account,Broker No,BOID,Symbol,Quantity,Purchase Price,LTP,LTP Source,Holding Days"]
+    for sub in state_store.vault.sub_accounts:
+        b_no = sub.tms_accounts[0].broker_code if sub.tms_accounts else ""
+        for boid in sub.demat_boids:
+            for lot in boid.tax_lots:
+                prov = state_store.price_provenance.get(lot.symbol, {})
+                lines.append(
+                    ",".join(
+                        [
+                            '"' + sub.account_label.replace('"', "'") + '"',
+                            str(b_no),
+                            boid.boid_id,
+                            lot.symbol,
+                            str(int(lot.quantity)),
+                            f"{float(lot.purchase_price):.2f}",
+                            f"{float(state_store.market_prices.get(lot.symbol, 0.0)):.2f}",
+                            str(prov.get("source_type", "")),
+                            str(lot.compute_holding_days(state_store.reference_time)),
+                        ]
+                    )
+                )
+    return Response(
+        content="\n".join(lines),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=apex_wealth_portfolio.csv"},
+    )
 
 
 @app.post("/api/v1/pms/portfolio/update_cash")
@@ -1228,18 +1813,40 @@ async def update_sub_account_cash(req: UpdateCashRequest) -> Dict[str, Any]:
     raise HTTPException(status_code=404, detail="SubAccount not found.")
 
 
+@app.put("/api/v1/pms/portfolio/ltp")
+async def update_symbol_ltp(req: UpdateLtpRequest) -> Dict[str, Any]:
+    """
+    Manually set a user-entered Closing LTP (`ltp > 0`) or pass `ltp = 0` to reset back to
+    the Verified NEPSE Historical Close (`REAL_NEPSE_HISTORICAL_CLOSE`).
+    """
+    sym = req.symbol.strip().upper()
+    if not sym:
+        raise HTTPException(status_code=400, detail="Valid symbol required.")
+    if float(req.ltp) > 0:
+        state_store.user_custom_ltp_map[sym] = round(float(req.ltp), 2)
+    else:
+        state_store.user_custom_ltp_map.pop(sym, None)
+    state_store._save_persisted_user_store()
+    state_store._refresh_full_state()
+    return {
+        "status": "SUCCESS",
+        "symbol": sym,
+        "ltp": state_store.market_prices.get(sym),
+        "price_provenance": state_store.price_provenance.get(sym),
+    }
+
+
 @app.websocket("/ws/pms/telemetry")
 async def websocket_pms_telemetry(websocket: WebSocket) -> None:
     """
-    Sub-second real-time WebSocket streaming both JSON telemetry ticks and
-    64-byte binary shared-memory frames for Web Worker / SharedArrayBuffer ingestion.
+    Quiet telemetry heartbeat WebSocket (never fabricates or mutates stock prices).
     """
     await websocket.accept()
     try:
         while True:
             tick_msg = state_store.step_live_tick()
             await websocket.send_json(tick_msg)
-            await asyncio.sleep(0.85)
+            await asyncio.sleep(5.0)
     except WebSocketDisconnect:
         pass
     except Exception:

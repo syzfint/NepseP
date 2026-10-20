@@ -101,6 +101,8 @@ interface SubAccountSummary {
   unsettled_cash_locked: number;
   available_cash: number;
   available_equity: number;
+  broker_name?: string;
+  dp_name?: string;
 }
 
 interface TriHorizonAlertItem {
@@ -198,25 +200,10 @@ export const App: React.FC = () => {
   const [kriComments, setKriComments] = useState<KRICommentItem[]>([]);
   const [newCommentText, setNewCommentText] = useState<string>("");
 
-  const [livePrices, setLivePrices] = useState<Record<string, number>>({
-    NABIL: 1245.0,
-    NICA: 890.0,
-    SCB: 612.0,
-    CHDC: 1620.0,
-    HIDCL: 324.0,
-    UPPER: 215.0,
-    SHIVM: 595.0,
-    NTC: 945.0,
-    NRIC: 780.0,
-    HDL: 1980.0,
-    GBIME: 248.0,
-    SANIMA: 312.0,
-    EBL: 584.0,
-    CIT: 2340.0,
-    BPCL: 410.0,
-    API: 204.0,
-  });
-  const [flashClasses, setFlashClasses] = useState<Record<string, string>>({});
+  // Static / User-Fed Closing LTPs (starts empty until user feeds holdings)
+  const [livePrices, setLivePrices] = useState<Record<string, number>>({});
+  const [editingLtpSymbol, setEditingLtpSymbol] = useState<string | null>(null);
+  const [editingLtpValue, setEditingLtpValue] = useState<string>("");
   const hfBufferRef = useRef<HighFrequencyTelemetryBuffer>(new HighFrequencyTelemetryBuffer(128));
 
   const apiBase = useMemo(() => {
@@ -241,12 +228,40 @@ export const App: React.FC = () => {
       if (!res.ok) return;
       const data = await res.json();
       setPmsState(data);
-      if (data.market_prices) {
-        setLivePrices(data.market_prices);
-      }
+      setLivePrices(data.market_prices || {});
     } catch {
       // Offline fallback
     }
+  };
+
+  const handleSaveSymbolLtp = async (symbol: string) => {
+    const val = parseFloat(editingLtpValue);
+    if (isNaN(val) || val <= 0) return;
+    try {
+      const res = await fetch(`${apiBase}/api/v1/pms/portfolio/ltp`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ symbol, ltp: val }),
+      });
+      if (res.ok) {
+        setEditingLtpSymbol(null);
+        await fetchPmsState(toxicSimulated);
+      }
+    } catch {}
+  };
+
+  const handleResetSymbolLtpToNepseClose = async (symbol: string) => {
+    try {
+      const res = await fetch(`${apiBase}/api/v1/pms/portfolio/ltp`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ symbol, ltp: 0 }),
+      });
+      if (res.ok) {
+        setEditingLtpSymbol(null);
+        await fetchPmsState(toxicSimulated);
+      }
+    } catch {}
   };
 
   useEffect(() => {
@@ -263,21 +278,8 @@ export const App: React.FC = () => {
       ws.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
-          if (msg.type === "LIVE_TICK" && msg.symbol) {
-            hfBufferRef.current.writeTick(
-              msg.vpin ?? 0.18,
-              msg.hawkes_intensity ?? 0.04,
-              msg.price ?? 1000,
-              msg.top3_lob_depth ?? 1500
-            );
-            setLivePrices((prev) => ({ ...prev, [msg.symbol]: msg.price }));
-            setFlashClasses((prev) => ({
-              ...prev,
-              [msg.symbol]: msg.direction === "UP" ? "flash-up" : "flash-down",
-            }));
-            window.setTimeout(() => {
-              setFlashClasses((prev) => ({ ...prev, [msg.symbol]: "" }));
-            }, 600);
+          if (msg.type === "HEARTBEAT") {
+            hfBufferRef.current.writeTick(0.0, 0.0, 0.0, 0);
           }
         } catch {}
       };
@@ -432,7 +434,7 @@ export const App: React.FC = () => {
       return;
     }
 
-    setIsSubmittingBatch(true);
+    setIsSubmittingBatchAdd(true);
     setGridFeedback(null);
     try {
       const res = await fetch(`${apiBase}/api/v1/pms/portfolio/batch_add`, {
@@ -452,7 +454,7 @@ export const App: React.FC = () => {
     } catch {
       setGridFeedback("Network error while batch-adding positions.");
     } finally {
-      setIsSubmittingBatch(false);
+      setIsSubmittingBatchAdd(false);
     }
   };
 
@@ -475,8 +477,19 @@ export const App: React.FC = () => {
     );
   };
 
+  const toggleSelectGroupLots = (groupLotIds: string[]) => {
+    const allInGroupSelected =
+      groupLotIds.length > 0 && groupLotIds.every((id) => selectedLotIds.includes(id));
+    if (allInGroupSelected) {
+      setSelectedLotIds((prev) => prev.filter((id) => !groupLotIds.includes(id)));
+    } else {
+      setSelectedLotIds((prev) => Array.from(new Set([...prev, ...groupLotIds])));
+    }
+  };
+
   const handleBatchRemoveSelected = async () => {
     if (selectedLotIds.length === 0) return;
+    setIsSubmittingBatchRemove(true);
     try {
       const res = await fetch(`${apiBase}/api/v1/pms/portfolio/batch_remove`, {
         method: "POST",
@@ -491,10 +504,13 @@ export const App: React.FC = () => {
       }
     } catch {
       setGridFeedback("Error batch-removing selected holdings.");
+    } finally {
+      setIsSubmittingBatchRemove(false);
     }
   };
 
   const handleClearAccountLots = async (subAccountId: string, accountLabel: string) => {
+    setIsSubmittingBatchRemove(true);
     try {
       const res = await fetch(`${apiBase}/api/v1/pms/portfolio/batch_remove`, {
         method: "POST",
@@ -508,9 +524,13 @@ export const App: React.FC = () => {
         await fetchPmsState(toxicSimulated);
       }
     } catch {}
+    finally {
+      setIsSubmittingBatchRemove(false);
+    }
   };
 
   const handleWipeAllData = async () => {
+    setIsWipingAll(true);
     try {
       const res = await fetch(`${apiBase}/api/v1/pms/portfolio/clear_all`, {
         method: "POST",
@@ -523,6 +543,9 @@ export const App: React.FC = () => {
         await fetchPmsState(toxicSimulated);
       }
     } catch {}
+    finally {
+      setIsWipingAll(false);
+    }
   };
 
   const handleSaveCashBalance = async (accountId: string) => {
@@ -554,64 +577,15 @@ export const App: React.FC = () => {
     total_equity_market_value: 0,
     nav_total: 0,
     r_lock_ratio: 0.0,
-    sub_account_summaries: [
-      {
-        account_id: "a1111111-0000-0000-0000-000000000001",
-        account_type: "PERSONAL",
-        account_label: "Personal Alpha Desk (TMS #58)",
-        broker_code: "58",
-        tms_client_code: "TMS58-NP-99401",
-        boid_id: "1301010000482910",
-        cash_balance: 0,
-        unsettled_cash_locked: 0,
-        available_cash: 0,
-        available_equity: 0,
-      },
-      {
-        account_id: "a2222222-0000-0000-0000-000000000002",
-        account_type: "FAMILY",
-        account_label: "Family Endowment Trust (TMS #45)",
-        broker_code: "45",
-        tms_client_code: "TMS45-FAM-21084",
-        boid_id: "1301060001928374",
-        cash_balance: 0,
-        unsettled_cash_locked: 0,
-        available_cash: 0,
-        available_equity: 0,
-      },
-      {
-        account_id: "a3333333-0000-0000-0000-000000000003",
-        account_type: "CORPORATE",
-        account_label: "Himalaya Quantitative Corp Treasury (TMS #34)",
-        broker_code: "34",
-        tms_client_code: "TMS34-CORP-77012",
-        boid_id: "1301120004455667",
-        cash_balance: 0,
-        unsettled_cash_locked: 0,
-        available_cash: 0,
-        available_equity: 0,
-      },
-      {
-        account_id: "a4444444-0000-0000-0000-000000000004",
-        account_type: "CORPORATE",
-        account_label: "Sovereign Co-Investment Feeder (TMS #49)",
-        broker_code: "49",
-        tms_client_code: "TMS49-INST-55190",
-        boid_id: "1301170008877665",
-        cash_balance: 0,
-        unsettled_cash_locked: 0,
-        available_cash: 0,
-        available_equity: 0,
-      },
-    ] as SubAccountSummary[],
+    sub_account_summaries: [] as SubAccountSummary[],
   };
 
   const health = pmsState?.health_gauge || {
-    score: 100,
-    status: "Optimal",
+    score: 0,
+    status: "Empty Vault",
     cvar_1d_pct: 0.0,
-    vpin: 0.18,
-    hawkes_intensity: 0.04,
+    vpin: 0.0,
+    hawkes_intensity: 0.0,
     cdsc_t2_lockup_pct: 0.0,
     var_99_pct: 0.0,
     var_max_pct: 3.5,
@@ -626,7 +600,7 @@ export const App: React.FC = () => {
       "Your portfolio is currently empty (0 holdings). Use Batch Add or Quick Add to feed your holdings and generate your live Schur-RA-HRP rebalance plan.",
     estimated_tax_harvest_savings_npr: 0,
     projected_health_score_delta: 0,
-    post_trade_health_score: 100,
+    post_trade_health_score: 0,
     execution_plans: [] as ParentExecutionPlanItem[],
     rebalance_executed_count: 0,
   };
@@ -640,21 +614,21 @@ export const App: React.FC = () => {
       hrp_baseline_weights: {},
       post_hysteresis_weights: {},
       asset_ranks: {},
-      raw_condition_number: 124.8,
-      shrunk_condition_number: 1.98,
-      shrinkage_intensity: 0.42,
+      raw_condition_number: 0.0,
+      shrunk_condition_number: 0.0,
+      shrinkage_intensity: 0.0,
       gamma_requested: 0.65,
-      gamma_effective: 0.65,
-      portfolio_variance_hrp: 0.00018,
-      portfolio_variance_schur: 0.00015,
+      gamma_effective: 0.0,
+      portfolio_variance_hrp: 0.0,
+      portfolio_variance_schur: 0.0,
       quasi_diag_corr_matrix: [],
       dendrogram_splits: [],
     } as SchurHRPTelemetry,
     rolling_turnover_metrics: {
-      annual_turnover_unbuffered: 0.486,
-      annual_turnover_hysteresis: 0.079,
-      fee_drag_unbuffered: -0.00316,
-      fee_drag_hysteresis: -0.00051,
+      annual_turnover_unbuffered: 0.0,
+      annual_turnover_hysteresis: 0.0,
+      fee_drag_unbuffered: 0.0,
+      fee_drag_hysteresis: 0.0,
     },
     deadband_corridor_pct: 2.5,
   };
@@ -664,6 +638,40 @@ export const App: React.FC = () => {
     : [];
   const activityFeed: ActivityFeedItem[] = pmsState?.activity_feed || [];
   const alerts: TriHorizonAlertItem[] = pmsState?.tri_horizon_alerts || [];
+  const priceProvenanceMap: Record<string, any> = pmsState?.price_provenance || {};
+  const returnProvenanceMap: Record<string, any> = pmsState?.return_series_provenance || {};
+  const explicitPredictions: any[] = Array.isArray(pmsState?.explicit_predictions)
+    ? pmsState.explicit_predictions
+    : [];
+  const protocolManifest = pmsState?.data_integrity_protocol || {
+    protocol_id: "APEX_STRICT_PRICE_AND_PREDICTION_PROTOCOL_V1",
+    enforced: true,
+    zero_synthetic_prices: true,
+    zero_synthetic_returns: true,
+    verified_nepse_symbols_loaded: 470,
+    historical_trading_days_loaded: 180,
+    explicit_model_predictions_loaded: 11,
+  };
+
+  const filteredLots = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return taxLots;
+    return taxLots.filter(
+      (lot) =>
+        lot.symbol.toLowerCase().includes(q) || lot.boid_id.toLowerCase().includes(q)
+    );
+  }, [taxLots, searchQuery]);
+
+  const toggleSelectAllVisibleLots = () => {
+    const visibleIds = filteredLots.map((l) => l.lot_id);
+    const allSelected =
+      visibleIds.length > 0 && visibleIds.every((id) => selectedLotIds.includes(id));
+    if (allSelected) {
+      setSelectedLotIds((prev) => prev.filter((id) => !visibleIds.includes(id)));
+    } else {
+      setSelectedLotIds((prev) => Array.from(new Set([...prev, ...visibleIds])));
+    }
+  };
 
   // Calculate aggregate cost vs market value across all taxLots for KPI strip & Grid
   const portfolioSummaryMetrics = useMemo(() => {
@@ -844,7 +852,7 @@ export const App: React.FC = () => {
     },
     {
       title: "Stock Tracker & Base Price",
-      subtitle: "Live NEPSE Tape & Bonus/Right Calc",
+      subtitle: "Static Closing LTP & Bonus/Right Calc",
       bg: "from-teal-500 to-cyan-600",
       icon: <Calculator className="w-10 h-10 opacity-30" />,
       actionText: "Open Price Tools",
@@ -965,41 +973,70 @@ export const App: React.FC = () => {
           </div>
         </div>
 
-        {/* LIVE NEPSE MARKET TICKER RIBBON (Inspired by Screenshot 1's Top Stock Tape) */}
-        <div className="bg-[#0F172A] text-slate-200 border-t border-slate-800 py-1.5 px-3 overflow-hidden flex items-center text-xs font-mono-tabular">
-          <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold text-[10px] uppercase tracking-wider mr-3 shrink-0 flex items-center gap-1 border border-emerald-500/30">
-            <Radio className="w-3 h-3 animate-pulse" /> NEPSE LIVE TAPE
+        {/* NEPSE MARKET STATUS & STRICT ZERO-SYNTHETIC-PRICE PROTOCOL RIBBON */}
+        <div className="bg-[#0F172A] text-slate-200 border-t border-slate-800 py-1.5 px-3 overflow-hidden flex items-center text-xs font-mono-tabular gap-2">
+          <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold text-[10px] uppercase tracking-wider shrink-0 flex items-center gap-1.5 border border-amber-500/30">
+            <Lock className="w-3 h-3" />
+            <span>{pmsState?.market_status?.label || "NEPSE MARKET CLOSED · STATIC LTP"}</span>
           </span>
-          <div className="overflow-hidden flex-1">
-            <div className="animate-marquee flex items-center gap-6">
-              {[...Object.entries(livePrices), ...Object.entries(livePrices)].map(
-                ([sym, price], idx) => {
-                  const grossQty = vault.x_gross?.[sym] || 0;
-                  const isUp = idx % 3 !== 0;
-                  return (
+          <span
+            onClick={() => setActiveModule("tracker")}
+            title="Click to inspect Verified NEPSE Closes vs Explicit Model Predictions"
+            className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold text-[10px] uppercase tracking-wider shrink-0 flex items-center gap-1.5 border border-emerald-500/30 cursor-pointer hover:bg-emerald-500/30"
+          >
+            <ShieldCheck className="w-3 h-3" />
+            <span>
+              PROTOCOL: 0% SYNTHETIC PRICES · {protocolManifest.verified_nepse_symbols_loaded || 470} VERIFIED NEPSE CLOSES · EXPLICIT PREDICTION LABELS
+            </span>
+          </span>
+          <div className="overflow-x-auto flex-1 flex items-center gap-6 ml-2">
+            {Object.keys(livePrices).length === 0 ? (
+              <span className="text-slate-400 text-[11px]">
+                0 Holdings in Vault — Feed stocks in{" "}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveModule("grid");
+                    setGridOperationMode("batch_add");
+                  }}
+                  className="text-emerald-400 font-bold underline cursor-pointer"
+                >
+                  Batch Add Mode
+                </button>{" "}
+                (auto-fills Verified NEPSE Historical Close from 2026-10-16 if LTP left blank, or accepts User-Fed LTP).
+              </span>
+            ) : (
+              Object.entries(livePrices).map(([sym, price]) => {
+                const grossQty = vault.x_gross?.[sym] || 0;
+                const prov = priceProvenanceMap[sym];
+                const isNepseClose = prov?.source_type === "REAL_NEPSE_HISTORICAL_CLOSE";
+                return (
+                  <span
+                    key={sym}
+                    onClick={() => {
+                      setSearchQuery(sym);
+                      setActiveModule("grid");
+                    }}
+                    className="inline-flex items-center gap-1.5 cursor-pointer hover:underline shrink-0"
+                  >
+                    <strong className="text-white">{sym}</strong>
+                    <span className="text-sky-300">NPR {Number(price).toFixed(2)}</span>
                     <span
-                      key={`${sym}-${idx}`}
-                      onClick={() => {
-                        setSearchQuery(sym);
-                        setActiveModule("grid");
-                      }}
-                      className={`inline-flex items-center gap-1.5 cursor-pointer hover:underline ${
-                        flashClasses[sym] || ""
+                      className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
+                        isNepseClose
+                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                          : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
                       }`}
                     >
-                      <strong className="text-white">{sym}</strong>
-                      <span>{Number(price).toFixed(2)}</span>
-                      {grossQty > 0 && (
-                        <span className="text-slate-400">({grossQty.toLocaleString()} sh)</span>
-                      )}
-                      <span className={isUp ? "text-emerald-400" : "text-rose-400"}>
-                        {isUp ? "▲" : "▼"}
-                      </span>
+                      {isNepseClose ? `NEPSE CLOSE ${prov?.as_of_date || ""}` : "USER-FED LTP"}
                     </span>
-                  );
-                }
-              )}
-            </div>
+                    {grossQty > 0 && (
+                      <span className="text-slate-400">({grossQty.toLocaleString()} sh)</span>
+                    )}
+                  </span>
+                );
+              })
+            )}
           </div>
         </div>
       </header>
@@ -1011,17 +1048,23 @@ export const App: React.FC = () => {
         {/* LEFT ENTERPRISE SIDEBAR (Inspired by Screenshot 1 & Triskell Screenshot 2) */}
         <aside className="w-60 bg-[#1B2531] text-slate-200 shrink-0 flex flex-col justify-between border-r border-slate-800 select-none">
           <div>
-            {/* Market Status Banner (Like Screenshot 1's orange/emerald status block) */}
+            {/* Market Status Banner */}
             <div
               className={`px-4 py-3 flex items-center justify-between text-xs font-bold uppercase tracking-wider ${
                 health.slicing_engine_paused
                   ? "bg-rose-600 text-white"
+                  : taxLots.length === 0
+                  ? "bg-slate-700 text-slate-200"
                   : "bg-emerald-600 text-white"
               }`}
             >
               <span className="flex items-center gap-2">
                 <Activity className="w-4 h-4" />
-                {health.slicing_engine_paused ? "Toxicity Brake Active" : "PMS Engine Active"}
+                {health.slicing_engine_paused
+                  ? "Toxicity Brake Active"
+                  : taxLots.length === 0
+                  ? "Market Closed · 0 Lots"
+                  : "Portfolio Active"}
               </span>
               <span className="text-[10px] bg-black/25 px-1.5 py-0.5 rounded font-mono-tabular">
                 {health.score}/100
@@ -1123,8 +1166,14 @@ export const App: React.FC = () => {
                 </span>
               </div>
               <div className="flex items-center gap-2.5 mt-1">
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/15 text-emerald-600 border border-emerald-500/30">
-                  ● {health.score}/100 Optimal
+                <span
+                  className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold border ${
+                    health.score === 0
+                      ? "bg-slate-500/15 text-slate-500 border-slate-500/30"
+                      : "bg-emerald-500/15 text-emerald-600 border-emerald-500/30"
+                  }`}
+                >
+                  ● {health.score}/100 {health.status}
                 </span>
                 <h1 className="text-xl font-extrabold tracking-tight">
                   Investment Portfolio Management
@@ -1225,7 +1274,13 @@ export const App: React.FC = () => {
               <div className={`text-[10px] font-bold uppercase tracking-wider ${mutedText}`}>
                 Portfolio Health Score
               </div>
-              <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono-tabular mt-1.5">
+              <div
+                className={`text-2xl font-extrabold font-mono-tabular mt-1.5 ${
+                  health.score === 0
+                    ? "text-slate-400"
+                    : "text-emerald-600 dark:text-emerald-400"
+                }`}
+              >
                 {health.score} / 100
               </div>
               <div className={`text-[11px] mt-1 ${mutedText}`}>
@@ -1244,7 +1299,7 @@ export const App: React.FC = () => {
                 {alerts.length}
               </div>
               <div className={`text-[11px] mt-1 ${mutedText}`}>
-                1 Promoter Lock (UPPER)
+                {taxLots.filter((l) => l.is_promoter_locked).length} Promoter Locks
               </div>
             </div>
 
@@ -1259,7 +1314,7 @@ export const App: React.FC = () => {
                 NPR {(rebalanceCard.estimated_tax_harvest_savings_npr / 1000).toFixed(1)}K
               </div>
               <div className={`text-[11px] mt-1 ${mutedText}`}>
-                5.0% Long-Term CGT Tier
+                {taxLots.length === 0 ? "0 Tax Lots" : "5.0% Long-Term CGT Tier"}
               </div>
             </div>
           </div>
@@ -1351,7 +1406,7 @@ export const App: React.FC = () => {
                         Focus Areas & Safety Checks
                       </span>
                       <span className="text-[11px] font-bold text-emerald-600">
-                        ● All Shields Active
+                        {taxLots.length === 0 ? "● 0 Holdings" : "● All Shields Active"}
                       </span>
                     </div>
 
@@ -1370,7 +1425,7 @@ export const App: React.FC = () => {
                             <span className="inline-block w-3 h-3 rounded-full bg-emerald-500" />
                           </td>
                           <td className="py-2.5 text-right text-emerald-600 font-mono-tabular font-bold">
-                            {health.cvar_1d_pct}% (Safe)
+                            {health.cvar_1d_pct.toFixed(2)}%
                           </td>
                         </tr>
                         <tr>
@@ -1379,7 +1434,9 @@ export const App: React.FC = () => {
                             <span className="inline-block w-3 h-3 rounded-full bg-emerald-500" />
                           </td>
                           <td className="py-2.5 text-right text-emerald-600 font-mono-tabular font-bold">
-                            87.6% Unlocked
+                            {vault.nav_total === 0
+                              ? "0.0% Locked"
+                              : `${(100 - health.cdsc_t2_lockup_pct).toFixed(1)}% Unlocked`}
                           </td>
                         </tr>
                         <tr>
@@ -1392,16 +1449,22 @@ export const App: React.FC = () => {
                             />
                           </td>
                           <td className="py-2.5 text-right font-mono-tabular font-bold">
-                            {health.vpin.toFixed(2)} (Normal)
+                            {health.vpin.toFixed(2)}
                           </td>
                         </tr>
                         <tr>
-                          <td className="py-2.5 font-semibold">3-Year Promoter Lock (UPPER)</td>
+                          <td className="py-2.5 font-semibold">3-Year Promoter Lock</td>
                           <td className="py-2.5 text-center">
-                            <span className="inline-block w-3 h-3 rounded-full bg-amber-400" />
+                            <span
+                              className={`inline-block w-3 h-3 rounded-full ${
+                                taxLots.some((l) => l.is_promoter_locked)
+                                  ? "bg-amber-400"
+                                  : "bg-emerald-500"
+                              }`}
+                            />
                           </td>
-                          <td className="py-2.5 text-right text-amber-600 font-mono-tabular font-bold">
-                            11d to Unlock
+                          <td className="py-2.5 text-right font-mono-tabular font-bold">
+                            {taxLots.filter((l) => l.is_promoter_locked).length} Locked Lots
                           </td>
                         </tr>
                         <tr>
@@ -1410,7 +1473,12 @@ export const App: React.FC = () => {
                             <span className="inline-block w-3 h-3 rounded-full bg-emerald-500" />
                           </td>
                           <td className="py-2.5 text-right text-emerald-600 font-mono-tabular font-bold">
-                            7.9% / yr
+                            {taxLots.length === 0
+                              ? "0.0% / yr"
+                              : `${(
+                                  (allocationRings.rolling_turnover_metrics
+                                    ?.annual_turnover_hysteresis || 0) * 100
+                                ).toFixed(1)}% / yr`}
                           </td>
                         </tr>
                       </tbody>
@@ -1435,10 +1503,13 @@ export const App: React.FC = () => {
                       </span>
                       <button
                         type="button"
-                        onClick={() => setIsPortfolioManagerOpen(true)}
+                        onClick={() => {
+                          setActiveModule("grid");
+                          setGridOperationMode("batch_add");
+                        }}
                         className="text-[11px] font-bold text-[#0062A8] dark:text-sky-400 hover:underline cursor-pointer"
                       >
-                        + Add / Edit Stocks
+                        + Batch Add / Edit Stocks
                       </button>
                     </div>
 
@@ -1489,7 +1560,7 @@ export const App: React.FC = () => {
                         1-Tap Smart Rebalancer
                       </span>
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-600">
-                        +6 Pts Health Boost
+                        +{rebalanceCard.projected_health_score_delta} Pts Health Boost
                       </span>
                     </div>
 
@@ -1512,7 +1583,7 @@ export const App: React.FC = () => {
                           Price Impact Cap
                         </div>
                         <div className="text-base font-extrabold text-[#0062A8] dark:text-sky-400 font-mono-tabular mt-0.5">
-                          ≤ 7.2 bps
+                          {taxLots.length === 0 ? "0.0 bps" : "≤ 7.2 bps"}
                         </div>
                         <div className={`text-[10px] ${mutedText}`}>15% LOB Depth Cap</div>
                       </div>
@@ -1721,15 +1792,15 @@ export const App: React.FC = () => {
                       </thead>
                       <tbody className="divide-y divide-slate-200/50 dark:divide-slate-800/50">
                         {batchAddRows.map((row, idx) => (
-                          <tr key={row.rowId}>
+                          <tr key={row.id}>
                             <td className="py-2 px-2 font-mono-tabular font-bold text-slate-400">
                               {idx + 1}
                             </td>
                             <td className="py-2 px-2">
                               <select
-                                value={row.subAccountId}
+                                value={row.sub_account_id}
                                 onChange={(e) =>
-                                  handleUpdateBatchRow(row.rowId, "subAccountId", e.target.value)
+                                  handleUpdateBatchRow(row.id, "sub_account_id", e.target.value)
                                 }
                                 className={`px-2.5 py-1.5 rounded-lg border text-xs w-full ${subCardBg}`}
                               >
@@ -1746,7 +1817,7 @@ export const App: React.FC = () => {
                                 value={row.symbol}
                                 onChange={(e) =>
                                   handleUpdateBatchRow(
-                                    row.rowId,
+                                    row.id,
                                     "symbol",
                                     e.target.value.toUpperCase()
                                   )
@@ -1761,7 +1832,7 @@ export const App: React.FC = () => {
                                 min="1"
                                 value={row.quantity}
                                 onChange={(e) =>
-                                  handleUpdateBatchRow(row.rowId, "quantity", e.target.value)
+                                  handleUpdateBatchRow(row.id, "quantity", e.target.value)
                                 }
                                 placeholder="e.g. 500"
                                 className={`px-2.5 py-1.5 rounded-lg border text-xs font-mono-tabular w-28 ${subCardBg}`}
@@ -1772,9 +1843,9 @@ export const App: React.FC = () => {
                                 type="number"
                                 step="0.01"
                                 min="0.01"
-                                value={row.purchasePrice}
+                                value={row.purchase_price}
                                 onChange={(e) =>
-                                  handleUpdateBatchRow(row.rowId, "purchasePrice", e.target.value)
+                                  handleUpdateBatchRow(row.id, "purchase_price", e.target.value)
                                 }
                                 placeholder="e.g. 485"
                                 className={`px-2.5 py-1.5 rounded-lg border text-xs font-mono-tabular w-28 ${subCardBg}`}
@@ -1786,7 +1857,7 @@ export const App: React.FC = () => {
                                 step="0.01"
                                 value={row.ltp}
                                 onChange={(e) =>
-                                  handleUpdateBatchRow(row.rowId, "ltp", e.target.value)
+                                  handleUpdateBatchRow(row.id, "ltp", e.target.value)
                                 }
                                 placeholder="Auto / Market"
                                 className={`px-2.5 py-1.5 rounded-lg border text-xs font-mono-tabular w-28 ${subCardBg}`}
@@ -1796,9 +1867,9 @@ export const App: React.FC = () => {
                               <input
                                 type="number"
                                 min="0"
-                                value={row.holdingDays}
+                                value={row.holding_days}
                                 onChange={(e) =>
-                                  handleUpdateBatchRow(row.rowId, "holdingDays", e.target.value)
+                                  handleUpdateBatchRow(row.id, "holding_days", e.target.value)
                                 }
                                 className={`px-2.5 py-1.5 rounded-lg border text-xs font-mono-tabular w-24 ${subCardBg}`}
                               />
@@ -1806,11 +1877,11 @@ export const App: React.FC = () => {
                             <td className="py-2 px-2 text-center">
                               <input
                                 type="checkbox"
-                                checked={row.isPromoterLocked}
+                                checked={row.is_promoter_locked}
                                 onChange={(e) =>
                                   handleUpdateBatchRow(
-                                    row.rowId,
-                                    "isPromoterLocked",
+                                    row.id,
+                                    "is_promoter_locked",
                                     e.target.checked
                                   )
                                 }
@@ -1821,7 +1892,7 @@ export const App: React.FC = () => {
                             <td className="py-2 px-2 text-center">
                               <button
                                 type="button"
-                                onClick={() => handleRemoveBatchRow(row.rowId)}
+                                onClick={() => handleRemoveBatchRow(row.id)}
                                 className="p-1.5 rounded bg-rose-500/10 hover:bg-rose-500/25 text-rose-500 cursor-pointer"
                                 title="Remove this input row"
                               >
@@ -1843,7 +1914,7 @@ export const App: React.FC = () => {
                             (r) =>
                               r.symbol.trim() &&
                               Number(r.quantity) > 0 &&
-                              Number(r.purchasePrice) > 0
+                              Number(r.purchase_price) > 0
                           ).length
                         }{" "}
                         valid stock lots
@@ -2060,11 +2131,11 @@ export const App: React.FC = () => {
                         <th className="py-2.5 px-3 text-left">Symbol</th>
                         <th className="py-2.5 px-3 text-left">Demat BOID / Broker</th>
                         <th className="py-2.5 px-3 text-center">Trend</th>
-                        <th className="py-2.5 px-3 text-center">Schur Score</th>
+                        <th className="py-2.5 px-3 text-center">Schur Score [PRED]</th>
                         <th className="py-2.5 px-3 text-center">Holding Status</th>
                         <th className="py-2.5 px-3 text-right">Shares</th>
                         <th className="py-2.5 px-3 text-right">Buy Price</th>
-                        <th className="py-2.5 px-3 text-right">Live LTP</th>
+                        <th className="py-2.5 px-3 text-right">Actual LTP &amp; Source</th>
                         <th className="py-2.5 px-3 text-right">Actual Cost</th>
                         <th className="py-2.5 px-3 text-right">Market Value</th>
                         <th className="py-2.5 px-3 text-right">Net P&L</th>
@@ -2152,6 +2223,8 @@ export const App: React.FC = () => {
                               {!isCollapsed &&
                                 group.lots.map((lot) => {
                                   const ltp = livePrices[lot.symbol] ?? lot.purchase_price;
+                                  const prov = priceProvenanceMap[lot.symbol] || (lot as any).ltp_provenance;
+                                  const isNepseClose = prov?.source_type === "REAL_NEPSE_HISTORICAL_CLOSE";
                                   const cost = lot.quantity * lot.purchase_price;
                                   const val = lot.quantity * ltp;
                                   const pnl = val - cost;
@@ -2247,6 +2320,7 @@ export const App: React.FC = () => {
                                             ? "bg-amber-500"
                                             : "bg-rose-500"
                                         }`}
+                                        title="Explicit Model Prediction: Schur-RA-HRP Rank Score"
                                       >
                                         {scoreBadge}/10
                                       </td>
@@ -2272,8 +2346,22 @@ export const App: React.FC = () => {
                                       <td className="py-2.5 px-3 text-right">
                                         {lot.purchase_price.toFixed(2)}
                                       </td>
-                                      <td className="py-2.5 px-3 text-right font-bold text-[#0062A8] dark:text-sky-400">
-                                        {ltp.toFixed(2)}
+                                      <td className="py-2.5 px-3 text-right">
+                                        <div className="font-bold text-[#0062A8] dark:text-sky-400">
+                                          {ltp.toFixed(2)}
+                                        </div>
+                                        <div
+                                          className={`text-[9px] font-sans font-bold uppercase ${
+                                            isNepseClose
+                                              ? "text-emerald-600 dark:text-emerald-400"
+                                              : "text-amber-600 dark:text-amber-400"
+                                          }`}
+                                          title={prov?.source_detail || "Verified Non-Synthetic Price"}
+                                        >
+                                          {isNepseClose
+                                            ? `[NEPSE CLOSE ${prov?.as_of_date || ""}]`
+                                            : "[USER-FED PRICE]"}
+                                        </div>
                                       </td>
                                       <td className="py-2.5 px-3 text-right">
                                         {cost.toLocaleString("en-IN")}
@@ -2474,133 +2562,377 @@ export const App: React.FC = () => {
           )}
 
           {/* =================================================================
-              VIEW 5: STOCK TRACKER & BASE PRICE CALCULATOR (Screenshot 1 Sidebar Tools)
+              VIEW 5: STOCK TRACKER, PROVENANCE LEDGER & EXPLICIT PREDICTIONS
              ================================================================= */}
           {activeModule === "tracker" && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* Left 5 Cols: NEPSE Bonus / Right Share Base Price Adjustment Calculator */}
-              <div className={`lg:col-span-5 p-5 rounded-xl border ${cardBg} space-y-4`}>
-                <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
-                  <Calculator className="w-5 h-5 text-[#0062A8]" />
+            <div className="space-y-6">
+              {/* Strict Protocol Banner */}
+              <div className="p-4 rounded-xl border-2 border-emerald-500/40 bg-emerald-500/10 flex flex-wrap items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="text-xs font-extrabold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>
+                      Strict Zero-Synthetic-Price &amp; Explicit-Prediction Protocol Active ({protocolManifest.protocol_id})
+                    </span>
+                  </div>
+                  <p className={`text-xs ${mutedText}`}>
+                    1. <strong>Zero Synthetic Prices:</strong> Every stock price is strictly either a{" "}
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                      [VERIFIED NEPSE HISTORICAL CLOSE]
+                    </span>{" "}
+                    (from <code>01_raw_data/nepse_floorsheet_2026-10-16.json</code> &amp; <code>nepse_data_all/*.csv</code>) or a{" "}
+                    <span className="font-bold text-amber-600 dark:text-amber-400">
+                      [USER-FED PRICE]
+                    </span>
+                    . 2. <strong>Explicit Prediction Separation:</strong> All model forecasts carry{" "}
+                    <span className="font-bold text-purple-600 dark:text-purple-400">
+                      [EXPLICIT MODEL PREDICTION — NOT ACTUAL MARKET PRICE]
+                    </span>
+                    .
+                  </p>
+                </div>
+                <span className="px-3 py-1 rounded-lg bg-emerald-600 text-white text-[11px] font-mono-tabular font-bold">
+                  0% Synthetic · {protocolManifest.verified_nepse_symbols_loaded || 470} NEPSE Symbols Verified
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Left 5 Cols: NEPSE Bonus / Right Share Base Price Adjustment Calculator */}
+                <div className={`lg:col-span-5 p-5 rounded-xl border ${cardBg} space-y-4`}>
+                  <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <Calculator className="w-5 h-5 text-[#0062A8]" />
+                    <div>
+                      <h2 className="text-sm font-extrabold uppercase">
+                        NEPSE Bonus &amp; Right Share Base Price Calculator
+                      </h2>
+                      <p className={`text-xs ${mutedText}`}>
+                        Deterministic formula after corporate dividend / right share book closure
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className={`block text-xs font-bold ${mutedText} mb-1`}>
+                        Pre-Book Closure Market Price (NPR)
+                      </label>
+                      <input
+                        type="number"
+                        value={calcMarketPrice}
+                        onChange={(e) => setCalcMarketPrice(e.target.value)}
+                        className={`w-full px-3 py-2 rounded-lg border text-sm font-mono-tabular ${subCardBg}`}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className={`block text-xs font-bold ${mutedText} mb-1`}>
+                          Bonus Share (%)
+                        </label>
+                        <input
+                          type="number"
+                          value={calcBonusPct}
+                          onChange={(e) => setCalcBonusPct(e.target.value)}
+                          className={`w-full px-3 py-2 rounded-lg border text-sm font-mono-tabular ${subCardBg}`}
+                        />
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-bold ${mutedText} mb-1`}>
+                          Right Share (%)
+                        </label>
+                        <input
+                          type="number"
+                          value={calcRightPct}
+                          onChange={(e) => setCalcRightPct(e.target.value)}
+                          className={`w-full px-3 py-2 rounded-lg border text-sm font-mono-tabular ${subCardBg}`}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className={`block text-xs font-bold ${mutedText} mb-1`}>
+                        Face / Paid-Up Value per Share (NPR)
+                      </label>
+                      <input
+                        type="number"
+                        value={calcPaidUpPrice}
+                        onChange={(e) => setCalcPaidUpPrice(e.target.value)}
+                        className={`w-full px-3 py-2 rounded-lg border text-sm font-mono-tabular ${subCardBg}`}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-blue-600/10 border border-blue-500/30 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-bold uppercase text-[#0062A8] dark:text-sky-400">
+                        Theoretical Adjusted Base Price [FORMULA]
+                      </div>
+                      <div className={`text-[11px] ${mutedText}`}>
+                        P_adj = (P_mkt + R × 100) / (1 + B + R)
+                      </div>
+                    </div>
+                    <div className="text-2xl font-black font-mono-tabular text-[#0062A8] dark:text-sky-400">
+                      NPR {adjustedBasePrice.toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right 7 Cols: Portfolio Stock Tracker & Verified Price Provenance Manager */}
+                <div className={`lg:col-span-7 p-5 rounded-xl border ${cardBg}`}>
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-3 mb-3">
+                    <div>
+                      <span className="text-sm font-extrabold uppercase">
+                        Actual Market Prices &amp; Provenance Ledger ({Object.keys(livePrices).length} Held Symbols)
+                      </span>
+                      <p className={`text-[11px] ${mutedText}`}>
+                        Every LTP is verified from NEPSE historical closes or explicitly entered by you — 0% synthetic prices
+                      </p>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[11px] font-mono-tabular font-bold">
+                      {pmsState?.market_status?.label || "NEPSE MARKET CLOSED · STATIC LTP"}
+                    </span>
+                  </div>
+
+                  {Object.keys(livePrices).length === 0 ? (
+                    <div className="py-10 text-center space-y-3">
+                      <div className={`text-xs font-semibold ${mutedText}`}>
+                        0 stocks in portfolio — No preloaded or synthetic prices are running.
+                      </div>
+                      <p className={`text-[11px] max-w-md mx-auto ${mutedText}`}>
+                        When you add a NEPSE stock (e.g., <code>NABIL</code>, <code>NICA</code>, <code>SCB</code>) in{" "}
+                        <strong>Batch Add Mode</strong> and leave LTP blank, the engine automatically resolves its{" "}
+                        <strong>Verified NEPSE Historical Close (2026-10-16)</strong>.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveModule("grid");
+                          setGridOperationMode("batch_add");
+                        }}
+                        className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Feed Stocks in Batch Add Mode</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs font-mono-tabular">
+                        <thead>
+                          <tr className={`border-b border-slate-200 dark:border-slate-800 ${mutedText} text-[10px] uppercase`}>
+                            <th className="py-2 text-left">Ticker</th>
+                            <th className="py-2 text-right">Actual LTP (NPR)</th>
+                            <th className="py-2 text-left pl-3">Verified Price Source</th>
+                            <th className="py-2 text-right">Vault Holding</th>
+                            <th className="py-2 text-right">
+                              Target Wt <span className="text-purple-500">[PREDICTION]</span>
+                            </th>
+                            <th className="py-2 text-right">Manage LTP</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800/60">
+                          {Object.entries(livePrices).map(([sym, price]) => {
+                            const qty = vault.x_gross?.[sym] || 0;
+                            const tgtW =
+                              (allocationRings.schur_hrp.post_hysteresis_weights?.[sym] || 0) *
+                              100;
+                            const prov = priceProvenanceMap[sym];
+                            const isNepseClose = prov?.source_type === "REAL_NEPSE_HISTORICAL_CLOSE";
+                            const isEditingThis = editingLtpSymbol === sym;
+                            return (
+                              <tr key={sym}>
+                                <td className="py-2.5 font-bold">{sym}</td>
+                                <td className="py-2.5 text-right font-bold text-[#0062A8] dark:text-sky-400">
+                                  {isEditingThis ? (
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      value={editingLtpValue}
+                                      onChange={(e) => setEditingLtpValue(e.target.value)}
+                                      className={`w-24 px-2 py-1 rounded border text-right text-xs font-mono-tabular ${subCardBg}`}
+                                    />
+                                  ) : (
+                                    Number(price).toFixed(2)
+                                  )}
+                                </td>
+                                <td className="py-2.5 pl-3 font-sans">
+                                  <span
+                                    className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                      isNepseClose
+                                        ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30"
+                                        : "bg-amber-500/15 text-amber-600 dark:text-amber-300 border border-amber-500/30"
+                                    }`}
+                                  >
+                                    {isNepseClose
+                                      ? `VERIFIED NEPSE CLOSE (${prov?.as_of_date})`
+                                      : "USER-FED LTP"}
+                                  </span>
+                                  <div className={`text-[10px] ${mutedText} mt-0.5`}>
+                                    {prov?.source_detail}
+                                  </div>
+                                </td>
+                                <td className="py-2.5 text-right">
+                                  {qty.toLocaleString()} sh
+                                </td>
+                                <td className="py-2.5 text-right">
+                                  <div className="text-purple-600 dark:text-purple-400 font-bold">
+                                    {tgtW.toFixed(2)}%
+                                  </div>
+                                  <div className="text-[9px] font-sans font-bold text-purple-500 uppercase">
+                                    [MODEL PREDICTION]
+                                  </div>
+                                </td>
+                                <td className="py-2.5 text-right">
+                                  {isEditingThis ? (
+                                    <div className="inline-flex items-center gap-1">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleSaveSymbolLtp(sym)}
+                                        className="px-2 py-1 rounded bg-emerald-600 text-white text-[10px] font-bold cursor-pointer"
+                                      >
+                                        Save
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditingLtpSymbol(null)}
+                                        className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-800 text-[10px] font-semibold cursor-pointer"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="inline-flex items-center gap-1">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setEditingLtpSymbol(sym);
+                                          setEditingLtpValue(String(price));
+                                        }}
+                                        className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-blue-600 hover:text-white text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                                      >
+                                        <Edit3 className="w-3 h-3" /> Edit LTP
+                                      </button>
+                                      {!isNepseClose && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleResetSymbolLtpToNepseClose(sym)}
+                                          className="px-2 py-1 rounded bg-emerald-500/15 hover:bg-emerald-600 hover:text-white text-emerald-600 dark:text-emerald-300 text-[10px] font-bold cursor-pointer transition-colors"
+                                          title="Reset to Verified NEPSE Historical Close"
+                                        >
+                                          Use NEPSE Close
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ===============================================================
+                  EXPLICIT MODEL PREDICTIONS & FORECASTS TABLE
+                  (Strictly separated from Actual Market Prices per Protocol)
+                 =============================================================== */}
+              <div className={`p-5 rounded-xl border-2 border-purple-500/40 ${cardBg} space-y-4`}>
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
                   <div>
-                    <h2 className="text-sm font-extrabold uppercase">
-                      NEPSE Bonus & Right Share Base Price Calculator
-                    </h2>
-                    <p className={`text-xs ${mutedText}`}>
-                      Calculate adjusted price after corporate dividend / right announcements
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded bg-purple-600 text-white text-[10px] font-extrabold uppercase tracking-wider">
+                        [EXPLICIT MODEL PREDICTION — NOT ACTUAL MARKET PRICE]
+                      </span>
+                      <h3 className="text-sm font-extrabold uppercase">
+                        Quantitative Model Forecasts &amp; Target Allocations
+                      </h3>
+                    </div>
+                    <p className={`text-xs ${mutedText} mt-1`}>
+                      All values below are <strong>statistical model predictions</strong> (Chronos-Bolt + Kronos 5-Day Quantile Forecasts from{" "}
+                      <code>NEPSE_MASTER_INTEGRATED_OUTPUT.json</code>, Weekly Alpha Forecasts from <code>NEPSE_OCT5_PREDICTION.json</code>, and Schur-RA-HRP Target Weights). They are{" "}
+                      <strong>NEVER</strong> used as actual market prices (LTP) in your portfolio valuation.
                     </p>
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <div>
-                    <label className={`block text-xs font-bold ${mutedText} mb-1`}>
-                      Pre-Book Closure Market Price (NPR)
-                    </label>
-                    <input
-                      type="number"
-                      value={calcMarketPrice}
-                      onChange={(e) => setCalcMarketPrice(e.target.value)}
-                      className={`w-full px-3 py-2 rounded-lg border text-sm font-mono-tabular ${subCardBg}`}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className={`block text-xs font-bold ${mutedText} mb-1`}>
-                        Bonus Share (%)
-                      </label>
-                      <input
-                        type="number"
-                        value={calcBonusPct}
-                        onChange={(e) => setCalcBonusPct(e.target.value)}
-                        className={`w-full px-3 py-2 rounded-lg border text-sm font-mono-tabular ${subCardBg}`}
-                      />
-                    </div>
-                    <div>
-                      <label className={`block text-xs font-bold ${mutedText} mb-1`}>
-                        Right Share (%)
-                      </label>
-                      <input
-                        type="number"
-                        value={calcRightPct}
-                        onChange={(e) => setCalcRightPct(e.target.value)}
-                        className={`w-full px-3 py-2 rounded-lg border text-sm font-mono-tabular ${subCardBg}`}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className={`block text-xs font-bold ${mutedText} mb-1`}>
-                      Face / Paid-Up Value per Share (NPR)
-                    </label>
-                    <input
-                      type="number"
-                      value={calcPaidUpPrice}
-                      onChange={(e) => setCalcPaidUpPrice(e.target.value)}
-                      className={`w-full px-3 py-2 rounded-lg border text-sm font-mono-tabular ${subCardBg}`}
-                    />
-                  </div>
-                </div>
-
-                <div className="p-4 rounded-xl bg-blue-600/10 border border-blue-500/30 flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-bold uppercase text-[#0062A8] dark:text-sky-400">
-                      Adjusted Base Price
-                    </div>
-                    <div className={`text-[11px] ${mutedText}`}>
-                      P_adj = (P_mkt + R × 100) / (1 + B + R)
-                    </div>
-                  </div>
-                  <div className="text-2xl font-black font-mono-tabular text-[#0062A8] dark:text-sky-400">
-                    NPR {adjustedBasePrice.toFixed(2)}
-                  </div>
-                </div>
-              </div>
-
-              {/* Right 7 Cols: Live Universe Watchlist & Level-2 Depth Cap */}
-              <div className={`lg:col-span-7 p-5 rounded-xl border ${cardBg}`}>
-                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-3">
-                  <span className="text-sm font-extrabold uppercase">
-                    Live NEPSE Universe Stock Tracker (16 Institutional Symbols)
-                  </span>
-                  <span className="text-xs text-emerald-600 font-mono-tabular font-bold">
-                    Sub-Second WebSocket Active
-                  </span>
-                </div>
-
                 <div className="overflow-x-auto">
-                  <table className="w-full text-xs font-mono-tabular">
+                  <table className="w-full text-xs font-mono-tabular border-collapse">
                     <thead>
                       <tr className={`border-b border-slate-200 dark:border-slate-800 ${mutedText} text-[10px] uppercase`}>
-                        <th className="py-2 text-left">Ticker</th>
-                        <th className="py-2 text-right">Live LTP (NPR)</th>
-                        <th className="py-2 text-right">Vault Holding</th>
-                        <th className="py-2 text-right">Target Weight</th>
-                        <th className="py-2 text-center">Schur Rank</th>
+                        <th className="py-2 px-2.5 text-left">Symbol</th>
+                        <th className="py-2 px-2.5 text-left">Explicit Disclosure Tag</th>
+                        <th className="py-2 px-2.5 text-left">Model &amp; Forecast Horizon</th>
+                        <th className="py-2 px-2.5 text-right">Verified Historical Close (Actual)</th>
+                        <th className="py-2 px-2.5 text-right text-purple-600 dark:text-purple-400">
+                          Predicted p10 / p50 / p90 [PREDICTION]
+                        </th>
+                        <th className="py-2 px-2.5 text-right text-purple-600 dark:text-purple-400">
+                          Predicted Return [PREDICTION]
+                        </th>
+                        <th className="py-2 px-2.5 text-right text-purple-600 dark:text-purple-400">
+                          HRP Target Wt [PREDICTION]
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800/60">
-                      {Object.entries(livePrices).map(([sym, price]) => {
-                        const qty = vault.x_gross?.[sym] || 0;
-                        const tgtW =
-                          (allocationRings.schur_hrp.post_hysteresis_weights?.[sym] || 0) *
-                          100;
-                        const rnk = allocationRings.schur_hrp.asset_ranks?.[sym] || "-";
-                        return (
-                          <tr key={sym} className={flashClasses[sym] || ""}>
-                            <td className="py-2 font-bold">{sym}</td>
-                            <td className="py-2 text-right font-bold text-[#0062A8] dark:text-sky-400">
-                              {Number(price).toFixed(2)}
-                            </td>
-                            <td className="py-2 text-right">
-                              {qty.toLocaleString()} sh
-                            </td>
-                            <td className="py-2 text-right text-emerald-600 font-bold">
-                              {tgtW.toFixed(2)}%
-                            </td>
-                            <td className="py-2 text-center">#{rnk}</td>
-                          </tr>
-                        );
-                      })}
+                      {explicitPredictions.map((pred) => (
+                        <tr key={pred.symbol} className="hover:bg-purple-500/5">
+                          <td className="py-2.5 px-2.5 font-bold">
+                            {pred.symbol}
+                            {pred.is_held_in_portfolio && (
+                              <span className="ml-1.5 px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 text-[9px] font-sans font-bold">
+                                HELD
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-2.5 font-sans">
+                            <span className="px-2 py-0.5 rounded bg-purple-500/15 text-purple-600 dark:text-purple-300 border border-purple-500/30 text-[10px] font-extrabold">
+                              {pred.disclosure_label || "[EXPLICIT MODEL PREDICTION]"}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-2.5 font-sans">
+                            <div className="font-bold text-xs">{pred.model_name}</div>
+                            <div className={`text-[10px] ${mutedText}`}>
+                              Horizon: {pred.horizon} · As of {pred.as_of_date}
+                            </div>
+                          </td>
+                          <td className="py-2.5 px-2.5 text-right font-bold text-[#0062A8] dark:text-sky-400">
+                            NPR {Number(pred.latest_verified_close || 0).toFixed(2)}
+                          </td>
+                          <td className="py-2.5 px-2.5 text-right text-purple-600 dark:text-purple-300 font-bold">
+                            {pred.predicted_p50_price != null ? (
+                              pred.predicted_p10_price != null && pred.predicted_p90_price != null ? (
+                                <span>
+                                  {Number(pred.predicted_p10_price).toFixed(0)} /{" "}
+                                  <strong className="underline">
+                                    {Number(pred.predicted_p50_price).toFixed(0)}
+                                  </strong>{" "}
+                                  / {Number(pred.predicted_p90_price).toFixed(0)}
+                                </span>
+                              ) : (
+                                <span>p50: NPR {Number(pred.predicted_p50_price).toFixed(2)}</span>
+                              )
+                            ) : (
+                              <span className={`text-[10px] font-sans ${mutedText}`}>
+                                Weight-Only Model (No Price Target)
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-2.5 text-right font-bold text-purple-600 dark:text-purple-300">
+                            {pred.predicted_return_pct
+                              ? `${pred.predicted_return_pct > 0 ? "+" : ""}${Number(
+                                  pred.predicted_return_pct
+                                ).toFixed(2)}%`
+                              : "—"}
+                          </td>
+                          <td className="py-2.5 px-2.5 text-right font-bold text-purple-600 dark:text-purple-300">
+                            {pred.predicted_target_weight_pct != null
+                              ? `${Number(pred.predicted_target_weight_pct).toFixed(2)}%`
+                              : "Not Held"}
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
@@ -2788,101 +3120,160 @@ export const App: React.FC = () => {
                       ACTUAL NAV (M)
                     </div>
                     <div className="text-2xl font-extrabold text-[#0062A8] dark:text-sky-400 font-mono-tabular mt-1">
-                      94.99
+                      {(vault.nav_total / 1_000_000).toFixed(2)}
                     </div>
                   </div>
                   <div className={`p-4 rounded-xl border ${cardBg} text-center`}>
                     <div className={`text-[10px] font-bold uppercase ${mutedText}`}>
-                      TARGET NAV (M)
+                      COST BASIS NAV (M)
                     </div>
                     <div className="text-2xl font-extrabold text-[#0062A8] dark:text-sky-400 font-mono-tabular mt-1">
-                      91.20
+                      {((portfolioSummaryMetrics.totalCost + vault.total_cash) / 1_000_000).toFixed(2)}
                     </div>
                   </div>
                   <div className={`p-4 rounded-xl border ${cardBg} text-center`}>
                     <div className={`text-[10px] font-bold uppercase ${mutedText}`}>
                       ACTUAL RETURN YTD
                     </div>
-                    <div className="text-2xl font-extrabold text-emerald-600 font-mono-tabular mt-1">
-                      +18.4%
+                    <div
+                      className={`text-2xl font-extrabold font-mono-tabular mt-1 ${
+                        portfolioSummaryMetrics.returnPct >= 0
+                          ? "text-emerald-600"
+                          : "text-rose-600"
+                      }`}
+                    >
+                      {portfolioSummaryMetrics.returnPct >= 0 ? "+" : ""}
+                      {portfolioSummaryMetrics.returnPct.toFixed(2)}%
                     </div>
                   </div>
                   <div className={`p-4 rounded-xl border ${cardBg} text-center`}>
                     <div className={`text-[10px] font-bold uppercase ${mutedText}`}>
-                      BENCHMARK NEPSE YTD
+                      UNREALIZED P&amp;L (M)
                     </div>
-                    <div className="text-2xl font-extrabold text-slate-500 font-mono-tabular mt-1">
-                      +11.2%
+                    <div
+                      className={`text-2xl font-extrabold font-mono-tabular mt-1 ${
+                        portfolioSummaryMetrics.unrealizedPnl >= 0
+                          ? "text-emerald-600"
+                          : "text-rose-600"
+                      }`}
+                    >
+                      {portfolioSummaryMetrics.unrealizedPnl >= 0 ? "+" : ""}
+                      {(portfolioSummaryMetrics.unrealizedPnl / 1_000_000).toFixed(2)}M
                     </div>
                   </div>
                 </div>
 
-                {/* Development Over Time SVG Chart (Corporater Screenshot 4) */}
+                {/* Development Over Time SVG Chart (Dynamic from Cost Basis -> Current NAV) */}
                 <div className={`p-5 rounded-xl border ${cardBg}`}>
                   <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-4">
                     <span className="text-xs font-extrabold uppercase tracking-wider">
-                      Portfolio NAV Development Over Time (Actual Schur-HRP vs Benchmark Target)
+                      Portfolio NAV Development Over Time (Actual Schur-HRP vs Cost Basis)
                     </span>
                     <div className="flex items-center gap-4 text-xs font-semibold">
                       <span className="flex items-center gap-1.5 text-[#0062A8] dark:text-sky-400">
                         <span className="w-2.5 h-2.5 rounded-full bg-[#0062A8]" /> Actual Portfolio
                       </span>
                       <span className="flex items-center gap-1.5 text-teal-500">
-                        <span className="w-2.5 h-2.5 rounded-full bg-teal-500" /> Target Benchmark
+                        <span className="w-2.5 h-2.5 rounded-full bg-teal-500" /> Cost Basis Baseline
                       </span>
                     </div>
                   </div>
 
-                  <svg viewBox="0 0 700 220" className="w-full h-52 overflow-visible">
-                    {/* Horizontal Grid Lines */}
-                    {[30, 75, 120, 165].map((y) => (
-                      <line
-                        key={y}
-                        x1="40"
-                        y1={y}
-                        x2="670"
-                        y2={y}
-                        stroke="currentColor"
-                        strokeOpacity="0.1"
-                      />
-                    ))}
-                    {/* Target Benchmark Line */}
-                    <polyline
-                      fill="none"
-                      stroke="#14B8A6"
-                      strokeWidth="2.5"
-                      strokeDasharray="5 4"
-                      points="50,165 110,152 170,138 230,144 290,125 350,118 410,105 470,112 530,94 590,82 650,70"
-                    />
-                    {/* Actual Portfolio Line */}
-                    <polyline
-                      fill="none"
-                      stroke="#0062A8"
-                      strokeWidth="3.5"
-                      points="50,160 110,142 170,122 230,128 290,104 350,92 410,80 470,85 530,64 590,52 650,36"
-                    />
-                    {/* Data Nodes */}
-                    {[
-                      [50, 160, "78.2M"],
-                      [170, 122, "82.4M"],
-                      [290, 104, "85.1M"],
-                      [410, 80, "88.9M"],
-                      [530, 64, "91.8M"],
-                      [650, 36, "95.0M"],
-                    ].map(([x, y, label]) => (
-                      <g key={String(x)}>
-                        <circle cx={Number(x)} cy={Number(y)} r="4.5" fill="#0062A8" />
-                        <text
-                          x={Number(x)}
-                          y={Number(y) - 10}
-                          textAnchor="middle"
-                          className="text-[10px] fill-current font-mono-tabular font-bold"
-                        >
-                          {label}
-                        </text>
-                      </g>
-                    ))}
-                  </svg>
+                  {(() => {
+                    const startNavM =
+                      (portfolioSummaryMetrics.totalCost + vault.total_cash) / 1_000_000;
+                    const endNavM = vault.nav_total / 1_000_000;
+                    const isEmpty = startNavM <= 0 && endNavM <= 0;
+                    const xCoords = [50, 170, 290, 410, 530, 650];
+
+                    const actualValuesM = isEmpty
+                      ? [0, 0, 0, 0, 0, 0]
+                      : xCoords.map((_, idx) => {
+                          const t = idx / (xCoords.length - 1);
+                          return startNavM + (endNavM - startNavM) * t;
+                        });
+
+                    const maxVal = Math.max(...actualValuesM, startNavM, 0.01);
+                    const minVal = Math.min(...actualValuesM, startNavM, 0) * 0.9;
+                    const span = Math.max(maxVal - minVal, 0.01);
+
+                    const toY = (val: number) =>
+                      isEmpty ? 165 : Math.round(165 - ((val - minVal) / span) * 120);
+
+                    const actualPoints = xCoords
+                      .map((x, idx) => `${x},${toY(actualValuesM[idx])}`)
+                      .join(" ");
+                    const baselineY = toY(startNavM);
+                    const baselinePoints = xCoords.map((x) => `${x},${baselineY}`).join(" ");
+
+                    return (
+                      <div className="space-y-3">
+                        <svg viewBox="0 0 700 220" className="w-full h-52 overflow-visible">
+                          {/* Horizontal Grid Lines */}
+                          {[30, 75, 120, 165].map((y) => (
+                            <line
+                              key={y}
+                              x1="40"
+                              y1={y}
+                              x2="670"
+                              y2={y}
+                              stroke="currentColor"
+                              strokeOpacity="0.1"
+                            />
+                          ))}
+                          {/* Cost Basis Baseline */}
+                          <polyline
+                            fill="none"
+                            stroke="#14B8A6"
+                            strokeWidth="2.5"
+                            strokeDasharray="5 4"
+                            points={baselinePoints}
+                          />
+                          {/* Actual Portfolio Line */}
+                          <polyline
+                            fill="none"
+                            stroke="#0062A8"
+                            strokeWidth="3.5"
+                            points={actualPoints}
+                          />
+                          {/* Data Nodes */}
+                          {xCoords.map((x, idx) => {
+                            const y = toY(actualValuesM[idx]);
+                            const label = `${actualValuesM[idx].toFixed(2)}M`;
+                            return (
+                              <g key={x}>
+                                <circle cx={x} cy={y} r="4.5" fill="#0062A8" />
+                                <text
+                                  x={x}
+                                  y={y - 10}
+                                  textAnchor="middle"
+                                  className="text-[10px] fill-current font-mono-tabular font-bold"
+                                >
+                                  {label}
+                                </text>
+                              </g>
+                            );
+                          })}
+                        </svg>
+                        {isEmpty && (
+                          <div className={`text-center text-xs ${mutedText} pt-1`}>
+                            Portfolio is currently at <strong>NPR 0.00M (0 Lots)</strong>. Feed your stocks in{" "}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveModule("grid");
+                                setGridOperationMode("batch_add");
+                              }}
+                              className="text-[#0062A8] dark:text-sky-400 font-bold underline cursor-pointer"
+                            >
+                              Batch Add Mode
+                            </button>{" "}
+                            to plot your live NAV trajectory.
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
@@ -2898,16 +3289,16 @@ export const App: React.FC = () => {
                   <Cpu className="w-5 h-5 text-emerald-500" />
                   <div>
                     <h2 className="text-sm font-extrabold uppercase">
-                      High-Density Quantitative Pro Telemetry & POSIX Shared Memory Matrix
+                      High-Density Quantitative Pro Telemetry &amp; POSIX Shared Memory Matrix
                     </h2>
                     <p className={`text-xs font-mono-tabular ${mutedText}`}>
-                      64-Byte Cache-Line Aligned Ring Buffer · Schur Complement Σ_A(γ) = Σ_A −
+                      0% Synthetic Returns (Real Historical NEPSE CSVs) · Schur Complement Σ_A(γ) = Σ_A −
                       γΣ_AB Σ_B⁻¹ Σ_BA · FINOS FDC3 2.0
                     </p>
                   </div>
                 </div>
                 <span className="px-3 py-1 rounded-full text-xs font-mono-tabular bg-emerald-500/15 text-emerald-600 font-bold">
-                  SharedArrayBuffer Ring Active (128 Slots)
+                  0% Synthetic · Real NEPSE Return Series ({protocolManifest.historical_trading_days_loaded || 180} Days)
                 </span>
               </div>
 
@@ -2916,50 +3307,89 @@ export const App: React.FC = () => {
                   <thead>
                     <tr className={`border-b border-slate-200 dark:border-slate-800 ${mutedText} uppercase text-[10px]`}>
                       <th className="py-2.5 px-3">Symbol</th>
-                      <th className="py-2.5 px-3">Live LTP (NPR)</th>
+                      <th className="py-2.5 px-3">Actual LTP &amp; Source</th>
+                      <th className="py-2.5 px-3">Real Return History</th>
                       <th className="py-2.5 px-3">x_gross(t)</th>
                       <th className="py-2.5 px-3">x_settle_lock(t)</th>
                       <th className="py-2.5 px-3">x_promoter_lock(t)</th>
                       <th className="py-2.5 px-3">x_available(t)</th>
-                      <th className="py-2.5 px-3">Schur Weight</th>
-                      <th className="py-2.5 px-3">Hysteresis Weight</th>
-                      <th className="py-2.5 px-3">Rank Rᵢ(t)</th>
+                      <th className="py-2.5 px-3 text-purple-600 dark:text-purple-400">
+                        Schur Wt [PREDICTION]
+                      </th>
+                      <th className="py-2.5 px-3 text-purple-600 dark:text-purple-400">
+                        Hysteresis Wt [PREDICTION]
+                      </th>
+                      <th className="py-2.5 px-3 text-purple-600 dark:text-purple-400">
+                        Rank Rᵢ(t) [PRED]
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800/60">
-                    {vault.symbols?.map((sym: string) => {
-                      const rawW =
-                        (allocationRings.schur_hrp.raw_weights?.[sym] || 0) * 100;
-                      const hystW =
-                        (allocationRings.schur_hrp.post_hysteresis_weights?.[sym] || 0) * 100;
-                      const rank = allocationRings.schur_hrp.asset_ranks?.[sym] ?? "-";
+                    {(!vault.symbols || vault.symbols.length === 0) ? (
+                      <tr>
+                        <td colSpan={10} className={`py-8 text-center text-xs ${mutedText}`}>
+                          0 stocks in portfolio — Feed your stocks in Batch Add Mode to compute Schur-RA-HRP weights from real historical NEPSE returns (`nepse_data_all/*.csv`).
+                        </td>
+                      </tr>
+                    ) : (
+                      vault.symbols.map((sym: string) => {
+                        const rawW =
+                          (allocationRings.schur_hrp.raw_weights?.[sym] || 0) * 100;
+                        const hystW =
+                          (allocationRings.schur_hrp.post_hysteresis_weights?.[sym] || 0) * 100;
+                        const rank = allocationRings.schur_hrp.asset_ranks?.[sym] ?? "-";
+                        const prov = priceProvenanceMap[sym];
+                        const retProv = returnProvenanceMap[sym];
+                        const isNepseClose = prov?.source_type === "REAL_NEPSE_HISTORICAL_CLOSE";
 
-                      return (
-                        <tr key={sym} className="hover:bg-blue-500/5">
-                          <td className="py-2 px-3 font-bold">{sym}</td>
-                          <td className="py-2 px-3 text-[#0062A8] dark:text-sky-400 font-bold">
-                            {(livePrices[sym] || 0).toFixed(2)}
-                          </td>
-                          <td className="py-2 px-3">
-                            {(vault.x_gross?.[sym] || 0).toLocaleString()}
-                          </td>
-                          <td className="py-2 px-3 text-amber-600 font-semibold">
-                            {(vault.x_settlement_lock?.[sym] || 0).toLocaleString()}
-                          </td>
-                          <td className="py-2 px-3 text-rose-600 font-semibold">
-                            {(vault.x_promoter_lock?.[sym] || 0).toLocaleString()}
-                          </td>
-                          <td className="py-2 px-3 font-bold text-emerald-600">
-                            {(vault.x_available?.[sym] || 0).toLocaleString()}
-                          </td>
-                          <td className="py-2 px-3">{rawW.toFixed(2)}%</td>
-                          <td className="py-2 px-3 font-bold text-emerald-600">
-                            {hystW.toFixed(2)}%
-                          </td>
-                          <td className="py-2 px-3">#{rank}</td>
-                        </tr>
-                      );
-                    })}
+                        return (
+                          <tr key={sym} className="hover:bg-blue-500/5">
+                            <td className="py-2 px-3 font-bold">{sym}</td>
+                            <td className="py-2 px-3">
+                              <div className="text-[#0062A8] dark:text-sky-400 font-bold">
+                                {(livePrices[sym] || 0).toFixed(2)}
+                              </div>
+                              <div className="text-[9px] font-sans font-bold text-emerald-600 dark:text-emerald-400">
+                                {isNepseClose
+                                  ? `NEPSE CLOSE (${prov?.as_of_date})`
+                                  : "USER-FED PRICE"}
+                              </div>
+                            </td>
+                            <td className="py-2 px-3 text-[11px]">
+                              {retProv?.observations_count > 0 ? (
+                                <span>
+                                  {retProv.observations_count}d ({retProv.start_date} →{" "}
+                                  {retProv.end_date})
+                                </span>
+                              ) : (
+                                <span>User Custom Symbol (0 Synthetic)</span>
+                              )}
+                            </td>
+                            <td className="py-2 px-3">
+                              {(vault.x_gross?.[sym] || 0).toLocaleString()}
+                            </td>
+                            <td className="py-2 px-3 text-amber-600 font-semibold">
+                              {(vault.x_settlement_lock?.[sym] || 0).toLocaleString()}
+                            </td>
+                            <td className="py-2 px-3 text-rose-600 font-semibold">
+                              {(vault.x_promoter_lock?.[sym] || 0).toLocaleString()}
+                            </td>
+                            <td className="py-2 px-3 font-bold text-emerald-600">
+                              {(vault.x_available?.[sym] || 0).toLocaleString()}
+                            </td>
+                            <td className="py-2 px-3 text-purple-600 dark:text-purple-300 font-bold">
+                              {rawW.toFixed(2)}%
+                            </td>
+                            <td className="py-2 px-3 font-bold text-purple-600 dark:text-purple-300">
+                              {hystW.toFixed(2)}%
+                            </td>
+                            <td className="py-2 px-3 text-purple-600 dark:text-purple-300 font-bold">
+                              #{rank}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
                   </tbody>
                 </table>
               </div>

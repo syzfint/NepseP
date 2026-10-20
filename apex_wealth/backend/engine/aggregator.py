@@ -275,9 +275,13 @@ class MultiAccountAggregator:
             x_settlement_lock[s] * float(market_prices.get(s, 0.0)) for s in symbols
         )
 
-        nav_total = max(1.0, total_cash + total_equity_mv)
+        nav_total = float(total_cash + total_equity_mv)
         nav_unsettled_t2 = unsettled_cash_t2 + settle_locked_shares_mv
-        r_lock_ratio = float(np.clip(nav_unsettled_t2 / nav_total, 0.0, 1.0))
+        r_lock_ratio = (
+            float(np.clip(nav_unsettled_t2 / max(1.0, nav_total), 0.0, 1.0))
+            if nav_total > 0.0
+            else 0.0
+        )
 
         c_locked_ratio = (
             float(np.clip(unsettled_cash_t2 / max(1.0, total_cash), 0.0, 1.0))
@@ -364,23 +368,24 @@ def create_default_institutional_vault(
     """
     ref = _ensure_utc(reference_time or datetime.now(timezone.utc))
 
+    # Strictly verified NEPSE closing prices from 01_raw_data/nepse_floorsheet_2026-10-16.json (Zero Synthetic Prices)
     market_prices: Dict[str, float] = {
-        "NABIL": 1245.0,
-        "NICA": 890.0,
-        "SCB": 612.0,
-        "CHDC": 1620.0,
-        "HIDCL": 324.0,
-        "UPPER": 215.0,
-        "SHIVM": 595.0,
-        "NTC": 945.0,
-        "NRIC": 780.0,
-        "HDL": 1980.0,
-        "GBIME": 248.0,
-        "SANIMA": 312.0,
-        "EBL": 584.0,
-        "CIT": 2340.0,
-        "BPCL": 410.0,
-        "API": 204.0,
+        "NABIL": 547.0,
+        "NICA": 320.9,
+        "SCB": 679.0,
+        "CHDC": 2329.0,
+        "HIDCL": 255.0,
+        "UPPER": 193.0,
+        "SHIVM": 682.9,
+        "NTC": 920.0,
+        "NRIC": 765.0,
+        "HDL": 1309.0,
+        "GBIME": 254.0,
+        "SANIMA": 392.9,
+        "EBL": 719.0,
+        "CIT": 1735.0,
+        "BPCL": 651.0,
+        "API": 345.0,
     }
 
     vault = InvestorVault(

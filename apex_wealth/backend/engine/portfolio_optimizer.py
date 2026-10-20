@@ -673,6 +673,49 @@ class SchurRAHRPOptimizer:
             raise TypeError("returns_df must be a DataFrame or ReturnsFrame with asset columns.")
 
         assets = list(returns_df.columns)
+        if len(assets) == 0:
+            return SchurHRPResult(
+                assets=[],
+                ordered_assets=[],
+                raw_weights={},
+                hrp_baseline_weights={},
+                post_hysteresis_weights={},
+                asset_ranks={},
+                raw_condition_number=0.0,
+                shrunk_condition_number=0.0,
+                shrinkage_intensity=0.0,
+                gamma_requested=round(self.gamma, 4),
+                gamma_effective=0.0,
+                portfolio_variance_hrp=0.0,
+                portfolio_variance_schur=0.0,
+                distance_matrix=[],
+                quasi_diag_corr_matrix=[],
+                dendrogram_splits=[],
+                hysteresis_actions={},
+            )
+        if len(assets) == 1:
+            sym = assets[0]
+            w_val = 0.0 if (weight_restrictions and weight_restrictions.get(sym) == 0.0) else 1.0
+            return SchurHRPResult(
+                assets=[sym],
+                ordered_assets=[sym],
+                raw_weights={sym: w_val},
+                hrp_baseline_weights={sym: w_val},
+                post_hysteresis_weights={sym: w_val},
+                asset_ranks={sym: 1},
+                raw_condition_number=1.0,
+                shrunk_condition_number=1.0,
+                shrinkage_intensity=0.0,
+                gamma_requested=round(self.gamma, 4),
+                gamma_effective=round(self.gamma, 4),
+                portfolio_variance_hrp=0.0001,
+                portfolio_variance_schur=0.0001,
+                distance_matrix=[[0.0]],
+                quasi_diag_corr_matrix=[[1.0]],
+                dendrogram_splits=[],
+                hysteresis_actions={sym: "HOLD_TOP15_DEADBAND" if w_val > 0 else "PROMOTER_LOCK_RESTRICTED"},
+            )
+
         returns_np = returns_df.to_numpy(dtype=np.float64)
 
         cov_shrunk, raw_kappa, shrunk_kappa, lw_alpha = self.ledoit_wolf_shrinkage(
@@ -785,6 +828,14 @@ class SchurRAHRPOptimizer:
             raise ValueError("Insufficient observations in returns_df for rolling backtest.")
 
         assets = list(returns_df.columns)
+        if len(assets) <= 1:
+            return {
+                "rebalance_events": 0,
+                "annual_turnover_unbuffered": 0.0,
+                "annual_turnover_hysteresis": 0.0,
+                "fee_drag_unbuffered": 0.0,
+                "fee_drag_hysteresis": 0.0,
+            }
         returns_mat = returns_df.to_numpy(dtype=np.float64)
         naive_weights: Optional[Dict[str, float]] = None
         hyst_weights: Optional[Dict[str, float]] = None
