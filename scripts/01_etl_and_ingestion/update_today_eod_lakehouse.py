@@ -392,6 +392,7 @@ def update_lakehouse_with_today_bars(eod_data: Dict[str, Any]):
           CREATE OR REPLACE VIEW market_master_union AS 
           SELECT * FROM read_parquet('{str(MASTER_PARQUET).replace('\\', '/')}')
       """)
+    _db_mgr.close_all()
     sync_file(duckdb_path, "02_processed_parquet/market_analytics.duckdb")
     print(f"DuckDB view registered in {duckdb_path}.")
 
