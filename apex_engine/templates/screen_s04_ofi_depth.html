@@ -301,6 +301,34 @@
             font-size: 9px;
             margin-bottom: 2px;
         }
+        .btn-toggle {
+            background: #111827;
+            border: 1px solid #1f2937;
+            color: #9ca3af;
+            font-family: inherit;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+        .btn-toggle:hover {
+            color: #06b6d4;
+            border-color: #06b6d4;
+        }
+        .btn-toggle.active {
+            background: rgba(6, 182, 212, 0.2);
+            color: #06b6d4;
+            border-color: #06b6d4;
+        }
+        .tpo-letter-block {
+            display: inline-block;
+            padding: 1px 3px;
+            margin-right: 1px;
+            font-weight: 700;
+            font-size: 10px;
+            border-radius: 1px;
+        }
     </style>
 </head>
 <body>
@@ -371,29 +399,69 @@
             </div>
         </section>
 
-        <!-- CENTER PANEL: 10-Level Visual L2 Depth Ladder -->
+        <!-- CENTER PANEL: 10-Level Visual L2 Depth Ladder & TPO Market Profile -->
         <section class="panel">
             <div class="panel-header">
-                <span>10-Level Consolidated Depth Ladder</span>
-                <span style="font-size: 10px; color: var(--text-dim);">TICK PROTOCOL: L2_UNTHROTTLED</span>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <span style="font-weight: 800;">AUCTION STRUCTURE:</span>
+                    <button id="btn-view-tpo" class="btn-toggle active" onclick="switchCenterView('tpo')">TPO MARKET PROFILE & FOOTPRINT</button>
+                    <button id="btn-view-l2" class="btn-toggle" onclick="switchCenterView('l2')">10-LEVEL L2 DEPTH</button>
+                </div>
+                <div style="font-size: 10px; color: var(--cyan);" id="auction-phase-tag">SESSION: 11:00-15:00 NPT [BRACKETS A-H]</div>
             </div>
 
-            <div class="depth-table-container">
-                <table class="depth-ladder">
-                    <thead>
-                        <tr>
-                            <th style="width: 12%;">ORDERS</th>
-                            <th style="width: 18%;">BID VOL</th>
-                            <th style="width: 20%; color: var(--green);">BID PRICE</th>
-                            <th style="width: 20%; color: var(--red); text-align: left;">ASK PRICE</th>
-                            <th style="width: 18%; text-align: left;">ASK VOL</th>
-                            <th style="width: 12%; text-align: left;">ORDERS</th>
-                        </tr>
-                    </thead>
-                    <tbody id="depth-ladder-body">
-                        <!-- Rendered by real-time stream -->
-                    </tbody>
-                </table>
+            <!-- VIEW 1: TPO Profile & Candlestick Footprint (Images 4 & 5) -->
+            <div id="tpo-view-container" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #000000;">
+                <div style="padding: 6px 12px; background: #0b0f19; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; font-size: 10px;">
+                    <div>
+                        <span style="color: var(--amber);">VALUE AREA (VA): 70%</span> | 
+                        <span>VAH: <b id="tpo-vah" style="color: #93c5fd;">485.00</b></span> | 
+                        <span>POC: <b id="tpo-poc" style="color: var(--red);">482.00</b></span> | 
+                        <span>VAL: <b id="tpo-val" style="color: #93c5fd;">479.00</b></span>
+                    </div>
+                    <div>
+                        <span id="tpo-bt-badge" style="background: rgba(6, 182, 212, 0.2); border: 1px solid var(--cyan); color: var(--cyan); padding: 1px 6px; border-radius: 2px;">BT: BUYING TAIL (2)</span>
+                        <span id="tpo-excess-badge" style="background: rgba(239, 68, 68, 0.2); border: 1px solid var(--red); color: var(--red); padding: 1px 6px; border-radius: 2px; margin-left: 4px;">EXCESS CONFIRMED</span>
+                    </div>
+                </div>
+
+                <div class="depth-table-container" style="background: #000000; padding: 4px 8px;">
+                    <table class="tpo-table" style="width: 100%; border-collapse: collapse; font-size: 11px; font-family: 'JetBrains Mono', monospace;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid #1f2937; color: var(--text-muted); font-size: 9px;">
+                                <th style="text-align: right; width: 12%;">PRICE</th>
+                                <th style="text-align: left; width: 44%; padding-left: 10px;">TPO AUCTION BRACKETS [A-H]</th>
+                                <th style="text-align: right; width: 16%;">VOLUME</th>
+                                <th style="text-align: left; width: 20%; padding-left: 8px;">DELTA LADDER</th>
+                                <th style="text-align: center; width: 8%;">STRUCTURE</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tpo-table-body">
+                            <!-- Populated dynamically via /api/tpo -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- VIEW 2: 10-Level Consolidated Depth Ladder -->
+            <div id="l2-view-container" style="flex: 1; display: none; flex-direction: column; overflow: hidden;">
+                <div class="depth-table-container">
+                    <table class="depth-ladder">
+                        <thead>
+                            <tr>
+                                <th style="width: 12%;">ORDERS</th>
+                                <th style="width: 18%;">BID VOL</th>
+                                <th style="width: 20%; color: var(--green);">BID PRICE</th>
+                                <th style="width: 20%; color: var(--red); text-align: left;">ASK PRICE</th>
+                                <th style="width: 18%; text-align: left;">ASK VOL</th>
+                                <th style="width: 12%; text-align: left;">ORDERS</th>
+                            </tr>
+                        </thead>
+                        <tbody id="depth-ladder-body">
+                            <!-- Rendered by real-time stream -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </section>
 
@@ -554,8 +622,95 @@
             ctx.stroke();
         }
 
+        let currentCenterView = "tpo";
+        function switchCenterView(view) {
+            currentCenterView = view;
+            const btnTpo = document.getElementById("btn-view-tpo");
+            const btnL2 = document.getElementById("btn-view-l2");
+            const tpoContainer = document.getElementById("tpo-view-container");
+            const l2Container = document.getElementById("l2-view-container");
+
+            if (view === "tpo") {
+                btnTpo.classList.add("active");
+                btnL2.classList.remove("active");
+                tpoContainer.style.display = "flex";
+                l2Container.style.display = "none";
+                fetchAndRenderTPO(document.getElementById("active-symbol").textContent || "NICA");
+            } else {
+                btnL2.classList.add("active");
+                btnTpo.classList.remove("active");
+                tpoContainer.style.display = "none";
+                l2Container.style.display = "flex";
+            }
+        }
+
+        async function fetchAndRenderTPO(symbol) {
+            try {
+                const res = await fetch(`/api/tpo/${symbol}`);
+                if (!res.ok) return;
+                const data = await res.json();
+                renderTPOData(data);
+            } catch (err) {
+                console.error("[APEX S04] TPO fetch error:", err);
+            }
+        }
+
+        function renderTPOData(data) {
+            document.getElementById("tpo-vah").textContent = data.vah_price ? data.vah_price.toFixed(2) : "-";
+            document.getElementById("tpo-poc").textContent = data.poc_price ? data.poc_price.toFixed(2) : "-";
+            document.getElementById("tpo-val").textContent = data.val_price ? data.val_price.toFixed(2) : "-";
+
+            const tbody = document.getElementById("tpo-table-body");
+            if (!tbody) return;
+            tbody.innerHTML = "";
+
+            (data.ladder || []).forEach(row => {
+                const tr = document.createElement("tr");
+                tr.style.borderBottom = "1px solid #111827";
+
+                let rowBg = "#000000";
+                if (row.is_poc) rowBg = "rgba(239, 68, 68, 0.25)";
+                else if (row.in_value_area) rowBg = "#111827";
+                tr.style.backgroundColor = rowBg;
+
+                // Color code letters
+                let lettersHtml = "";
+                for (let ch of row.letters) {
+                    let col = "#9ca3af";
+                    if (ch === 'A' || ch === 'B') col = "#60a5fa";
+                    else if (ch === 'C' || ch === 'D') col = "#34d399";
+                    else if (ch === 'G' || ch === 'H') col = "#f59e0b";
+                    lettersHtml += `<span class="tpo-letter-block" style="color: ${col};">${ch}</span>`;
+                }
+
+                let volStr = row.volume >= 1000000 ? (row.volume / 1000000).toFixed(1) + "M" : (row.volume >= 1000 ? (row.volume / 1000).toFixed(0) + "k" : row.volume);
+                let priceColor = row.is_poc ? "var(--red)" : (row.in_value_area ? "#ffffff" : "#64748b");
+
+                let tagHtml = "";
+                if (row.is_poc) tagHtml = '<span style="background: var(--red); color: white; padding: 1px 4px; border-radius: 2px; font-size: 8px; font-weight: 800;">POC</span>';
+                else if (row.is_buying_tail) tagHtml = '<span style="background: rgba(6,182,212,0.3); color: var(--cyan); padding: 1px 4px; border-radius: 2px; font-size: 8px;">BT</span>';
+                else if (row.is_selling_tail) tagHtml = '<span style="background: rgba(239,68,68,0.3); color: var(--red); padding: 1px 4px; border-radius: 2px; font-size: 8px;">ST</span>';
+
+                let deltaColor = row.delta >= 0 ? "var(--green)" : "var(--red)";
+                let deltaBarWidth = Math.min(Math.abs(row.delta) / 10000 * 100, 100);
+
+                tr.innerHTML = `
+                    <td style="text-align: right; font-weight: 700; color: ${priceColor}; padding: 3px 6px;">${row.price.toFixed(2)}</td>
+                    <td style="text-align: left; padding: 3px 10px;">${lettersHtml}</td>
+                    <td style="text-align: right; color: var(--text-muted); font-size: 10px; padding: 3px 6px;">${volStr}</td>
+                    <td style="text-align: left; padding: 3px 8px; position: relative;">
+                        <div style="background: ${deltaColor}; opacity: 0.2; height: 12px; width: ${deltaBarWidth}%; position: absolute; left: 8px; top: 3px; border-radius: 1px;"></div>
+                        <span style="position: relative; z-index: 2; font-size: 9px; color: ${deltaColor};">${row.delta > 0 ? "+" : ""}${row.delta}</span>
+                    </td>
+                    <td style="text-align: center; padding: 3px 4px;">${tagHtml}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
         window.addEventListener("DOMContentLoaded", () => {
             connectWebSocket();
+            fetchAndRenderTPO("NICA");
         });
     </script>
 </body>

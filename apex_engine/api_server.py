@@ -146,6 +146,29 @@ async def get_merkle():
         return JSONResponse({"status": "ERROR", "message": str(e)}, status_code=500)
 
 
+@api_router.get("/api/tpo/{symbol}")
+async def get_tpo_profile(symbol: str = "NICA"):
+    sys.path.insert(0, str(BASE_DIR / "scripts" / "02_modeling_and_calculations"))
+    try:
+        from tpo_profile_calculator import TPOProfileEngine
+        engine = TPOProfileEngine()
+        profile = engine.compute_profile_from_trades(symbol.upper(), [])
+        return JSONResponse(profile)
+    except Exception as e:
+        return JSONResponse({"status": "ERROR", "message": str(e)}, status_code=500)
+
+
+@api_router.get("/api/surface/optimization")
+async def get_optimization_surface():
+    sys.path.insert(0, str(BASE_DIR / "scripts" / "04_backtesting" / "sovereign_alpha_miner"))
+    try:
+        from surface_smoother import generate_optimization_landscape
+        landscape = generate_optimization_landscape()
+        return JSONResponse(landscape)
+    except Exception as e:
+        return JSONResponse({"status": "ERROR", "message": str(e)}, status_code=500)
+
+
 # WebSocket Route
 @api_router.websocket("/ws/pulse")
 async def ws_pulse_endpoint(websocket: WebSocket):
