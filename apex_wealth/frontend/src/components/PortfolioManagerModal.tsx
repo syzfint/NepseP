@@ -9,7 +9,19 @@
  */
 
 import React, { useState } from "react";
-import { Plus, Upload, Trash2, X, CheckCircle, FileText, Building2, Lock } from "lucide-react";
+import {
+  Plus,
+  Upload,
+  Trash2,
+  X,
+  CheckCircle,
+  FileText,
+  Building2,
+  Lock,
+  Download,
+  FileSpreadsheet,
+  AlertCircle,
+} from "lucide-react";
 
 export interface TaxLotItem {
   lot_id: string;
@@ -59,9 +71,15 @@ export const PortfolioManagerModal: React.FC<PortfolioManagerModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  // Bulk Import Form (starts empty — no prefilled demo rows)
+  // Bulk Import Form & Local File Upload State
   const [importText, setImportText] = useState("");
   const [selectedModalLotIds, setSelectedModalLotIds] = useState<string[]>([]);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [uploadedFileBase64, setUploadedFileBase64] = useState<string | null>(null);
+  const [parsedPreviewItems, setParsedPreviewItems] = useState<any[]>([]);
+  const [detectedFormat, setDetectedFormat] = useState<string | null>(null);
+  const [isParsingFile, setIsParsingFile] = useState(false);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
 
   if (!isOpen) return null;
 
@@ -223,6 +241,103 @@ export const PortfolioManagerModal: React.FC<PortfolioManagerModalProps> = ({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleFileSelected = (file: File) => {
+    if (!file) return;
+    setIsParsingFile(true);
+    setFeedback(null);
+    setUploadedFileName(file.name);
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64Data = (reader.result as string) || "";
+      setUploadedFileBase64(base64Data);
+      try {
+        const res = await fetch(`${apiBase}/api/v1/pms/portfolio/upload_local_file`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            filename: file.name,
+            content_base64: base64Data,
+            default_sub_account_id: accountId || subAccounts[0]?.account_id || "Personal",
+            auto_commit: false,
+          }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setParsedPreviewItems(data.items || []);
+          setDetectedFormat(data.detected_format || file.name);
+          setFeedback(
+            `✓ Parsed ${data.count} holdings from "${file.name}" (${data.detected_format}). Review below before importing.`
+          );
+        } else {
+          setFeedback(`Error parsing file: ${data.detail || "Invalid format"}`);
+          setParsedPreviewItems([]);
+        }
+      } catch {
+        setFeedback("Network error connecting to file parsing engine.");
+      } finally {
+        setIsParsingFile(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCommitUploadedFile = async () => {
+    if (!uploadedFileName || !uploadedFileBase64 || parsedPreviewItems.length === 0) return;
+    setIsSubmitting(true);
+    setFeedback(null);
+    try {
+      const res = await fetch(`${apiBase}/api/v1/pms/portfolio/upload_local_file`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: uploadedFileName,
+          content_base64: uploadedFileBase64,
+          default_sub_account_id: accountId || subAccounts[0]?.account_id || "Personal",
+          auto_commit: true,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setFeedback(
+          `✓ Successfully imported ${data.imported_count} positions from "${uploadedFileName}"!`
+        );
+        setUploadedFileName(null);
+        setUploadedFileBase64(null);
+        setParsedPreviewItems([]);
+        setDetectedFormat(null);
+        onRefresh();
+      } else {
+        setFeedback(`Import failed: ${data.detail || "Unknown error"}`);
+      }
+    } catch {
+      setFeedback("Network error during file import commit.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDownloadSampleCsv = () => {
+    const csvContent =
+      "Symbol,Quantity,Purchase Price,LTP,Holding Days,Sub Account,Promoter Locked\n" +
+      "NABIL,250,520,547,420,Personal,false\n" +
+      "NICA,180,310,320.9,180,Family,false\n" +
+      "CHDC,50,2250,2329,90,Personal,false\n" +
+      "UPPER,300,185,193,500,Corporate,false\n";
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "sample_nepse_portfolio.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportCurrentCsv = () => {
+    window.open(`${apiBase}/api/v1/pms/portfolio/export_csv`, "_blank");
   };
 
   return (
@@ -513,34 +628,175 @@ export const PortfolioManagerModal: React.FC<PortfolioManagerModalProps> = ({
           </form>
         )}
 
-        {/* Tab 3: Bulk Import */}
+        {/* Tab 3: Local File Upload & Bulk Import */}
         {activeTab === "import" && (
-          <div className="p-6 space-y-4 flex-1 overflow-y-auto">
-            <div className="space-y-1">
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
-                Paste Stock Rows (Symbol, Quantity, Price)
-              </label>
-              <p className="text-xs text-slate-400">
-                Format: <code>SYMBOL, SHARES, PRICE</code> (one per line). Example below:
-              </p>
+          <div className="p-6 space-y-5 flex-1 overflow-y-auto">
+            {/* Top Toolbar: Template & Export */}
+            <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-2xl bg-[#182030] border border-slate-800">
+              <div className="text-xs text-slate-300 font-semibold flex items-center gap-1.5">
+                <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                <span>Import from your local computer (.csv, .xlsx, .xls, .tsv, .json)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleDownloadSampleCsv}
+                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Download Sample CSV</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExportCurrentCsv}
+                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Export Portfolio CSV</span>
+                </button>
+              </div>
             </div>
 
-            <textarea
-              rows={6}
-              value={importText}
-              onChange={(e) => setImportText(e.target.value)}
-              className="w-full bg-[#1E2638] border border-slate-700 rounded-2xl p-4 text-sm text-white font-mono placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
-            />
+            {/* Local Device File Dropzone */}
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDraggingOver(true);
+              }}
+              onDragLeave={() => setIsDraggingOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDraggingOver(false);
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                  handleFileSelected(e.dataTransfer.files[0]);
+                }
+              }}
+              className={`p-6 rounded-2xl border-2 border-dashed transition-all text-center space-y-3 ${
+                isDraggingOver
+                  ? "border-emerald-500 bg-emerald-500/10 scale-[1.01]"
+                  : "border-slate-700 bg-[#161D2B] hover:border-slate-500"
+              }`}
+            >
+              <div className="w-12 h-12 mx-auto rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center">
+                <Upload className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-white">
+                  Drag and drop your portfolio file here
+                </p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Supports MeroShare exports, TMS downloads, and Excel spreadsheets (.csv, .xlsx, .xls, .tsv, .json)
+                </p>
+              </div>
+              <label className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold cursor-pointer shadow-lg transition-transform hover:scale-105">
+                <FileSpreadsheet className="w-4 h-4" />
+                <span>Browse Local File</span>
+                <input
+                  type="file"
+                  accept=".csv,.tsv,.txt,.json,.xlsx,.xls"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      handleFileSelected(e.target.files[0]);
+                    }
+                  }}
+                  className="hidden"
+                />
+              </label>
+              {isParsingFile && (
+                <div className="text-xs text-blue-400 animate-pulse font-semibold">
+                  Parsing and verifying closing prices via Strict Price Integrity Engine...
+                </div>
+              )}
+            </div>
 
-            <div className="pt-2">
+            {/* Interactive Preview Table for Parsed File */}
+            {parsedPreviewItems.length > 0 && (
+              <div className="p-4 rounded-2xl bg-[#161D2B] border border-slate-700 space-y-3 font-mono-tabular">
+                <div className="flex items-center justify-between border-b border-slate-700/80 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-emerald-400 uppercase">
+                      ✓ Previewing {parsedPreviewItems.length} Holdings
+                    </span>
+                    <span className="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 font-sans">
+                      {detectedFormat || uploadedFileName}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCommitUploadedFile}
+                    disabled={isSubmitting}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold cursor-pointer shadow-md inline-flex items-center gap-1.5 transition-all"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>{isSubmitting ? "Importing..." : `Commit All ${parsedPreviewItems.length} Holdings Now`}</span>
+                  </button>
+                </div>
+
+                <div className="max-h-56 overflow-y-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-800 text-[10px] font-sans text-slate-400 uppercase">
+                        <th className="py-1.5">Symbol</th>
+                        <th className="py-1.5 text-right">Shares</th>
+                        <th className="py-1.5 text-right">WACC / Cost</th>
+                        <th className="py-1.5 text-right">Closing LTP</th>
+                        <th className="py-1.5">Provenance</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60">
+                      {parsedPreviewItems.slice(0, 30).map((item, idx) => (
+                        <tr key={`${item.symbol}-${idx}`} className="hover:bg-slate-800/40">
+                          <td className="py-2 font-bold text-blue-400">{item.symbol}</td>
+                          <td className="py-2 text-right">{item.quantity}</td>
+                          <td className="py-2 text-right">
+                            NPR {item.purchase_price}
+                            {item.buy_price_note && (
+                              <div className="text-[9px] text-amber-400 font-sans truncate max-w-[120px]">
+                                {item.buy_price_note}
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-2 text-right font-bold text-emerald-400">
+                            NPR {item.resolved_ltp || item.ltp || "—"}
+                          </td>
+                          <td className="py-2 text-[10px] font-sans text-slate-400 truncate max-w-[160px]">
+                            {item.ltp_source_detail || item.ltp_source_type || "Verified Close"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Quick Text / Manual Paste Fallback */}
+            <div className="space-y-2 pt-2 border-t border-slate-800">
+              <div className="space-y-0.5">
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  Or Paste Text Rows Directly (Symbol, Shares, Price)
+                </label>
+                <p className="text-xs text-slate-400">
+                  Format: <code>SYMBOL, SHARES, PRICE</code> (one per line). Example: <code>NABIL, 500, 485</code>
+                </p>
+              </div>
+
+              <textarea
+                rows={4}
+                value={importText}
+                onChange={(e) => setImportText(e.target.value)}
+                placeholder="NABIL, 200, 520&#10;NICA, 150, 310"
+                className="w-full bg-[#1E2638] border border-slate-700 rounded-2xl p-3.5 text-sm text-white font-mono placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
+              />
+
               <button
                 type="button"
                 disabled={isSubmitting}
                 onClick={handleBulkImport}
-                className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-500 transition-colors shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-3 rounded-xl font-bold text-xs text-white bg-blue-600 hover:bg-blue-500 transition-colors shadow-md flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Upload className="w-4 h-4" />
-                <span>Import All Positions</span>
+                <span>Import Pasted Rows</span>
               </button>
             </div>
           </div>

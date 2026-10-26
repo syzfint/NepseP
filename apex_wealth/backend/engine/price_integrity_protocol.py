@@ -32,6 +32,7 @@ from engine.portfolio_optimizer import ReturnsFrame
 
 ALLOWED_PRICE_SOURCES = frozenset({
     "REAL_NEPSE_HISTORICAL_CLOSE",
+    "REAL_NEPSE_LIVE_FEED",
     "USER_ENTERED_PRICE",
 })
 
@@ -98,6 +99,8 @@ class StrictPriceIntegrityEngine:
 
         # Symbol -> (latest_close_price, business_date, source_file)
         self.verified_nepse_closes: Dict[str, Tuple[float, str, str]] = {}
+        # Symbol -> (live_ltp, timestamp_str, source_detail) from NEPSE live feed
+        self.live_feed_quotes: Dict[str, Tuple[float, str, str]] = {}
         # Symbol -> List of (date_str, close_price) ordered chronologically
         self.historical_close_series: Dict[str, List[Tuple[str, float]]] = {}
         # Ordered list of historical trading dates loaded
@@ -259,6 +262,29 @@ class StrictPriceIntegrityEngine:
             except Exception:
                 pass
 
+    def register_live_feed_quote(
+        self,
+        symbol: str,
+        ltp: float,
+        as_of_date: str,
+        source_detail: str = "NEPSE Official Live Market Feed",
+    ) -> PriceProvenanceRecord:
+        """Register a genuine live tick from NEPSE live market API. NEVER synthetic."""
+        sym = symbol.strip().upper()
+        clean_ltp = round(float(ltp), 2)
+        self.live_feed_quotes[sym] = (clean_ltp, as_of_date, source_detail)
+        rec = PriceProvenanceRecord(
+            symbol=sym,
+            price=clean_ltp,
+            source_type="REAL_NEPSE_LIVE_FEED",
+            as_of_date=as_of_date,
+            source_detail=source_detail,
+            is_synthetic=False,
+            is_prediction=False,
+        )
+        rec.validate()
+        return rec
+
     def resolve_verified_price(
         self,
         symbol: str,
@@ -267,10 +293,11 @@ class StrictPriceIntegrityEngine:
     ) -> PriceProvenanceRecord:
         """
         Resolve the price of `symbol` strictly without ever synthesizing a price:
-        1. If the user explicitly supplied an LTP (`user_supplied_ltp > 0`), tag as `USER_ENTERED_PRICE`.
-        2. Else if `symbol` exists in verified NEPSE historical records (`01_raw_data` / `nepse_data_all`),
+        1. If the user explicitly supplied a manual LTP (`user_supplied_ltp > 0`), tag as `USER_ENTERED_PRICE`.
+        2. Else if `symbol` has a real live feed quote (`REAL_NEPSE_LIVE_FEED`), use it.
+        3. Else if `symbol` exists in verified NEPSE historical records (`01_raw_data` / `nepse_data_all`),
            use the real NEPSE closing price and tag as `REAL_NEPSE_HISTORICAL_CLOSE` with exact date & file.
-        3. Else fall back to the user's own `user_purchase_price` and tag as `USER_ENTERED_PRICE (Cost Basis)`.
+        4. Else fall back to the user's own `user_purchase_price` and tag as `USER_ENTERED_PRICE (Cost Basis)`.
         """
         sym = symbol.strip().upper()
         if user_supplied_ltp is not None and float(user_supplied_ltp) > 0:
@@ -280,6 +307,20 @@ class StrictPriceIntegrityEngine:
                 source_type="USER_ENTERED_PRICE",
                 as_of_date="User-Specified",
                 source_detail="Explicitly entered by user (Manual LTP)",
+                is_synthetic=False,
+                is_prediction=False,
+            )
+            rec.validate()
+            return rec
+
+        if sym in self.live_feed_quotes:
+            live_price, b_date, src_detail = self.live_feed_quotes[sym]
+            rec = PriceProvenanceRecord(
+                symbol=sym,
+                price=round(float(live_price), 2),
+                source_type="REAL_NEPSE_LIVE_FEED",
+                as_of_date=b_date,
+                source_detail=src_detail,
                 is_synthetic=False,
                 is_prediction=False,
             )

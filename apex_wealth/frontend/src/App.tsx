@@ -74,6 +74,8 @@ import {
 import { TaxActivityFeed, ActivityFeedItem } from "./components/TaxActivityFeed";
 import { MerkleReceiptModal } from "./components/MerkleReceiptModal";
 import { PortfolioManagerModal, TaxLotItem } from "./components/PortfolioManagerModal";
+import { AccountBrokerManager } from "./components/AccountBrokerManager";
+import { FileSpreadsheet, Download } from "lucide-react";
 import {
   HighFrequencyTelemetryBuffer,
   initFDC3DesktopBridge,
@@ -182,6 +184,7 @@ export const App: React.FC = () => {
   const [isSubmittingBatchAdd, setIsSubmittingBatchAdd] = useState<boolean>(false);
   const [isSubmittingBatchRemove, setIsSubmittingBatchRemove] = useState<boolean>(false);
   const [isWipingAll, setIsWipingAll] = useState<boolean>(false);
+  const [isSyncingLiveFeed, setIsSyncingLiveFeed] = useState<boolean>(false);
 
   // Batch Remove Mode State (Multi-Select Lot IDs)
   const [selectedLotIds, setSelectedLotIds] = useState<string[]>([]);
@@ -264,6 +267,28 @@ export const App: React.FC = () => {
     } catch {}
   };
 
+  const handleSyncLiveMarket = async () => {
+    setIsSyncingLiveFeed(true);
+    try {
+      const res = await fetch(`${apiBase}/api/v1/pms/market/sync_live?force=true`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (res.ok && data.status === "SUCCESS") {
+        setGridFeedback(
+          `✓ Successfully synced with NEPSE Live Feed! Updated ${data.updated_count} holdings. Portfolio NAV: NPR ${Number(data.portfolio_nav_npr || 0).toLocaleString("en-IN")}`
+        );
+        await fetchPmsState(toxicSimulated);
+      } else {
+        setGridFeedback(`NEPSE Live Sync: ${data.message || data.status || "Completed"}`);
+      }
+    } catch {
+      setGridFeedback("Network error connecting to NEPSE Live Feed.");
+    } finally {
+      setIsSyncingLiveFeed(false);
+    }
+  };
+
   useEffect(() => {
     fetchPmsState(toxicSimulated);
   }, [toxicSimulated]);
@@ -280,6 +305,9 @@ export const App: React.FC = () => {
           const msg = JSON.parse(event.data);
           if (msg.type === "HEARTBEAT") {
             hfBufferRef.current.writeTick(0.0, 0.0, 0.0, 0);
+            if (msg.market_status?.is_open && msg.live_sync && msg.live_sync.updated_count > 0) {
+              fetchPmsState(toxicSimulated);
+            }
           }
         } catch {}
       };
@@ -374,6 +402,101 @@ export const App: React.FC = () => {
 
   const handleApplyAccountToAllBatchRows = (accountId: string) => {
     setBatchAddRows((prev) => prev.map((r) => ({ ...r, sub_account_id: accountId })));
+  };
+
+  const handleLoadFileIntoBatchRows = (file: File) => {
+    if (!file) return;
+    setGridFeedback("Reading and parsing uploaded local file...");
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64Data = (reader.result as string) || "";
+      const defaultAcc = quickAccount || vault.sub_account_summaries?.[0]?.account_id || "Personal";
+      try {
+        const res = await fetch(`${apiBase}/api/v1/pms/portfolio/upload_local_file`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            filename: file.name,
+            content_base64: base64Data,
+            default_sub_account_id: defaultAcc,
+            auto_commit: false,
+          }),
+        });
+        const data = await res.json();
+        if (res.ok && data.items && data.items.length > 0) {
+          const loadedRows: BatchAddRowDraft[] = data.items.map((item: any, idx: number) => ({
+            id: `file-${Date.now()}-${idx}`,
+            sub_account_id: item.sub_account_id || defaultAcc,
+            symbol: item.symbol,
+            quantity: String(item.quantity),
+            purchase_price: String(item.purchase_price),
+            ltp: item.resolved_ltp ? String(item.resolved_ltp) : (item.ltp ? String(item.ltp) : ""),
+            holding_days: String(item.holding_days || 400),
+            is_promoter_locked: Boolean(item.is_promoter_locked),
+          }));
+          setBatchAddRows(loadedRows);
+          setGridFeedback(`✓ Loaded ${loadedRows.length} positions from "${file.name}" into spreadsheet! Review and click "Commit Batch Add".`);
+        } else {
+          setGridFeedback(`Failed to parse file: ${data.detail || "No valid rows found"}`);
+        }
+      } catch {
+        setGridFeedback("Network error connecting to file parsing engine.");
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDirectImportLocalFile = (file: File) => {
+    if (!file) return;
+    setGridFeedback("Importing portfolio file directly...");
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64Data = (reader.result as string) || "";
+      const defaultAcc = quickAccount || vault.sub_account_summaries?.[0]?.account_id || "Personal";
+      try {
+        const res = await fetch(`${apiBase}/api/v1/pms/portfolio/upload_local_file`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            filename: file.name,
+            content_base64: base64Data,
+            default_sub_account_id: defaultAcc,
+            auto_commit: true,
+          }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setGridFeedback(`✓ Successfully imported ${data.imported_count} holdings from "${file.name}"!`);
+          await fetchPmsState(toxicSimulated);
+        } else {
+          setGridFeedback(`Import failed: ${data.detail || "Error"}`);
+        }
+      } catch {
+        setGridFeedback("Network error during direct file import.");
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDownloadSampleCsv = () => {
+    const csvContent =
+      "Symbol,Quantity,Purchase Price,LTP,Holding Days,Sub Account,Promoter Locked\n" +
+      "NABIL,250,520,547,420,Personal,false\n" +
+      "NICA,180,310,320.9,180,Family,false\n" +
+      "CHDC,50,2250,2329,90,Personal,false\n" +
+      "UPPER,300,185,193,500,Corporate,false\n";
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "sample_nepse_portfolio.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportCurrentCsv = () => {
+    window.open(`${apiBase}/api/v1/pms/portfolio/export_csv`, "_blank");
   };
 
   const handleParsePasteIntoBatchRows = () => {
@@ -975,10 +1098,31 @@ export const App: React.FC = () => {
 
         {/* NEPSE MARKET STATUS & STRICT ZERO-SYNTHETIC-PRICE PROTOCOL RIBBON */}
         <div className="bg-[#0F172A] text-slate-200 border-t border-slate-800 py-1.5 px-3 overflow-hidden flex items-center text-xs font-mono-tabular gap-2">
-          <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold text-[10px] uppercase tracking-wider shrink-0 flex items-center gap-1.5 border border-amber-500/30">
-            <Lock className="w-3 h-3" />
+          <span
+            className={`px-2 py-0.5 rounded font-bold text-[10px] uppercase tracking-wider shrink-0 flex items-center gap-1.5 border ${
+              pmsState?.market_status?.is_open
+                ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30 animate-pulse"
+                : "bg-amber-500/20 text-amber-300 border-amber-500/30"
+            }`}
+          >
+            {pmsState?.market_status?.is_open ? (
+              <Radio className="w-3 h-3 text-emerald-400 animate-spin" />
+            ) : (
+              <Lock className="w-3 h-3" />
+            )}
             <span>{pmsState?.market_status?.label || "NEPSE MARKET CLOSED · STATIC LTP"}</span>
           </span>
+
+          <button
+            type="button"
+            onClick={handleSyncLiveMarket}
+            disabled={isSyncingLiveFeed}
+            className="px-2.5 py-0.5 rounded bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-500/40 text-[10px] font-bold uppercase tracking-wider shrink-0 flex items-center gap-1.5 cursor-pointer transition-colors disabled:opacity-50"
+            title="Sync portfolio valuations with the official NEPSE Live Market Feed (Zero Synthetic Prices)"
+          >
+            <RefreshCw className={`w-3 h-3 ${isSyncingLiveFeed ? "animate-spin" : ""}`} />
+            <span>{isSyncingLiveFeed ? "Syncing Feed..." : "Sync Live Feed"}</span>
+          </button>
           <span
             onClick={() => setActiveModule("tracker")}
             title="Click to inspect Verified NEPSE Closes vs Explicit Model Predictions"
@@ -1741,6 +1885,69 @@ export const App: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Local Device File Import & CSV Toolbar */}
+                  <div className={`p-3.5 rounded-xl border ${subCardBg} flex flex-wrap items-center justify-between gap-3`}>
+                    <div className="flex items-center gap-2">
+                      <FileSpreadsheet className="w-5 h-5 text-emerald-500" />
+                      <div>
+                        <div className="text-xs font-extrabold">Import Portfolio File from Local Device</div>
+                        <div className={`text-[11px] ${mutedText}`}>
+                          Select your .csv, .xlsx, .xls, .tsv, or .json file to populate this batch spreadsheet or import directly
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer shadow-sm">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Load File to Spreadsheet (Preview & Edit)</span>
+                        <input
+                          type="file"
+                          accept=".csv,.tsv,.txt,.json,.xlsx,.xls"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              handleLoadFileIntoBatchRows(e.target.files[0]);
+                            }
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+
+                      <label className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer shadow-sm">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>1-Click Direct Import File</span>
+                        <input
+                          type="file"
+                          accept=".csv,.tsv,.txt,.json,.xlsx,.xls"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              handleDirectImportLocalFile(e.target.files[0]);
+                            }
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={handleDownloadSampleCsv}
+                        className="px-3 py-1.5 rounded-lg border text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Sample CSV</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleExportCurrentCsv}
+                        className="px-3 py-1.5 rounded-lg border text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        <Download className="w-3.5 h-3.5 text-emerald-500" />
+                        <span>Export CSV</span>
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Optional Fast Paste Textarea */}
                   {showBatchPasteBox && (
                     <div className={`p-3.5 rounded-xl border ${subCardBg} space-y-2.5`}>
@@ -2440,125 +2647,20 @@ export const App: React.FC = () => {
           )}
 
           {/* =================================================================
-              VIEW 4: PMS CLIENT ACCOUNTS & CASH EDITOR
+              VIEW 4: PMS CLIENT ACCOUNTS & BROKER ACTIVITY INTELLIGENCE
              ================================================================= */}
           {activeModule === "accounts" && (
-            <div className="space-y-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-base font-extrabold">
-                    Connected PMS Sub-Accounts & CDSC Demat BOIDs
-                  </h2>
-                  <p className={`text-xs ${mutedText}`}>
-                    Update cash balances or add new stock holdings into any legal entity account
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsPortfolioManagerOpen(true)}
-                  className="px-4 py-2 rounded-xl bg-[#0062A8] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Add Stock Holding</span>
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {vault.sub_account_summaries?.map((sub: SubAccountSummary) => (
-                  <div
-                    key={sub.account_id}
-                    className={`p-5 rounded-xl border ${cardBg} space-y-4`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-600 uppercase">
-                          {sub.account_type} ENTITY
-                        </span>
-                        <h3 className="text-base font-extrabold mt-1">
-                          {sub.account_label}
-                        </h3>
-                        <p className={`text-xs font-mono-tabular ${mutedText}`}>
-                          16-Digit CDSC BOID: {sub.boid_id} · Broker TMS #{sub.broker_code} ({sub.tms_client_code})
-                        </p>
-                      </div>
-                      <Building2 className="w-6 h-6 text-[#0062A8]" />
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-3 font-mono-tabular">
-                      <div className={`p-3 rounded-lg border ${subCardBg}`}>
-                        <div className={`text-[10px] font-sans uppercase ${mutedText}`}>
-                          Available Equity
-                        </div>
-                        <div className="text-sm font-extrabold mt-0.5">
-                          NPR {(sub.available_equity / 1_000_000).toFixed(2)}M
-                        </div>
-                      </div>
-                      <div className={`p-3 rounded-lg border ${subCardBg}`}>
-                        <div className={`text-[10px] font-sans uppercase ${mutedText}`}>
-                          Settled Cash
-                        </div>
-                        <div className="text-sm font-extrabold text-emerald-600 mt-0.5">
-                          NPR {sub.available_cash.toLocaleString("en-IN")}
-                        </div>
-                      </div>
-                      <div className={`p-3 rounded-lg border ${subCardBg}`}>
-                        <div className={`text-[10px] font-sans uppercase ${mutedText}`}>
-                          T+2 Locked Cash
-                        </div>
-                        <div className="text-sm font-extrabold text-amber-500 mt-0.5">
-                          NPR {sub.unsettled_cash_locked.toLocaleString("en-IN")}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Inline Cash Balance Update */}
-                    <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                      {editingCashAccountId === sub.account_id ? (
-                        <div className="flex items-center gap-2 w-full">
-                          <input
-                            type="number"
-                            value={editingCashValue}
-                            onChange={(e) => setEditingCashValue(e.target.value)}
-                            placeholder="New cash balance (NPR)"
-                            className={`px-3 py-1.5 rounded-lg border text-xs font-mono-tabular flex-1 ${subCardBg}`}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => handleSaveCashBalance(sub.account_id)}
-                            className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold cursor-pointer"
-                          >
-                            Save Cash
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setEditingCashAccountId(null)}
-                            className="px-2.5 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-800 text-xs font-semibold cursor-pointer"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <span className={`text-xs ${mutedText}`}>
-                            Total Cash Ledger: NPR {sub.cash_balance.toLocaleString("en-IN")}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingCashAccountId(sub.account_id);
-                              setEditingCashValue(String(sub.cash_balance));
-                            }}
-                            className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-blue-600 hover:text-white text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
-                          >
-                            <Edit3 className="w-3 h-3" /> Edit Cash Balance
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <AccountBrokerManager
+              subAccounts={vault.sub_account_summaries || []}
+              apiBase={apiBase}
+              executiveLightMode={executiveLightMode}
+              onRefresh={() => fetchPmsState(toxicSimulated)}
+              onOpenPortfolioManager={() => setIsPortfolioManagerOpen(true)}
+              cardBg={cardBg}
+              subCardBg={subCardBg}
+              mutedText={mutedText}
+              heldSymbols={Object.keys(livePrices)}
+            />
           )}
 
           {/* =================================================================

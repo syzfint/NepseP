@@ -26,6 +26,7 @@ from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnec
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+import uvicorn
 import numpy as np
 try:
     import pandas as pd
@@ -879,32 +880,153 @@ class ApexWealthStateStore:
         return sorted(out, key=lambda x: -x["current_weight_pct"])
 
     def get_nepse_market_status(self) -> Dict[str, Any]:
-        """Check Nepal Standard Time (UTC+05:45) for NEPSE session (Sun-Thu 11:00-15:00 NPT)."""
+        """
+        Check Nepal Standard Time (UTC+05:45) and query official NEPSE API status.
+        NEPSE trading sessions run Sunday - Thursday 11:00 - 15:00 NPT.
+        """
+        import time
+        now_ts = time.time()
         npt_now = datetime.now(timezone(timedelta(hours=5, minutes=45)))
         is_trading_day = npt_now.weekday() in (6, 0, 1, 2, 3)
         minutes_now = npt_now.hour * 60 + npt_now.minute
         is_trading_hours = (11 * 60) <= minutes_now < (15 * 60)
-        is_session_open = bool(is_trading_day and is_trading_hours)
-        return {
-            "is_open": False,
-            "nepse_session_active": is_session_open,
-            "npt_time": npt_now.strftime("%Y-%m-%d %H:%M NPT"),
-            "label": "NEPSE MARKET CLOSED · STATIC LTP",
-            "detail": "Offline / After-Hours Mode — Prices are static Closing / User-Fed LTPs (0 fake live ticks)",
-        }
+        is_session_active = bool(is_trading_day and is_trading_hours)
+
+        if hasattr(self, "_cached_nepse_status") and (now_ts - getattr(self, "_last_status_check_ts", 0.0)) < 15.0:
+            cached = dict(self._cached_nepse_status)
+            cached["npt_time"] = npt_now.strftime("%Y-%m-%d %H:%M NPT")
+            return cached
+
+        api_is_open = False
+        api_as_of = ""
+        try:
+            from nepse_client import NepseClient
+            c = NepseClient()
+            st = c.getMarketStatus()
+            api_is_open = str(st.get("isOpen", "")).strip().upper() == "OPEN"
+            api_as_of = str(st.get("asOf", ""))
+        except Exception:
+            api_is_open = False
+
+        is_open = bool(api_is_open)
+
+        if is_open:
+            status_obj = {
+                "is_open": True,
+                "nepse_session_active": True,
+                "npt_time": npt_now.strftime("%Y-%m-%d %H:%M NPT"),
+                "as_of": api_as_of,
+                "label": "NEPSE MARKET LIVE · REAL-TIME FEED",
+                "detail": "Connected to official NEPSE live market feed (0 synthetic prices)",
+                "live_sync_active": True,
+            }
+        else:
+            status_obj = {
+                "is_open": False,
+                "nepse_session_active": is_session_active,
+                "npt_time": npt_now.strftime("%Y-%m-%d %H:%M NPT"),
+                "as_of": api_as_of,
+                "label": "NEPSE MARKET CLOSED · STATIC LTP",
+                "detail": "Offline / After-Hours Mode — Prices are Verified Closing / User-Fed LTPs (0 fake ticks)",
+                "live_sync_active": False,
+            }
+
+        self._cached_nepse_status = status_obj
+        self._last_status_check_ts = now_ts
+        return status_obj
+
+    def sync_live_market_data(self, force: bool = False) -> Dict[str, Any]:
+        """
+        Synchronize portfolio holding valuations directly with official NEPSE Live Market Feed.
+        Only genuine ticks are used; ZERO synthetic prices are ever generated.
+        """
+        import time
+        now_ts = time.time()
+        if not force and hasattr(self, "_last_live_sync_ts") and (now_ts - getattr(self, "_last_live_sync_ts", 0.0)) < 8.0:
+            return {"status": "THROTTLED", "message": "Live feed recently synced"}
+
+        try:
+            from nepse_client import NepseClient
+            c = NepseClient()
+            mkt_status = self.get_nepse_market_status()
+            is_open = mkt_status.get("is_open", False)
+
+            if not is_open and not force:
+                return {
+                    "status": "MARKET_CLOSED",
+                    "market_is_open": False,
+                    "message": "NEPSE market is currently closed. Offline/Verified Closing LTPs remain active.",
+                }
+
+            live_records = c.getLiveMarket()
+            if not live_records:
+                return {"status": "NO_DATA", "message": "No live market data returned by NEPSE feed"}
+
+            held_syms = set()
+            for sub in self.vault.sub_accounts:
+                for boid in sub.demat_boids:
+                    for lot in boid.tax_lots:
+                        held_syms.add(lot.symbol.strip().upper())
+
+            updated_symbols: List[str] = []
+            for item in live_records:
+                sym = str(item.get("symbol", "")).strip().upper()
+                if not sym:
+                    continue
+                ltp = float(item.get("lastTradedPrice") or item.get("closePrice") or 0.0)
+                if ltp <= 0:
+                    continue
+                ts = str(item.get("lastUpdatedDateTime") or mkt_status.get("as_of", "") or "")
+                vol = item.get("totalTradeQuantity", 0)
+                val = item.get("totalTradeValue", 0.0)
+                detail = f"NEPSE Live Feed ({ts}) [Vol: {vol:,}, Trades: NPR {val:,.2f}]"
+                self.integrity_engine.register_live_feed_quote(
+                    symbol=sym,
+                    ltp=ltp,
+                    as_of_date=ts[:10] if ts else "Live",
+                    source_detail=detail,
+                )
+                if sym in held_syms:
+                    self.market_prices[sym] = ltp
+                    updated_symbols.append(sym)
+
+            self._last_live_sync_ts = now_ts
+            self._sync_active_symbols_with_holdings()
+            self._refresh_full_state()
+            self._save_persisted_user_store()
+
+            return {
+                "status": "SUCCESS",
+                "market_is_open": is_open,
+                "records_received": len(live_records),
+                "held_symbols_updated": updated_symbols,
+                "updated_count": len(updated_symbols),
+                "portfolio_nav_npr": round(self.ledger.nav_total, 2),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        except Exception as exc:
+            return {"status": "ERROR", "message": f"Failed to sync NEPSE live feed: {exc}"}
 
     def step_live_tick(self) -> Dict[str, Any]:
-        """Static telemetry heartbeat — never fabricates or mutates stock prices."""
+        """Telemetry heartbeat — syncs live NEPSE ticks when session is open, otherwise static heartbeat."""
         self.tick_sequence += 1
-        health = self.get_health_telemetry()
         mkt_status = self.get_nepse_market_status()
+        
+        # When NEPSE market is open, automatically sync live market prices periodically (every ~10s / 2 ticks)
+        live_sync_info = None
+        if mkt_status.get("is_open") and (self.tick_sequence % 2 == 0):
+            live_sync_info = self.sync_live_market_data(force=False)
+
+        health = self.get_health_telemetry()
         return {
             "type": "HEARTBEAT",
             "sequence_id": self.tick_sequence,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "market_status": mkt_status,
+            "live_sync": live_sync_info,
             "health_score": health.score,
             "health_status": health.status,
+            "portfolio_nav_npr": round(self.ledger.nav_total, 2),
         }
 
 
@@ -1836,6 +1958,18 @@ async def update_symbol_ltp(req: UpdateLtpRequest) -> Dict[str, Any]:
     }
 
 
+@app.post("/api/v1/pms/market/sync_live")
+async def sync_live_market(force: bool = Query(default=False)) -> Dict[str, Any]:
+    """
+    Sync portfolio holding valuations directly with official NEPSE Live Market Feed.
+    Automatically active during market hours (Sun-Thu 11:00-15:00 NPT).
+    Set force=True to synchronize the latest live snapshot even after market close.
+    ZERO synthetic prices are ever generated.
+    """
+    res = state_store.sync_live_market_data(force=force)
+    return res
+
+
 @app.websocket("/ws/pms/telemetry")
 async def websocket_pms_telemetry(websocket: WebSocket) -> None:
     """
@@ -1869,11 +2003,8 @@ if FRONTEND_DIST.exists():
 
 
 if __name__ == "__main__":
-    import uvicorn
-
     uvicorn.run(
-        "main:app",
+        app,
         host="127.0.0.1",
         port=int(os.getenv("APEX_WEALTH_PORT", "8888")),
-        reload=False,
     )
