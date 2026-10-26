@@ -439,6 +439,46 @@ async def serve_terminal_ui():
     return HTMLResponse("<h3>Error: pulse_terminal/index.html not found.</h3>", status_code=404)
 
 
+# ------------------------------------------------------------------------------
+# INSTITUTIONAL SURVEILLANCE COCKPIT 10-SCREEN INTEGRATION
+# ------------------------------------------------------------------------------
+TEMPLATES_COCKPIT = BASE_DIR / "apex_engine" / "templates"
+
+@app.get("/cockpit/ofi-depth", response_class=HTMLResponse)
+async def serve_cockpit_s04():
+    s04_file = TEMPLATES_COCKPIT / "screen_s04_ofi_depth.html"
+    if s04_file.exists():
+        return FileResponse(s04_file)
+    return HTMLResponse("<h3>Screen S04 template missing.</h3>", status_code=404)
+
+@app.get("/cockpit/merkle-lakehouse", response_class=HTMLResponse)
+async def serve_cockpit_s10():
+    s10_file = TEMPLATES_COCKPIT / "screen_s10_merkle_lakehouse.html"
+    if s10_file.exists():
+        return FileResponse(s10_file)
+    return HTMLResponse("<h3>Screen S10 template missing.</h3>", status_code=404)
+
+@app.get("/api/merkle")
+async def serve_merkle_api():
+    sys.path.insert(0, str(BASE_DIR / "scripts" / "03_data_access_and_storage"))
+    try:
+        from merkle_provenance_engine import MerkleProvenanceChain
+        chain = MerkleProvenanceChain(chain_path=BASE_DIR / "data" / "merkle_provenance.chain")
+        return {
+            "status": "OK",
+            "blocks": chain.entries[-50:],
+            "total_blocks": len(chain.entries),
+            "tip_hash": chain.get_latest_hash()
+        }
+    except Exception as e:
+        return {"status": "ERROR", "message": str(e)}
+
+@app.get("/api/ofi")
+async def serve_ofi_api():
+    from apex_engine.api_server import get_mock_or_live_ofi_state
+    return get_mock_or_live_ofi_state()
+
+
 AUDIT_DB = BASE_DIR / "quant_audit" / "logs" / "centaur_execution_audit.db"
 
 def init_audit_db():
