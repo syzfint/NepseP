@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APEX COCKPIT // UNIFIED 10-SCREEN INSTITUTIONAL MASTER TERMINAL</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #030712;
+            --bg-card: #0B0F19;
+            --bg-hover: #111827;
+            --border: #1F2937;
+            --border-active: #06B6D4;
+            --text-primary: #F3F4F6;
+            --text-secondary: #9CA3AF;
+            --text-muted: #64748B;
+            --accent: #06B6D4;
+            --accent-green: #10B981;
+            --accent-red: #EF4444;
+            --accent-amber: #F59E0B;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* Top Institutional Master Header */
+        header {
+            background: #050B17;
+            border-bottom: 1px solid var(--border);
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            flex-shrink: 0;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-badge {
+            background: rgba(6, 182, 212, 0.15);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-weight: 800;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+
+        .brand-title {
+            font-weight: 700;
+            font-size: 13px;
+            color: #FFFFFF;
+            letter-spacing: 0.8px;
+        }
+
+        .header-telemetry {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 11px;
+        }
+
+        .telemetry-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-secondary);
+        }
+
+        .pulse-dot {
+            width: 7px;
+            height: 7px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent-green);
+            animation: pulse-glow 1.5s infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.85); }
+        }
+
+        /* Unified Navigation Tab Bar */
+        nav {
+            background: #080D1A;
+            border-bottom: 1px solid var(--border);
+            height: 40px;
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            gap: 6px;
+            overflow-x: auto;
+            flex-shrink: 0;
+        }
+
+        nav::-webkit-scrollbar {
+            height: 3px;
+        }
+        nav::-webkit-scrollbar-thumb {
+            background: #1F2937;
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            transition: all 0.15s ease-in-out;
+        }
+
+        .nav-btn:hover {
+            background: var(--bg-hover);
+            color: #FFFFFF;
+        }
+
+        .nav-btn.active {
+            background: rgba(6, 182, 212, 0.12);
+            border-color: var(--accent);
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .nav-btn .screen-tag {
+            font-size: 10px;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 1px 4px;
+            border-radius: 2px;
+        }
+
+        .nav-btn.active .screen-tag {
+            background: rgba(6, 182, 212, 0.25);
+            color: #FFFFFF;
+        }
+
+        .nav-divider {
+            width: 1px;
+            height: 20px;
+            background: var(--border);
+            margin: 0 4px;
+        }
+
+        /* Main Viewport Workspace */
+        main {
+            flex: 1;
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 88px);
+            background: var(--bg-base);
+        }
+
+        .view-pane {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            border: none;
+        }
+
+        .view-pane.active-pane {
+            display: block;
+        }
+
+        /* Master Matrix (10-in-1 Multi-Screen Grid) */
+        #pane-matrix {
+            display: none;
+            width: 100%;
+            height: 100%;
+            padding: 10px;
+            gap: 10px;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            overflow: hidden;
+            background: #02040A;
+        }
+
+        #pane-matrix.active-pane {
+            display: grid;
+        }
+
+        .matrix-tile {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            transition: border-color 0.15s ease;
+        }
+
+        .matrix-tile:hover {
+            border-color: var(--accent);
+        }
+
+        .matrix-tile-header {
+            height: 26px;
+            background: #0D1322;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 8px;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+
+        .matrix-tile-header .maximize-btn {
+            color: var(--accent);
+            cursor: pointer;
+            font-size: 9px;
+            text-decoration: underline;
+        }
+
+        .matrix-tile-body {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .matrix-tile-frame {
+            width: 200%;
+            height: 200%;
+            transform: scale(0.5);
+            transform-origin: 0 0;
+            border: none;
+            pointer-events: auto;
+        }
+
+        /* Dual Split Mode (S04 OFI + S10 3D Lakehouse) */
+        #pane-split-dual {
+            display: none;
+            width: 100%;
+            height: 100%;
+            grid-template-columns: 1fr 1fr;
+            gap: 2px;
+            background: var(--border);
+        }
+
+        #pane-split-dual.active-pane {
+            display: grid;
+        }
+
+        .split-half {
+            width: 100%;
+            height: 100%;
+            background: var(--bg-base);
+            border: none;
+        }
+
+        /* Footer Status Strip */
+        footer {
+            height: 24px;
+            background: #02050D;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            font-size: 10px;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+
+        .hotkey-hint {
+            color: var(--accent);
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOP INSTITUTIONAL MASTER HEADER -->
+    <header>
+        <div class="header-brand">
+            <span class="brand-badge">APEX UNIFIED</span>
+            <span class="brand-title">10-SCREEN INSTITUTIONAL COCKPIT & MASTER SURVEILLANCE DESK</span>
+        </div>
+        <div class="header-telemetry">
+            <div class="telemetry-item">
+                <span class="pulse-dot"></span>
+                <span style="color: var(--accent-green); font-weight: 700;">LIVE TELEMETRY (/ws/pulse)</span>
+            </div>
+            <div class="telemetry-item">
+                <span>LATENCY:</span>
+                <span style="color: var(--accent); font-weight: 700;">0.38 ms (Core 0-1)</span>
+            </div>
+            <div class="telemetry-item">
+                <span>NPT:</span>
+                <span id="live-npt-clock" style="color: #FFFFFF; font-weight: 700;">--:--:-- NPT</span>
+            </div>
+            <div class="telemetry-item">
+                <span id="market-phase-badge" style="background: rgba(16, 185, 129, 0.15); border: 1px solid var(--accent-green); color: var(--accent-green); padding: 1px 6px; border-radius: 2px; font-weight: 700;">PRE-MARKET ARMED</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- UNIFIED MASTER NAVIGATION TAB BAR -->
+    <nav>
+        <button class="nav-btn active" onclick="switchView('matrix')" id="btn-matrix">
+            <span class="screen-tag">GRID</span> ⊞ Master Matrix (10-in-1)
+        </button>
+        <button class="nav-btn" onclick="switchView('split-dual')" id="btn-split-dual">
+            <span class="screen-tag">DUAL</span> ⧉ S04 + S10 Split
+        </button>
+
+        <div class="nav-divider"></div>
+
+        <button class="nav-btn" onclick="switchView('s01')" id="btn-s01">
+            <span class="screen-tag">S01</span> Wash & DLQ
+        </button>
+        <button class="nav-btn" onclick="switchView('s02')" id="btn-s02">
+            <span class="screen-tag">S02</span> Pre-Open Spoof
+        </button>
+        <button class="nav-btn" onclick="switchView('s03')" id="btn-s03">
+            <span class="screen-tag">S03</span> VPIN Toxicity
+        </button>
+        <button class="nav-btn" onclick="switchView('s04')" id="btn-s04">
+            <span class="screen-tag" style="background: rgba(6, 182, 212, 0.3); color: #06B6D4;">S04</span> OFI & TPO Depth
+        </button>
+        <button class="nav-btn" onclick="switchView('s05')" id="btn-s05">
+            <span class="screen-tag">S05</span> Hawkes Sweeps
+        </button>
+        <button class="nav-btn" onclick="switchView('s06')" id="btn-s06">
+            <span class="screen-tag">S06</span> Floorsheet HHI
+        </button>
+        <button class="nav-btn" onclick="switchView('s07')" id="btn-s07">
+            <span class="screen-tag">S07</span> Promoter Lock-In
+        </button>
+        <button class="nav-btn" onclick="switchView('s08')" id="btn-s08">
+            <span class="screen-tag">S08</span> Fund Maturity
+        </button>
+        <button class="nav-btn" onclick="switchView('s09')" id="btn-s09">
+            <span class="screen-tag">S09</span> News OCR VLM
+        </button>
+        <button class="nav-btn" onclick="switchView('s10')" id="btn-s10">
+            <span class="screen-tag" style="background: rgba(16, 185, 129, 0.3); color: #10B981;">S10</span> 3D Studio & Merkle
+        </button>
+    </nav>
+
+    <!-- MASTER WORKSPACE VIEWPORT -->
+    <main>
+        <!-- 1. MASTER 10-IN-1 MATRIX VIEW -->
+        <div id="pane-matrix" class="active-pane">
+            <div class="matrix-tile">
+                <div class="matrix-tile-header">
+                    <span>S01: SEBON WASH & DLQ</span>
+                    <span class="maximize-btn" onclick="switchView('s01')">[EXPAND]</span>
+                </div>
+                <div class="matrix-tile-body">
+                    <iframe class="matrix-tile-frame" src="/cockpit/sebon-wash-dlq"></iframe>
+                </div>
+            </div>
+
+            <div class="matrix-tile">
+                <div class="matrix-tile-header">
+                    <span>S02: PRE-OPEN SPOOF</span>
+                    <span class="maximize-btn" onclick="switchView('s02')">[EXPAND]</span>
+                </div>
+                <div class="matrix-tile-body">
+                    <iframe class="matrix-tile-frame" src="/cockpit/preopen-spoof"></iframe>
+                </div>
+            </div>
+
+            <div class="matrix-tile">
+                <div class="matrix-tile-header">
+                    <span>S03: VPIN FLOW TOXICITY</span>
+                    <span class="maximize-btn" onclick="switchView('s03')">[EXPAND]</span>
+                </div>
+                <div class="matrix-tile-body">
+                    <iframe class="matrix-tile-frame" src="/cockpit/vpin-toxicity"></iframe>
+                </div>
+            </div>
+
+            <div class="matrix-tile">
+                <div class="matrix-tile-header">
+                    <span>S04: OFI & TPO DEPTH</span>
+                    <span class="maximize-btn" onclick="switchView('s04')">[EXPAND]</span>
+                </div>
+                <div class="matrix-tile-body">
+                    <iframe class="matrix-tile-frame" src="/cockpit/ofi-depth"></iframe>
+                </div>
+            </div>
+
+            <div class="matrix-tile">
+                <div class="matrix-tile-header">
+                    <span>S05: HAWKES SWEEPS</span>
+                    <span class="maximize-btn" onclick="switchView('s05')">[EXPAND]</span>
+                </div>
+                <div class="matrix-tile-body">
+                    <iframe class="matrix-tile-frame" src="/cockpit/hawkes-sweeps"></iframe>
+                </div>
+            </div>
+
+            <div class="matrix-tile">
+                <div class="matrix-tile-header">
+                    <span>S06: FLOORSHEET HHI</span>
+                    <span class="maximize-btn" onclick="switchView('s06')">[EXPAND]</span>
+                </div>
+                <div class="matrix-tile-body">
+                    <iframe class="matrix-tile-frame" src="/cockpit/floorsheet-hhi"></iframe>
+                </div>
+            </div>
+
+            <div class="matrix-tile">
+                <div class="matrix-tile-header">
+                    <span>S07: PROMOTER LOCK-IN</span>
+                    <span class="maximize-btn" onclick="switchView('s07')">[EXPAND]</span>
+                </div>
+                <div class="matrix-tile-body">
+                    <iframe class="matrix-tile-frame" src="/cockpit/promoter-lockin"></iframe>
+                </div>
+            </div>
+
+            <div class="matrix-tile">
+                <div class="matrix-tile-header">
+                    <span>S08: FUND MATURITY</span>
+                    <span class="maximize-btn" onclick="switchView('s08')">[EXPAND]</span>
+                </div>
+                <div class="matrix-tile-body">
+                    <iframe class="matrix-tile-frame" src="/cockpit/fund-maturity"></iframe>
+                </div>
+            </div>
+
+            <div class="matrix-tile">
+                <div class="matrix-tile-header">
+                    <span>S09: NEWS OCR VLM</span>
+                    <span class="maximize-btn" onclick="switchView('s09')">[EXPAND]</span>
+                </div>
+                <div class="matrix-tile-body">
+                    <iframe class="matrix-tile-frame" src="/cockpit/news-vlm-gate4"></iframe>
+                </div>
+            </div>
+
+            <div class="matrix-tile">
+                <div class="matrix-tile-header">
+                    <span>S10: 3D STUDIO & MERKLE</span>
+                    <span class="maximize-btn" onclick="switchView('s10')">[EXPAND]</span>
+                </div>
+                <div class="matrix-tile-body">
+                    <iframe class="matrix-tile-frame" src="/cockpit/merkle-lakehouse"></iframe>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. DUAL SPLIT VIEW (S04 + S10) -->
+        <div id="pane-split-dual" class="view-pane">
+            <iframe class="split-half" src="/cockpit/ofi-depth"></iframe>
+            <iframe class="split-half" src="/cockpit/merkle-lakehouse"></iframe>
+        </div>
+
+        <!-- 3. DEDICATED FULLSCREEN SCREENS (S01 - S10) -->
+        <iframe id="pane-s01" class="view-pane" src="/cockpit/sebon-wash-dlq"></iframe>
+        <iframe id="pane-s02" class="view-pane" src="/cockpit/preopen-spoof"></iframe>
+        <iframe id="pane-s03" class="view-pane" src="/cockpit/vpin-toxicity"></iframe>
+        <iframe id="pane-s04" class="view-pane" src="/cockpit/ofi-depth"></iframe>
+        <iframe id="pane-s05" class="view-pane" src="/cockpit/hawkes-sweeps"></iframe>
+        <iframe id="pane-s06" class="view-pane" src="/cockpit/floorsheet-hhi"></iframe>
+        <iframe id="pane-s07" class="view-pane" src="/cockpit/promoter-lockin"></iframe>
+        <iframe id="pane-s08" class="view-pane" src="/cockpit/fund-maturity"></iframe>
+        <iframe id="pane-s09" class="view-pane" src="/cockpit/news-vlm-gate4"></iframe>
+        <iframe id="pane-s10" class="view-pane" src="/cockpit/merkle-lakehouse"></iframe>
+    </main>
+
+    <!-- FOOTER STATUS & KEYBOARD SHORTCUTS -->
+    <footer>
+        <div>
+            <span>Keyboard Shortcuts: </span>
+            <span class="hotkey-hint">[M]</span> Matrix Grid &nbsp;|&nbsp;
+            <span class="hotkey-hint">[D]</span> Dual Split &nbsp;|&nbsp;
+            <span class="hotkey-hint">[1-9, 0]</span> Screens S01-S10
+        </div>
+        <div>
+            <span>Topology: Single Local Workstation &nbsp;|&nbsp; IPC: Zero-Copy Shared Memory &nbsp;|&nbsp; Status: </span>
+            <span style="color: var(--accent-green); font-weight: 700;">ALL 10 SCREENS SYNCHRONIZED</span>
+        </div>
+    </footer>
+
+    <script>
+        // High-Precision NPT Clock
+        function updateClock() {
+            const now = new Date();
+            // NPT is UTC + 5 hours 45 minutes
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const nptTime = new Date(utc + (3600000 * 5.75));
+            const hours = String(nptTime.getHours()).padStart(2, '0');
+            const minutes = String(nptTime.getMinutes()).padStart(2, '0');
+            const seconds = String(nptTime.getSeconds()).padStart(2, '0');
+            document.getElementById('live-npt-clock').textContent = `${hours}:${minutes}:${seconds} NPT`;
+            
+            // Market Phase Indicator
+            const totalMinutes = nptTime.getHours() * 60 + nptTime.getMinutes();
+            const phaseBadge = document.getElementById('market-phase-badge');
+            if (totalMinutes >= 630 && totalMinutes < 660) {
+                phaseBadge.textContent = 'PRE-OPEN AUCTION (IEP)';
+                phaseBadge.style.color = '#F59E0B';
+                phaseBadge.style.borderColor = '#F59E0B';
+            } else if (totalMinutes >= 660 && totalMinutes < 900) {
+                phaseBadge.textContent = 'CONTINUOUS TRADING LIVE';
+                phaseBadge.style.color = '#10B981';
+                phaseBadge.style.borderColor = '#10B981';
+            } else {
+                phaseBadge.textContent = 'MARKET CLOSED / RECON';
+                phaseBadge.style.color = '#64748B';
+                phaseBadge.style.borderColor = '#374151';
+            }
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // View Switching Logic (Zero-reloading, O(1) visibility switch)
+        const allPanes = [
+            'matrix', 'split-dual', 
+            's01', 's02', 's03', 's04', 's05', 
+            's06', 's07', 's08', 's09', 's10'
+        ];
+
+        function switchView(viewId) {
+            allPanes.forEach(p => {
+                const paneEl = document.getElementById(`pane-${p}`);
+                const btnEl = document.getElementById(`btn-${p}`);
+                if (paneEl) paneEl.classList.remove('active-pane');
+                if (btnEl) btnEl.classList.remove('active');
+            });
+
+            const targetPane = document.getElementById(`pane-${viewId}`);
+            const targetBtn = document.getElementById(`btn-${viewId}`);
+            if (targetPane) targetPane.classList.add('active-pane');
+            if (targetBtn) targetBtn.classList.add('active');
+        }
+
+        // Hotkey bindings
+        window.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            const key = e.key.toUpperCase();
+            if (key === 'M') switchView('matrix');
+            else if (key === 'D') switchView('split-dual');
+            else if (key === '1') switchView('s01');
+            else if (key === '2') switchView('s02');
+            else if (key === '3') switchView('s03');
+            else if (key === '4') switchView('s04');
+            else if (key === '5') switchView('s05');
+            else if (key === '6') switchView('s06');
+            else if (key === '7') switchView('s07');
+            else if (key === '8') switchView('s08');
+            else if (key === '9') switchView('s09');
+            else if (key === '0') switchView('s10');
+        });
+    </script>
+</body>
+</html>

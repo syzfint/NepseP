@@ -77,35 +77,28 @@ if %errorLevel% neq 0 goto :POLL_READY
 
 echo [OK] Port %APEX_PORT% is ONLINE and WebSocket /ws/pulse is active!
 
-:: 6. LAUNCH COCKPIT SCREENS
+:: 6. LAUNCH UNIFIED MASTER COCKPIT WINDOW (10-IN-1 ZERO DEGRADATION)
 :DEPLOY_UI
 call :DETECT_BROWSER
 
-if /i "%CMD_ARG%"=="--all" (
-    echo [COCKPIT] Deploying all 10 unthrottled institutional screens...
-    call :SPAWN_APP "S01" "0,0"      "960,540"  "/cockpit/sebon-wash-dlq"
-    call :SPAWN_APP "S02" "960,0"    "960,540"  "/cockpit/preopen-spoof"
-    call :SPAWN_APP "S03" "0,540"    "960,540"  "/cockpit/vpin-toxicity"
-    call :SPAWN_APP "S04" "960,540"  "960,540"  "/cockpit/ofi-depth"
-    call :SPAWN_APP "S05" "1920,0"   "960,540"  "/cockpit/hawkes-sweeps"
-    call :SPAWN_APP "S06" "2880,0"   "960,540"  "/cockpit/floorsheet-hhi"
-    call :SPAWN_APP "S07" "1920,540" "960,540"  "/cockpit/promoter-lockin"
-    call :SPAWN_APP "S08" "2880,540" "960,540"  "/cockpit/fund-maturity"
-    call :SPAWN_APP "S09" "3840,0"   "1920,540" "/cockpit/news-vlm-gate4"
-    call :SPAWN_APP "S10" "3840,540" "1920,540" "/cockpit/merkle-lakehouse"
-) else (
-    echo [COCKPIT] Opening Institutional Command Center at %APEX_BASE_URL%/
-    start "" "%BROWSER_EXE%" --app="%APEX_BASE_URL%/"
-    start "" "%BROWSER_EXE%" --app="%APEX_BASE_URL%/cockpit/ofi-depth"
-    start "" "%BROWSER_EXE%" --app="%APEX_BASE_URL%/cockpit/merkle-lakehouse"
-)
+echo [COCKPIT] Deploying Unified 10-in-1 Master Cockpit (Single Maximized Window)...
+set "MASTER_PROF=%LOCALAPPDATA%\ApexCockpitProfiles\UnifiedMaster"
+if not exist "%MASTER_PROF%" mkdir "%MASTER_PROF%"
+
+start "Apex_Unified_Master_Cockpit" "%BROWSER_EXE%" ^
+    --user-data-dir="%MASTER_PROF%" ^
+    --app="%APEX_BASE_URL%/" ^
+    --start-maximized ^
+    --no-first-run --no-default-browser-check ^
+    --disable-background-timer-throttling --disable-renderer-backgrounding
 
 echo ============================================================================
-echo   [ACTIVE] APEXMARKETENGINE SYSTEM IS RUNNING 24/7
-echo   - Command Hub : %APEX_BASE_URL%/
-echo   - Screen S04  : %APEX_BASE_URL%/cockpit/ofi-depth (Cont-Stoikov OFI and TPO)
-echo   - Screen S10  : %APEX_BASE_URL%/cockpit/merkle-lakehouse (3D Overfitting Studio)
-echo   - WS Stream   : ws://%APEX_HOST%:%APEX_PORT%/ws/pulse
+echo   [ACTIVE] APEX UNIFIED 10-SCREEN MASTER COCKPIT ONLINE
+echo   - Master Single Window : %APEX_BASE_URL%/
+echo   - Master Matrix View   : Hotkey [M]
+echo   - Dual Split (S04+S10) : Hotkey [D]
+echo   - Dedicated Screens    : Hotkeys [1-9, 0] (S01 to S10)
+echo   - Telemetry Stream     : ws://%APEX_HOST%:%APEX_PORT%/ws/pulse
 echo   To stop all processes, run:  run.bat --stop
 echo ============================================================================
 goto :EOF

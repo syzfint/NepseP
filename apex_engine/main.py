@@ -133,9 +133,16 @@ def load_template_or_default(template_name: str, fallback_title: str, screen_id:
 </html>"""
 
 
-# Root Navigation Dashboard
+# Unified 10-in-1 Master Cockpit (Zero Degradation Single-Window Mode)
 @app.get("/", response_class=HTMLResponse)
-async def cockpit_index():
+@app.get("/cockpit/unified", response_class=HTMLResponse)
+async def cockpit_unified():
+    return HTMLResponse(load_template_or_default("screen_unified_master.html", "Unified 10-Screen Institutional Cockpit", "MASTER"))
+
+
+# Catalog Index (Fallback list of direct individual links)
+@app.get("/cockpit/catalog", response_class=HTMLResponse)
+async def cockpit_catalog():
     screens = [
         ("S01", "SEBON Wash & Dead Letter Queue", "/cockpit/sebon-wash-dlq"),
         ("S02", "Pre-Open Spoof & Gap Manipulator", "/cockpit/preopen-spoof"),
