@@ -25,6 +25,8 @@ from typing import List, Dict, Any
 import httpx
 
 BASE_DIR = Path(os.environ.get("NEPSE_BASE_DIR", r"C:/Users/achar/Downloads/neps"))
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
 PROCESSED_DIR = BASE_DIR / "02_processed_parquet"
 DB_PATH = PROCESSED_DIR / "news_and_events.duckdb"
 
