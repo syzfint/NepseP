@@ -144,9 +144,24 @@ def run_master_pipeline():
     print("\n[STEP 1] Ingesting Live NEPSE Microstructure & Order Book Ticks...")
     streamer = NepseMicrostructureStreamer()
     live_status = streamer.get_market_index_status()
-    nepse_curr = live_status.get("nepse_index", 2574.65)
-    nepse_chg = live_status.get("nepse_change", -4.08)
-    print(f"  Live NEPSE Status: {live_status.get('isOpen', 'OPEN')} | Index: {nepse_curr} ({nepse_chg:+.2f} pts)")
+    if not live_status or not live_status.get("nepse_index"):
+        state_file = BASE_DIR / "static_data" / "live_market_state.json"
+        if state_file.exists():
+            try:
+                with open(state_file, "r", encoding="utf-8") as f:
+                    s_data = json.load(f)
+                    idx_m = s_data.get("index_metrics", {})
+                    live_status = {
+                        "isOpen": "CLOSE",
+                        "nepse_index": idx_m.get("nepse_index", 2626.17),
+                        "nepse_change": idx_m.get("point_change", -3.65),
+                        "nepse_pct_change": idx_m.get("percentage_change", -0.13)
+                    }
+            except Exception:
+                pass
+    nepse_curr = live_status.get("nepse_index", 2626.17)
+    nepse_chg = live_status.get("nepse_change", -3.65)
+    print(f"  Live NEPSE Status: {live_status.get('isOpen', 'CLOSE')} | Index: {nepse_curr} ({nepse_chg:+.2f} pts)")
 
     # 2. LAKEHOUSE STORAGE CHECK & LOADING
     print("\n[STEP 2] Connecting to DuckDB Lakehouse...")
